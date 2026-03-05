@@ -2,6 +2,17 @@
 
 Internal staff portal web application for Gaitens Leisure Group.
 
+## 🚀 Deployment
+
+**Note:** This is a Next.js application with server-side features. GitHub Pages will only show the README file. 
+
+**Recommended:** Deploy to [Vercel](https://vercel.com) for the best Next.js experience:
+1. Connect your GitHub repository
+2. Add environment variables
+3. Deploy automatically on every push
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+
 ## Tech Stack
 
 - **Next.js 14** (App Router)
