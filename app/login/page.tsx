@@ -17,8 +17,7 @@ export default async function LoginPage() {
       <div 
         className="h-screen flex flex-col items-center justify-center bg-background overflow-hidden px-4 sm:px-6" 
         style={{ 
-          height: '100dvh', 
-          height: '100vh',
+          height: '100dvh',
           position: 'fixed',
           top: 0,
           left: 0,
