@@ -9,7 +9,7 @@ export function Page({ className, children, ...props }: PageProps) {
   return (
     <div
       className={cn(
-        'bg-[oklch(0.12_0_0)] rounded-lg p-6 sm:p-8',
+        'bg-[#1e1e1e] rounded-2xl p-6 sm:p-8',
         className
       )}
       {...props}

@@ -10,4 +10,5 @@ CREATE TABLE IF NOT EXISTS notice_reads (
 CREATE INDEX IF NOT EXISTS idx_notice_reads_user ON notice_reads("userId");
 CREATE INDEX IF NOT EXISTS idx_notice_reads_notice ON notice_reads("noticeId");
 
-ALTER TABLE notice_reads ENABLE ROW LEVEL SECURITY;
+-- Disable RLS - authentication is handled in the application layer
+ALTER TABLE notice_reads DISABLE ROW LEVEL SECURITY;

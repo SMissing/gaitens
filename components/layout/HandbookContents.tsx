@@ -36,8 +36,8 @@ export function HandbookContents({ sections, bookId }: HandbookContentsProps) {
             key={section.id}
             onClick={() => handleSectionClick(section.id)}
             className={cn(
-              "w-full flex items-center justify-between p-4 rounded-lg border transition-all",
-              "bg-[oklch(0.12_0_0)] border-border/30 hover:border-spirits-cyan/50 hover:bg-[oklch(0.14_0_0)]",
+              "w-full flex items-center justify-between p-4 rounded-2xl border transition-all",
+              "bg-[#1e1e1e] border-border/30 hover:border-spirits-cyan/50 hover:bg-[#262626]",
               "text-left group"
             )}
           >

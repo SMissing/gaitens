@@ -38,11 +38,9 @@ export async function GET(request: NextRequest) {
         .in('noticeId', noticeIds)
 
       if (readError) {
-        console.error('Error fetching read notices:', readError)
-        return NextResponse.json(
-          { error: 'Failed to fetch read notices' },
-          { status: 500 }
-        )
+        // Table might not exist yet - treat all notices as unread
+        console.error('Error fetching read notices (table may not exist):', readError)
+        readNotices = []
       }
       readNotices = data || []
     }

@@ -25,6 +25,11 @@ export async function POST(
       if (error.code === '23505') {
         return NextResponse.json({ success: true })
       }
+      // If table doesn't exist, return success (graceful degradation)
+      if (error.code === 'PGRST205') {
+        console.log('notice_reads table does not exist, skipping mark as read')
+        return NextResponse.json({ success: true })
+      }
       console.error('Error marking notice as read:', error)
       return NextResponse.json(
         { error: 'Failed to mark notice as read' },

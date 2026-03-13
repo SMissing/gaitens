@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { Page } from '@/components/layout/Page'
 import { X, Save } from 'lucide-react'
 import type { User, UserRole } from '@/types/database'
@@ -125,19 +126,21 @@ export function StaffForm({ staff, onClose }: StaffFormProps) {
           {/* Role */}
           <div className="space-y-2">
             <Label htmlFor="role">Role *</Label>
-            <select
+            <Select
               id="role"
+              options={[
+                { value: 'staff', label: 'Staff' },
+                { value: 'manager', label: 'Manager' },
+                { value: 'admin', label: 'Admin' },
+              ]}
               value={formData.role}
-              onChange={(e) =>
-                setFormData({ ...formData, role: e.target.value as UserRole })
+              onChange={(value) =>
+                setFormData({ ...formData, role: value as UserRole })
               }
+              placeholder="Select a role"
               required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <option value="staff">Staff</option>
-              <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
-            </select>
+              disabled={loading}
+            />
           </div>
 
           {/* Site */}
@@ -156,7 +159,7 @@ export function StaffForm({ staff, onClose }: StaffFormProps) {
 
           {/* Error Message */}
           {error && (
-            <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-md">
+            <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-xl">
               {error}
             </div>
           )}

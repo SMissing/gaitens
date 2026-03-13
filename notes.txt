@@ -1,0 +1,159 @@
+Chelsea's Wants and Dreams
+--------------------------
+
+✅ - Admin access to approve holidays only
+✅ - States who is off on holiday on a given day on the calender
+✅ - Denied holidays can be given a reason (optional)
+✅ - Calendar section renamed from "Time Off" with upcoming events feature
+
+
+⚠️ - there will be a section where they can fill in a form for holiday and submit and that would forwards straight to my email. [Form exists, but email forwarding not implemented]
+✅ - A section for training where you can upload videos and writing and they cn click next and complete a few questions then under their account it says theyve completed that specific trining on that date and then a reminder eadh year to re-do it. [Complete - Training system with videos, content, quizzes, completion tracking, site-specific modules, and categories]
+✅ - A page about each business. [Complete - Businesses page with business information]
+✅ - Online grievece forms that email directly to me. [Form exists and is functional, but email forwarding not implemented]
+✅ - Anonymous Report system - Staff can submit anonymous reports to admins (under Feedback tab) [Complete - Anonymous reports with status management]
+❌ - Prehaps a form that managers only can fill out that get send direct to the staf member for mettings?
+        - Email option to skip Chelsea out of the process
+        - They can set up meetings with staff through the app.
+✅ - A section with our social posts maybe? [Complete - Social feed page]
+✅ - Page where they can submit ideas for the businesses. [Complete - Ideas page with voting system, sorting, filtering by venue]
+
+✅ - A page where they can submit their staff choice for employee of the month once a month and then a main page that has the employee of the month on witht their picture and 'certificste' etc. [Complete - Voting system, admin winner selection, and certificate display with trophy]
+    ✅ - Trophy when a staff memeber is the Employeee of the Month
+    ⚠️ - Admin holds onto the winners of that month and choses when to publish it, announcig it on all staffs pages and putting up a notice for the Employee of the Month until the next is announced. [Voting and winner selection complete, but automatic notice posting not implemented]
+✅ - Lose a life after a disciplinary [Complete - Disciplinaries system with 3 hearts per staff member, admin can break hearts (disciplinary) or restore hearts (healing)]
+
+
+
+✅ - Photo Album: Page for Staff Photos from ross [Complete - Under Community tab, admin can upload multiple photos at once, displayed in 3-column grid with most recent first]
+✅ - Upcoming Events: Managers and admins can create upcoming events (UV parties, A-Level Result Nights, Freshers Week etc.) with optional photos [Complete - Under Calendar tab, event cards with images, date/time/location, days-until countdown]
+✅ - Dashboard improvements: Next upcoming event card with modal view, footer logo [Complete - Condensed event card on dashboard, clickable modal with full details, footer branding]
+✅ - Achievements/Badges System: Admins and managers can award achievements to staff members [Complete - Achievement system with progress tracking, badge images, push notifications, award form for managers/admins]
+    ⚠️ - Be able to look at other peoples badges [Viewing own badges complete, but viewing other staff members' badges not yet implemented]
+
+
+New Feature Ideas
+-----------------
+
+💡 - Staff Directory: A searchable directory of all staff members with their roles, contact info, and photos. Could include birthday reminders and work anniversaries.
+
+💡 - Shift Swap System: Allow staff to post available shifts and request swaps with other team members. Managers can approve swap requests.
+
+💡 - Performance Reviews: Digital performance review system where managers can schedule and conduct reviews, set goals, and track progress over time.
+
+💡 - Staff Recognition Board: A public board where staff can give shoutouts/kudos to colleagues for good work. Could include categories like "Team Player", "Going Above and Beyond", etc.
+
+💡 - Document Library: Centralized location for staff handbooks, policies, procedures, and important documents. Version control and read receipts.
+
+💡 - Event RSVP System: For upcoming events, allow staff to RSVP so managers can track attendance and plan accordingly.
+
+💡 - Staff Polls/Surveys: Quick polls or surveys for staff feedback on various topics (menu changes, event ideas, workplace improvements, etc.)
+
+
+Gamification Ideas (To Make App More Engaging)
+-----------------------------------------------
+
+🎮 - Achievement Leaderboard: Show top achievers ranked by number of completed badges. Could have monthly/quarterly resets with special rewards for top performers.
+
+tocl - Daily Check-In Streaks: Staff earn points/achievements for consecutive days of opening the app. Longer streaks unlock special badges (7-day, 30-day, 100-day milestones).
+
+🎮 - Points System: Award points for various activities (completing training, submitting ideas, voting for EOTM, attending events, etc.). Points can unlock exclusive badges or be redeemed for rewards.
+
+🎮 - Weekly Challenges: Managers can create weekly challenges (e.g., "Complete 3 training modules this week", "Submit 2 ideas", "Help train a new staff member"). Completing challenges awards bonus points/badges.
+
+🎮 - Badge Collections & Sets: Group badges into collections (e.g., "Venue Master" - complete all venue knowledge badges, "Training Champion" - complete all training modules). Completing a set unlocks a special "Master" badge.
+
+🎮 - Social Badge Sharing: When someone earns a rare achievement, it appears in a "Recent Achievements" feed that all staff can see, creating FOMO and motivation.
+
+🎮 - Level System: Staff level up based on total points/achievements. Each level unlocks new features, badges, or profile customization options (colours, themes, profile frames).
+
+lets do - Achievement Rarity System: Some badges are "Common", "Rare", "Epic", or "Legendary" with different visual effects. Rare badges create more excitement when earned.
+
+🎮 - Team Competitions: Monthly team-based competitions (by venue or shift) where teams compete for points. Winning team gets a special badge or reward.
+
+🎮 - Mystery Badges: Hidden achievements that staff discover by doing unexpected things. Creates exploration and surprise elements.
+
+🎮 - Achievement Progress Dashboard: Visual progress bars showing how close staff are to unlocking the next badge in each category. Shows "X more shifts needed" or "Y% complete".
+
+🎮 - Badge Showcase on Profile: Each staff member has a profile page showing their top 3-5 most impressive badges, total achievement count, and level. Others can view profiles to see achievements.
+
+🎮 - Achievement Milestones: Special celebrations when staff hit major milestones (e.g., "50th Achievement Unlocked!" with a special animation/notification).
+
+🎮 - Training Completion Streaks: Track consecutive training completions without letting any expire. Streaks unlock special "Dedicated Learner" badges.
+
+🎮 - Idea Contribution Badges: Badges for submitting ideas that get implemented, most upvoted ideas, or being the first to suggest something that becomes popular.
+
+🎮 - Event Participation Badges: Badges for attending X number of events, RSVPing early, or being part of special event teams.
+
+🎮 - Referral/Recruitment Badges: Badges for helping recruit new staff members or successfully training new hires.
+
+
+
+
+
+
+
+
+    ✅ Achievements per staff member, admins and managers can send them their achievement. [Complete - Full achievement system implemented]
+
+ 
+                💡 Cash bonus for the highest achiever [Idea - Could be implemented with leaderboard system]
+                ✅ Some achievements require multiple awards for them until completed i.e. 1 out of 5 (1/5) [Complete - Progress-based achievements with requiredCount]
+
+                    Potential Badges (Can be added via admin panel)
+                        - Clean the ice machine
+                        - Know Circus
+                        - Know Labyrinth
+                        - Know Cabin
+                        - Know Sharpshooters
+                        - Work a shift at Spirits (1/5)
+                        - Work a shift at Garrison (1/5)
+                        - Work a shift at Bassment (1/5)
+                        - Cocktail Expert (know the cocktails of each venue (1/3))
+                        - More to come 
+
+
+
+
+            ⚠️ Be able to look at other peoples badges [Not yet implemented - Staff can view their own badges, but viewing others' badges needs to be added]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+BADGES
+
+
+✅ - Line Clean
+✅ - Change a Keg
+✅ - Change Gas
+✅ - Clean Potwash
+✅ - Change Sodas
+✅ - Post a Review 0/3
+✅ - Have a 5 Star review naming yourself
+✅ - Share an Event
+✅ - Follow Us 0/3
+✅ - Golf Master
+
+
+
+
+// Extra Notes //
+\\ Dont Delete \\
+
+:: manager@thegaitens.co.uk
+DNS
+
+
+Garrison: @garrisonchelmsford
+Spirits: @spiritsbarandgames
+Bassment: @bassment_chelmsford

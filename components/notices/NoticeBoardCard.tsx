@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FileText } from 'lucide-react'
+import { FileText, ArrowRight, Pin } from 'lucide-react'
 import { formatDate } from '@/lib/date-utils'
 import type { Notice } from '@/types/database'
+import Image from 'next/image'
+import { cn } from '@/lib/utils'
 
 interface NoticeBoardCardProps {
   notices: Notice[]
@@ -38,72 +40,104 @@ export function NoticeBoardCard({ notices }: NoticeBoardCardProps) {
   }, [])
 
   return (
-    <div className="relative bg-gradient-to-br from-card/90 via-card/80 to-card/90 backdrop-blur-md rounded-xl shadow-2xl border-2 border-spirits-cyan/30 overflow-hidden">
-      {/* Animated border glow */}
-      <div className="absolute inset-0 bg-gradient-to-r from-spirits-cyan/20 via-spirits-magenta/20 to-spirits-yellow/20 opacity-50 animate-pulse"></div>
-      
+    <div className="relative bg-card/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg overflow-hidden">
       {/* Content */}
-      <div className="relative z-10 p-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="p-4 sm:p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-spirits-cyan/20 rounded-lg border border-spirits-cyan/50">
-              <FileText className="h-6 w-6 text-spirits-cyan" />
+            <div className="p-2 bg-spirits-cyan/20 rounded-xl">
+              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-spirits-cyan" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-foreground">Notice Board</h2>
-              <p className="text-sm text-muted-foreground">Important updates and announcements</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Notice Board</h2>
+              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">Important updates and announcements</p>
             </div>
           </div>
           <Link
             href="/notices"
-            className="text-spirits-cyan hover:text-spirits-cyan-dark text-sm font-semibold transition-all hover:underline flex items-center gap-1"
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-spirits-cyan/10 hover:bg-spirits-cyan/20 text-spirits-cyan rounded-xl text-xs sm:text-sm font-semibold transition-all touch-manipulation active:scale-95"
           >
-            View All →
+            View All
+            <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4" />
           </Link>
         </div>
 
-        {notices && notices.length > 0 && (
-          <div className="space-y-4">
+        {/* Notices */}
+        {notices && notices.length > 0 ? (
+          <div className="space-y-3">
             {notices.map((notice: any) => (
-              <div
+              <Link
                 key={notice.id}
-                className="p-4 rounded-lg border transition-all bg-spirits-yellow/10 border-spirits-yellow/50 border-l-4 border-l-spirits-yellow"
+                href="/notices"
+                className="block group"
               >
-                <div className="flex items-start gap-3">
-                  <div className="mt-1">
-                    <span className="text-2xl">📌</span>
+                <div className="relative p-4 rounded-xl bg-gradient-to-br from-spirits-yellow/10 via-spirits-yellow/5 to-transparent border border-spirits-yellow/30 hover:border-spirits-yellow/50 transition-all cursor-pointer overflow-hidden">
+                  {/* Pin indicator */}
+                  <div className="absolute top-3 right-3">
+                    <Pin className="h-4 w-4 text-spirits-yellow fill-spirits-yellow" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-spirits-yellow">
-                        {notice.title}
-                      </h3>
-                      <span className="px-2 py-1 bg-spirits-yellow/20 text-spirits-yellow text-xs font-medium rounded border border-spirits-yellow/30 whitespace-nowrap">
-                        PINNED
-                      </span>
+
+                  {/* Image if available */}
+                  {notice.attachments && notice.attachments.length > 0 && (
+                    <div className="relative w-full h-32 sm:h-40 mb-3 rounded-lg overflow-hidden">
+                      <Image
+                        src={notice.attachments[0]}
+                        alt={notice.title}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, 100%"
+                        unoptimized
+                      />
                     </div>
+                  )}
+
+                  {/* Content */}
+                  <div className="pr-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1.5 line-clamp-1 group-hover:text-spirits-yellow transition-colors">
+                      {notice.title}
+                    </h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                       {notice.content}
                     </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground/70">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       <span>{formatDate(notice.createdAt)}</span>
                       {notice.expiresAt && (
-                        <span>
-                          Expires: {formatDate(notice.expiresAt)}
-                        </span>
+                        <>
+                          <span>•</span>
+                          <span>Expires: {formatDate(notice.expiresAt)}</span>
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-8">
+            <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
+            <p className="text-sm text-muted-foreground">No pinned notices</p>
+          </div>
         )}
+
+        {/* Non-pinned count footer */}
         {!loading && nonPinnedCount !== null && nonPinnedCount > 0 && (
-          <div className={`mt-6 pt-4 border-t border-border/50 text-center ${notices && notices.length > 0 ? '' : 'mt-0 pt-0 border-t-0'}`}>
-            <p className="text-sm text-muted-foreground">
-              There {nonPinnedCount === 1 ? 'is' : 'are'} <span className="font-semibold text-spirits-cyan">{nonPinnedCount}</span> {nonPinnedCount === 1 ? 'notice' : 'notices'}
-            </p>
+          <div className={cn(
+            "mt-4 sm:mt-6 pt-4 border-t border-border/30",
+            notices && notices.length > 0 ? '' : 'mt-0 pt-0 border-t-0'
+          )}>
+            <Link
+              href="/notices"
+              className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-spirits-cyan transition-colors"
+            >
+              <span>
+                {nonPinnedCount === 1 
+                  ? `1 more notice` 
+                  : `${nonPinnedCount} more notices`}
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         )}
       </div>

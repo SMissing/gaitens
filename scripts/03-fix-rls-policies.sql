@@ -7,16 +7,32 @@
 
 -- Drop existing policies if any
 DROP POLICY IF EXISTS "Allow all users read access" ON users;
+DROP POLICY IF EXISTS "Allow managers to manage users" ON users;
 DROP POLICY IF EXISTS "Allow all users read access" ON holiday_requests;
+DROP POLICY IF EXISTS "Allow users to create their own requests" ON holiday_requests;
+DROP POLICY IF EXISTS "Allow managers to update requests" ON holiday_requests;
 DROP POLICY IF EXISTS "Allow all users read access" ON holiday_calendar_events;
+DROP POLICY IF EXISTS "Allow users to create events" ON holiday_calendar_events;
 DROP POLICY IF EXISTS "Allow all users read access" ON training_courses;
+DROP POLICY IF EXISTS "Allow managers to manage courses" ON training_courses;
 DROP POLICY IF EXISTS "Allow all users read access" ON training_completions;
+DROP POLICY IF EXISTS "Allow users to create completions" ON training_completions;
+DROP POLICY IF EXISTS "Allow users to update their completions" ON training_completions;
 DROP POLICY IF EXISTS "Allow all users read access" ON notices;
+DROP POLICY IF EXISTS "Allow managers to manage notices" ON notices;
 DROP POLICY IF EXISTS "Allow all users read access" ON grievances;
+DROP POLICY IF EXISTS "Allow users to create grievances" ON grievances;
+DROP POLICY IF EXISTS "Allow managers to update grievances" ON grievances;
 DROP POLICY IF EXISTS "Allow all users read access" ON ideas;
+DROP POLICY IF EXISTS "Allow users to create ideas" ON ideas;
+DROP POLICY IF EXISTS "Allow managers to update ideas" ON ideas;
 DROP POLICY IF EXISTS "Allow all users read access" ON employee_votes;
+DROP POLICY IF EXISTS "Allow users to create votes" ON employee_votes;
+DROP POLICY IF EXISTS "Allow users to update their own votes" ON employee_votes;
 DROP POLICY IF EXISTS "Allow all users read access" ON employee_winners;
+DROP POLICY IF EXISTS "Allow admins to manage winners" ON employee_winners;
 DROP POLICY IF EXISTS "Allow all users read access" ON meetings;
+DROP POLICY IF EXISTS "Allow managers to manage meetings" ON meetings;
 
 -- Create permissive policies for development
 -- NOTE: These allow full access. In production, you should create more restrictive policies.
@@ -74,6 +90,11 @@ CREATE POLICY "Allow users to create completions" ON training_completions
   FOR INSERT
   WITH CHECK (true);
 
+CREATE POLICY "Allow users to update their completions" ON training_completions
+  FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
+
 -- Notices: Allow read access
 CREATE POLICY "Allow all users read access" ON notices
   FOR SELECT
@@ -119,6 +140,11 @@ CREATE POLICY "Allow all users read access" ON employee_votes
 
 CREATE POLICY "Allow users to create votes" ON employee_votes
   FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow users to update their own votes" ON employee_votes
+  FOR UPDATE
+  USING (true)
   WITH CHECK (true);
 
 -- Employee winners: Allow read access

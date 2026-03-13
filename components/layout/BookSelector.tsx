@@ -40,11 +40,11 @@ export function BookSelector({ books, currentBookId }: BookSelectorProps) {
             key={book.id}
             onClick={() => handleBookChange(book.id)}
             className={cn(
-              "px-4 py-2 rounded-lg border transition-all",
-              "hover:bg-accent hover:border-spirits-cyan/50",
+              "px-4 py-2 rounded-2xl border transition-all",
+              "hover:bg-[#262626] hover:border-spirits-cyan/50",
               currentBookId === book.id
                 ? "bg-spirits-cyan/10 border-spirits-cyan text-foreground font-semibold"
-                : "bg-[oklch(0.12_0_0)] border-border/30 text-muted-foreground"
+                : "bg-[#1e1e1e] border-border/30 text-muted-foreground"
             )}
           >
             {book.title}

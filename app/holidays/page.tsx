@@ -1,16 +1,19 @@
 import { requireAuth } from '@/lib/auth'
+import { HolidaysClient } from '@/components/holidays/HolidaysClient'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Calendar } from 'lucide-react'
 
 export default async function HolidaysPage() {
-  await requireAuth()
+  const user = await requireAuth()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Holidays</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600">Holiday management coming soon...</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-background">
+      <PageHeader 
+        title="Holidays"
+        icon={<Calendar className="h-6 w-6 text-spirits-cyan" />}
+        description="Request time off and manage your holidays"
+      />
+      <HolidaysClient userRole={user.role} />
     </div>
   )
 }

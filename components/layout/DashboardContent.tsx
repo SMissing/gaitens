@@ -3,9 +3,32 @@ import { createServerClient } from '@/lib/db'
 import { formatDate } from '@/lib/date-utils'
 import type { User } from '@/types/database'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Dock, DockItem, DockIcon, DockLabel, DockAccordion, DockIconCircle } from '@/components/core/dock'
-import { DockExpansion } from './DockExpansion'
+import { Dock } from '@/components/core/dock'
+import { DockButtonRow } from './DockButtonRow'
+import { DockSwipeOverlay } from './DockSwipeOverlay'
 import { NoticeBoardCard } from '@/components/notices/NoticeBoardCard'
+import { UnreadNoticesModal } from '@/components/notices/UnreadNoticesModal'
+import { AchievementNotificationManager } from '@/components/achievements/AchievementNotificationManager'
+import { PushNotificationManager } from '@/components/notifications/PushNotificationManager'
+import { PushNotificationButton } from '@/components/notifications/PushNotificationButton'
+import { InstagramFeed } from '@/components/social/InstagramFeed'
+import { NextEventCard } from '@/components/upcoming-events/NextEventCard'
+import { MeetingNotificationCard } from '@/components/meetings/MeetingNotificationCard'
+import { MeetingCard } from '@/components/meetings/MeetingCard'
+import dynamic from 'next/dynamic'
+
+const DailyCheckInCard = dynamic(() => import('@/components/streaks/DailyCheckInCard'), {
+  ssr: false,
+  loading: () => (
+    <Card>
+      <CardContent className="py-6">
+        <div className="text-center text-muted-foreground">
+          <div className="animate-pulse">Loading...</div>
+        </div>
+      </CardContent>
+    </Card>
+  ),
+})
 import {
   BookOpen,
   Calendar,
@@ -16,7 +39,6 @@ import {
   Award,
   Building2,
   Users,
-  Briefcase,
 } from 'lucide-react'
 
 interface DashboardContentProps {
@@ -27,13 +49,37 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
   const supabase = createServerClient()
 
   // Fetch dashboard data
-  // Training completions (due soon)
-  const { data: trainingCompletions } = await supabase
+  // Training modules - get required modules for user's site
+  let requiredModulesRemaining = 0
+  
+  // Get required training courses (site-specific for user's site)
+  let requiredCoursesQuery = supabase
+    .from('training_courses')
+    .select('id')
+    .eq('active', true)
+  
+  if (user.site) {
+    requiredCoursesQuery = requiredCoursesQuery.eq('site', user.site)
+  } else {
+    // User with no site - required modules are general ones (site = null)
+    requiredCoursesQuery = requiredCoursesQuery.is('site', null)
+  }
+  
+  const { data: requiredCourses } = await requiredCoursesQuery
+  
+  // Get user's completed courses (not expired)
+  const { data: completions } = await supabase
     .from('training_completions')
-    .select('*, training_courses(*)')
+    .select('courseId')
     .eq('userId', user.id)
-    .order('expiresAt', { ascending: true })
-    .limit(5)
+    .gt('expiresAt', new Date().toISOString())
+  
+  const completedCourseIds = new Set(completions?.map(c => c.courseId) || [])
+  
+  // Count required modules that are not completed
+  requiredModulesRemaining = requiredCourses?.filter(
+    course => !completedCourseIds.has(course.id)
+  ).length || 0
 
   // Pending holiday requests
   const { data: holidayRequests } = await supabase
@@ -42,6 +88,26 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     .eq('userId', user.id)
     .eq('status', 'pending')
     .order('createdAt', { ascending: false })
+    .limit(5)
+
+  // Recent rejected holiday requests (last 3) - only for the current user
+  const { data: rejectedRequests } = await supabase
+    .from('holiday_requests')
+    .select('*')
+    .eq('userId', user.id) // Only show rejected requests for the current logged-in user
+    .eq('status', 'rejected')
+    .order('updatedAt', { ascending: false })
+    .limit(3)
+
+  // Upcoming approved holidays - only for the current user
+  const today = new Date().toISOString().split('T')[0]
+  const { data: upcomingHolidays } = await supabase
+    .from('holiday_requests')
+    .select('*')
+    .eq('userId', user.id)
+    .eq('status', 'approved')
+    .gte('endDate', today) // Only show holidays that haven't ended yet
+    .order('startDate', { ascending: true })
     .limit(5)
 
   // Pinned notices only for dashboard
@@ -60,209 +126,333 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     .eq('month', currentMonth)
     .single()
 
+  // User's grievances (only their own)
+  const { data: userGrievances } = await supabase
+    .from('grievances')
+    .select('*')
+    .eq('userId', user.id)
+    .order('createdAt', { ascending: false })
+    .limit(5)
+
+  // Next upcoming event
+  let nextEvent = null
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const { data, error } = await supabase
+      .from('upcoming_events')
+      .select('*')
+      .gte('eventDate', today)
+      .order('eventDate', { ascending: true })
+      .order('eventTime', { ascending: true, nullsFirst: false })
+      .limit(1)
+      .maybeSingle()
+    
+    if (!error && data) {
+      nextEvent = data
+    }
+  } catch (error) {
+    // Table might not exist yet, ignore error
+    console.error('Error fetching next event:', error)
+  }
+
+  // Accepted upcoming meetings
+  let acceptedMeetings: any[] = []
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const { data, error } = await supabase
+      .from('meetings')
+      .select(`
+        *,
+        requester:requested_by (
+          id,
+          name,
+          "staffCode"
+        ),
+        recipient:requested_for (
+          id,
+          name,
+          "staffCode"
+        )
+      `)
+      .eq('status', 'accepted')
+      .gte('meeting_date', today)
+      .or(`requested_by.eq.${user.id},requested_for.eq.${user.id}`)
+      .order('meeting_date', { ascending: true })
+      .order('meeting_time', { ascending: true, nullsFirst: false })
+      .limit(5)
+    
+    if (!error && data) {
+      acceptedMeetings = (data || []).map((meeting: any) => {
+        const requesterData = Array.isArray(meeting.requester) ? meeting.requester[0] : meeting.requester
+        const recipientData = Array.isArray(meeting.recipient) ? meeting.recipient[0] : meeting.recipient
+        
+        return {
+          id: meeting.id,
+          title: meeting.title,
+          description: meeting.description,
+          requestedBy: requesterData ? {
+            id: requesterData.id,
+            name: requesterData.name,
+            staffCode: requesterData.staff_code || requesterData.staffCode
+          } : null,
+          requestedFor: recipientData ? {
+            id: recipientData.id,
+            name: recipientData.name,
+            staffCode: recipientData.staff_code || recipientData.staffCode
+          } : null,
+          status: meeting.status,
+          meetingDate: meeting.meeting_date || meeting.meetingDate,
+          meetingTime: meeting.meeting_time || meeting.meetingTime,
+        }
+      })
+    }
+  } catch (error) {
+    // Table might not exist yet, ignore error
+    console.error('Error fetching accepted meetings:', error)
+  }
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-48 sm:pb-40 relative z-10">
+    <div className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-28 sm:pb-24 relative z-10">
       {/* Welcome Message */}
-      <div className="mb-8">
-        <p className="text-muted-foreground text-lg">Welcome back, {user.name}</p>
+      <div className="mb-4 sm:mb-6 flex items-center justify-between">
+        <p className="text-muted-foreground text-sm sm:text-base lg:text-lg">Welcome back, {user.name}</p>
+        <PushNotificationButton />
+      </div>
+
+      {/* Meeting Notification Card - Above Notices */}
+      <div className="mb-4 sm:mb-6">
+        <MeetingNotificationCard userId={user.id} />
       </div>
 
       {/* Notice Board - Prominent Card */}
-      <div className="mb-8">
+      <div className="mb-4 sm:mb-6">
         <NoticeBoardCard notices={notices || []} />
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardDescription>Training Status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">
-              {trainingCompletions?.filter(t => {
-                const expiresAt = new Date(t.expiresAt)
-                const daysUntilExpiry = (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                return daysUntilExpiry <= 30 && daysUntilExpiry > 0
-              }).length || 0} Due Soon
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Pending Holidays</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-semibold">
-              {holidayRequests?.length || 0}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Next Upcoming Event */}
+      {nextEvent && (
+        <div className="mb-4 sm:mb-6">
+          <NextEventCard event={nextEvent as any} />
+        </div>
+      )}
+
+      {/* Accepted Meetings */}
+      {acceptedMeetings.length > 0 && (
+        <div className="mb-4 sm:mb-6">
+          <div className="mb-3">
+            <h2 className="text-lg font-semibold text-foreground">Upcoming Meetings</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {acceptedMeetings.map((meeting) => (
+              <MeetingCard
+                key={meeting.id}
+                meeting={meeting}
+                currentUserId={user.id}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Instagram Social Media Feed */}
+      <div className="mb-4 sm:mb-6">
+        <InstagramFeed />
       </div>
 
       {/* Employee of the Month */}
       {winner && (
-        <div className="relative bg-gradient-to-r from-spirits-yellow/20 to-spirits-yellow-dark/20 backdrop-blur-md rounded-lg shadow-xl p-6 mb-8 border border-spirits-yellow/50 overflow-hidden">
+        <div className="relative bg-gradient-to-r from-spirits-yellow/20 to-spirits-yellow-dark/20 backdrop-blur-md rounded-2xl shadow-xl p-3 sm:p-4 lg:p-6 mb-4 sm:mb-6 border border-spirits-yellow/50 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-spirits-yellow/10 via-transparent to-spirits-yellow-dark/10"></div>
           <div className="relative z-10">
-            <h2 className="text-2xl font-bold text-foreground mb-2 tracking-tight">Employee of the Month</h2>
-            <p className="text-lg text-foreground">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-foreground mb-1 sm:mb-2 tracking-tight">Employee of the Month</h2>
+            <p className="text-sm sm:text-base lg:text-lg text-foreground">
               Congratulations to <span className="font-bold text-spirits-yellow">{(winner.users as any)?.name}</span>!
             </p>
           </div>
         </div>
       )}
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Training Status */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Training Status</CardTitle>
+      {/* Quick Stats Grid */}
+      {requiredModulesRemaining > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6">
+          {/* Training Status */}
+          <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-spirits-cyan flex-shrink-0" />
+                <CardDescription className="text-xs sm:text-sm">Training</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <div className="flex items-baseline gap-2 mb-2">
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">
+                  {requiredModulesRemaining}
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {requiredModulesRemaining === 1 ? 'module' : 'modules'} remaining
+                </p>
+              </div>
               <Link
                 href="/training"
-                className="text-spirits-cyan hover:text-spirits-cyan-dark text-sm font-semibold transition-all hover:underline"
+                className="text-xs text-spirits-cyan hover:text-spirits-cyan-dark inline-block transition-colors touch-manipulation"
               >
-                View All →
+                Complete training →
               </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-          {trainingCompletions && trainingCompletions.length > 0 ? (
-            <ul className="space-y-3">
-              {trainingCompletions.map((completion: any) => {
-                const expiresAt = new Date(completion.expiresAt)
-                const daysUntilExpiry = Math.ceil(
-                  (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-                )
-                return (
-                  <li key={completion.id} className="flex justify-between items-center">
-                    <span className="text-card-foreground">
-                      {completion.training_courses?.title || 'Unknown Course'}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Content - Single Column for Better Mobile Experience */}
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+        {/* Holidays Section */}
+        {(holidayRequests && holidayRequests.length > 0) || (upcomingHolidays && upcomingHolidays.length > 0) || (rejectedRequests && rejectedRequests.length > 0) ? (
+          <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+            <CardHeader className="p-3 sm:p-6">
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-spirits-cyan flex-shrink-0" />
+                  Holidays
+                </CardTitle>
+                <Link
+                  href="/holidays"
+                  className="text-xs text-spirits-cyan hover:text-spirits-cyan-dark font-semibold transition-all hover:underline touch-manipulation"
+                >
+                  View All →
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6 space-y-3 sm:space-y-4">
+              {/* Pending Requests */}
+              {holidayRequests && holidayRequests.length > 0 && (
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-2">Pending Requests</h3>
+                  <ul className="space-y-1.5 sm:space-y-2">
+                    {holidayRequests.map((request: any) => (
+                      <li key={request.id} className="flex justify-between items-center py-1.5 sm:py-2 border-b border-border/30 last:border-0">
+                        <span className="text-xs sm:text-sm text-foreground flex-1 min-w-0 pr-2">
+                          {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                        </span>
+                        <span className="px-2 py-1 bg-spirits-yellow/20 text-spirits-yellow text-xs font-medium rounded border border-spirits-yellow/30 flex-shrink-0">
+                          Pending
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Upcoming Holidays */}
+              {upcomingHolidays && upcomingHolidays.length > 0 && (
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-2">Upcoming</h3>
+                  <ul className="space-y-1.5 sm:space-y-2">
+                    {upcomingHolidays.map((holiday: any) => (
+                      <li key={holiday.id} className="flex justify-between items-start sm:items-center py-1.5 sm:py-2 border-b border-border/30 last:border-0 gap-2">
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <span className="text-xs sm:text-sm text-foreground font-medium">
+                            {formatDate(holiday.startDate)} - {formatDate(holiday.endDate)}
+                          </span>
+                          {holiday.reason && (
+                            <span className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                              {holiday.reason}
+                            </span>
+                          )}
+                        </div>
+                        <span className="px-2 py-1 bg-green-500/20 text-green-500 text-xs font-medium rounded border border-green-500/30 flex-shrink-0">
+                          Approved
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Rejected Requests */}
+              {rejectedRequests && rejectedRequests.length > 0 && (
+                <div>
+                  <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground mb-2">Recently Rejected</h3>
+                  <ul className="space-y-1.5 sm:space-y-2">
+                    {rejectedRequests.map((request: any) => (
+                      <li key={request.id} className="py-1.5 sm:py-2 border-b border-border/30 last:border-0">
+                        <div className="flex justify-between items-center mb-1 gap-2">
+                          <span className="text-xs sm:text-sm text-foreground flex-1 min-w-0">
+                            {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                          </span>
+                          <span className="px-2 py-1 bg-red-500/20 text-red-500 text-xs font-medium rounded border border-red-500/30 flex-shrink-0">
+                            Rejected
+                          </span>
+                        </div>
+                        {request.rejectionReason && (
+                          <p className="text-xs text-muted-foreground italic pl-2 border-l-2 border-red-500/30 mt-1 line-clamp-2">
+                            {request.rejectionReason}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+
+
+        {/* Grievances Section */}
+        {userGrievances && userGrievances.length > 0 && (
+          <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-normal">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-garrison-orange flex-shrink-0" />
+                Grievances
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
+              <ul className="space-y-1.5 sm:space-y-2">
+                {userGrievances.map((grievance: any) => (
+                  <li key={grievance.id} className="flex justify-between items-center py-1.5 sm:py-2 border-b border-border/30 last:border-0 gap-2">
+                    <span className="text-xs sm:text-sm text-foreground flex-1 min-w-0">
+                      Submitted: {formatDate(grievance.createdAt)}
                     </span>
-                    {daysUntilExpiry <= 30 && daysUntilExpiry > 0 ? (
-                      <span className="text-garrison-orange text-sm font-medium">
-                        Expires in {daysUntilExpiry} days
-                      </span>
-                    ) : daysUntilExpiry <= 0 ? (
-                      <span className="text-destructive text-sm font-medium">Expired</span>
-                    ) : (
-                      <span className="text-bassment-green text-sm">Valid</span>
-                    )}
+                    <span className={`px-2 py-1 text-xs font-medium rounded border flex-shrink-0 ${
+                      grievance.status === 'submitted' 
+                        ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                        : grievance.status === 'in_review'
+                        ? 'bg-blue-500/20 text-blue-500 border-blue-500/30'
+                        : 'bg-green-500/20 text-green-500 border-green-500/30'
+                    }`}>
+                      {grievance.status === 'submitted' ? 'Submitted' : grievance.status === 'in_review' ? 'In Review' : 'Resolved'}
+                    </span>
                   </li>
-                )
-              })}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">No training records found.</p>
-          )}
-          </CardContent>
-        </Card>
-
-        {/* Holiday Requests */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Holiday Requests</CardTitle>
-              <Link
-                href="/holidays"
-                className="text-spirits-cyan hover:text-spirits-cyan-dark text-sm font-semibold transition-all hover:underline"
-              >
-                View All →
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-          {holidayRequests && holidayRequests.length > 0 ? (
-            <ul className="space-y-3">
-              {holidayRequests.map((request: any) => (
-                <li key={request.id} className="flex justify-between items-center">
-                  <div>
-                    <span className="text-card-foreground">
-                      {formatDate(request.startDate)} - {formatDate(request.endDate)}
-                    </span>
-                  </div>
-                  <span className="px-2 py-1 bg-spirits-yellow/20 text-spirits-yellow text-xs font-medium rounded border border-spirits-yellow/30">
-                    Pending
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-muted-foreground">No pending holiday requests.</p>
-          )}
-          </CardContent>
-        </Card>
-
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {/* Dock Navigation */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4 pb-safe">
-        <Dock className="bg-card/80 backdrop-blur-md border-t border-x border-border/50 rounded-t-2xl shadow-2xl overflow-hidden">
-          {/* Unified Accordion Expansion */}
-          <DockExpansion />
-          
-          {/* Button Row */}
-          <div className="flex items-center justify-center gap-2 pb-3 px-4 py-3">
-            {/* Resources */}
-            <DockItem itemId="resources">
-              <DockIcon>
-                <DockIconCircle itemId="resources">
-                  <BookOpen className="h-5 w-5 text-foreground" />
-                </DockIconCircle>
-              </DockIcon>
-            </DockItem>
-            
-            {/* Time Off */}
-            <DockItem itemId="timeoff">
-              <DockIcon>
-                <DockIconCircle itemId="timeoff">
-                  <Calendar className="h-5 w-5 text-foreground" />
-                </DockIconCircle>
-              </DockIcon>
-            </DockItem>
-
-            {/* Learning */}
-            <DockItem itemId="learning">
-              <DockIcon>
-                <DockIconCircle itemId="learning">
-                  <GraduationCap className="h-5 w-5 text-foreground" />
-                </DockIconCircle>
-              </DockIcon>
-            </DockItem>
-
-            {/* Community */}
-            <DockItem itemId="community">
-              <DockIcon>
-                <DockIconCircle itemId="community">
-                  <MessageSquare className="h-5 w-5 text-foreground" />
-                </DockIconCircle>
-              </DockIcon>
-            </DockItem>
-
-            {/* Feedback */}
-            <DockItem itemId="feedback">
-              <DockIcon>
-                <DockIconCircle itemId="feedback">
-                  <Lightbulb className="h-5 w-5 text-foreground" />
-                </DockIconCircle>
-              </DockIcon>
-            </DockItem>
-
-            {/* Manager Tools */}
-            {(user.role === 'manager' || user.role === 'admin') && (
-              <DockItem itemId="manager">
-                <DockIcon>
-                  <DockIconCircle itemId="manager">
-                    <Briefcase className="h-5 w-5 text-spirits-magenta" />
-                  </DockIconCircle>
-                </DockIcon>
-              </DockItem>
-            )}
-          </div>
-        </Dock>
+      {/* Daily Check-In Streak - At Bottom */}
+      <div className="mt-4 sm:mt-6 mb-4 sm:mb-6">
+        <DailyCheckInCard />
       </div>
+
+      {/* Footer with Logo */}
+      <div className="mt-4 sm:mt-6 flex justify-center items-center pt-3 sm:pt-4 pb-6 sm:pb-8">
+        <img 
+          src="/logos/gtnslogo_text_wite.png"
+          alt="Gaitens Leisure"
+          className="h-12 sm:h-16 lg:h-20 w-auto opacity-60"
+        />
+      </div>
+
+      {/* Unread Notices Modal - Waits for achievements to finish */}
+      <UnreadNoticesModal waitForAchievements={true} />
+
+      {/* Achievement Notification Manager */}
+      <AchievementNotificationManager userId={user.id} />
+
+      {/* Push Notification Manager */}
+      <PushNotificationManager />
     </div>
   )
 }

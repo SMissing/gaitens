@@ -16,7 +16,7 @@ export function CocktailCard({ name, ingredients, method, garnishGlass, isMockta
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className={`bg-[oklch(0.12_0_0)] rounded-lg border ${isMocktail ? 'border-spirits-yellow/50' : 'border-border/30'} overflow-hidden transition-all duration-300`}>
+    <div className={`bg-[oklch(0.12_0_0)] rounded-2xl border ${isMocktail ? 'border-spirits-yellow/50' : 'border-border/30'} overflow-hidden transition-all duration-300`}>
       {/* Header - Always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}

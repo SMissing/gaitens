@@ -148,7 +148,7 @@ export function HandbookSearch({ books }: HandbookSearchProps) {
 
       {/* Search Results Dropdown */}
       {isFocused && searchQuery.trim().length >= 2 && (
-        <div className="absolute z-50 w-full mt-1 bg-[oklch(0.12_0_0)] border border-border rounded-b-lg shadow-lg max-h-96 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 bg-[#1e1e1e] border border-border rounded-b-2xl shadow-lg max-h-96 overflow-y-auto">
           {searchResults.length > 0 ? (
             <div className="p-2">
               <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -159,8 +159,8 @@ export function HandbookSearch({ books }: HandbookSearchProps) {
                   key={`${result.bookId}-${result.sectionId}-${index}`}
                   onClick={() => handleResultClick(result.bookId, result.sectionId)}
                   className={cn(
-                    "w-full text-left p-3 rounded-lg transition-colors",
-                    "hover:bg-[oklch(0.14_0_0)] hover:border-spirits-cyan/30",
+                    "w-full text-left p-3 rounded-2xl transition-colors",
+                    "hover:bg-[#262626] hover:border-spirits-cyan/30",
                     "border border-transparent",
                     "flex items-start gap-3"
                   )}

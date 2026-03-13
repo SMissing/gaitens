@@ -1,16 +1,110 @@
-import { requireAuth } from '@/lib/auth'
+'use client'
 
-export default async function IdeasPage() {
-  await requireAuth()
+import { useEffect, useState } from 'react'
+import { IdeasList } from '@/components/ideas/IdeasList'
+import { IdeasSortFilter } from '@/components/ideas/IdeasSortFilter'
+import { IdeaFormModal } from '@/components/ideas/IdeaFormModal'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Button } from '@/components/ui/button'
+import { Lightbulb, Plus } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import type { Idea } from '@/types/database'
+
+type SortOption = 'recent' | 'most_liked' | 'most_disliked' | 'oldest'
+type FilterOption = 'All' | 'Garrison' | 'Spirits' | 'Bassment'
+
+export default function IdeasPage() {
+  const [ideas, setIdeas] = useState<Idea[]>([])
+  const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [sortBy, setSortBy] = useState<SortOption>('recent')
+  const [filterBy, setFilterBy] = useState<FilterOption>('All')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    const fetchIdeas = async () => {
+      try {
+        const response = await fetch('/api/ideas')
+        const data = await response.json()
+        if (data.ideas) {
+          setIdeas(data.ideas)
+        }
+      } catch (error) {
+        console.error('Failed to fetch ideas:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchIdeas()
+  }, [refreshKey])
+
+  const handleIdeaSubmitted = () => {
+    setRefreshKey(prev => prev + 1)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Ideas</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600">Ideas submission coming soon...</p>
+    <div className="min-h-screen bg-background">
+      <PageHeader 
+        title="Ideas"
+        icon={<Lightbulb className="h-6 w-6 text-spirits-yellow" />}
+        description="Share your ideas to help improve our businesses"
+      />
+      <div className="p-4 sm:p-6 lg:p-8 pb-32">
+        <div className="max-w-4xl mx-auto">
+
+        {/* Submit Idea Button */}
+        <div className="mb-6 flex justify-center">
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="relative flex flex-col items-center justify-center gap-2 w-96 h-24 rounded-2xl transition-all active:scale-95 touch-manipulation overflow-hidden group"
+            style={{
+              background: 'linear-gradient(to right, oklch(0.5500 0.2000 50), oklch(0.9500 0.2000 100), oklch(0.6500 0.3000 320))',
+              padding: '2px',
+            }}
+          >
+            <div className="w-full h-full bg-[#1e1e1e] group-hover:bg-[#262626] rounded-2xl flex flex-col items-center justify-center gap-2 transition-colors">
+              <Plus className="h-8 w-8 text-foreground" />
+              <span className="text-xs text-muted-foreground">Submit an Idea</span>
+            </div>
+          </button>
+        </div>
+
+        {/* Ideas List */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-foreground">All Ideas</h2>
+            <IdeasSortFilter
+              currentSort={sortBy}
+              currentFilter={filterBy}
+              onSortChange={setSortBy}
+              onFilterChange={setFilterBy}
+            />
+          </div>
+          {loading ? (
+            <Card className="bg-[#1e1e1e] rounded-2xl border border-border/50">
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">Loading ideas...</p>
+              </div>
+            </Card>
+          ) : (
+            <IdeasList 
+              initialIdeas={ideas as any} 
+              refreshKey={refreshKey}
+              sortBy={sortBy}
+              filterBy={filterBy}
+            />
+          )}
+        </div>
         </div>
       </div>
+
+      {/* Idea Form Modal */}
+      <IdeaFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onIdeaSubmitted={handleIdeaSubmitted}
+      />
     </div>
   )
 }

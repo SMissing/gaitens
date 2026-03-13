@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, List } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface HandbookNavigationProps {
@@ -33,28 +33,10 @@ export function HandbookNavigation({ currentIndex, totalSections, sectionIds, bo
     }
   }
 
-  const handleBackToContents = () => {
-    router.push(`/handbook?book=${bookId}`)
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   if (totalSections <= 1) return null
 
   return (
     <div className="space-y-4 mt-8 pt-6 border-t border-border">
-      {/* Back to Contents button */}
-      <div className="flex justify-center">
-        <Button
-          onClick={handleBackToContents}
-          variant="ghost"
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <List className="h-4 w-4" />
-          Back to Contents
-        </Button>
-      </div>
-      
       {/* Previous/Next navigation */}
       <div className="flex items-center justify-between gap-4">
         <Button
@@ -62,7 +44,7 @@ export function HandbookNavigation({ currentIndex, totalSections, sectionIds, bo
           disabled={currentIndex === 0}
           variant="outline"
           className={cn(
-            "flex items-center gap-2",
+            "flex items-center gap-2 bg-[#1e1e1e] hover:bg-[#262626] rounded-2xl",
             currentIndex === 0 && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -79,7 +61,7 @@ export function HandbookNavigation({ currentIndex, totalSections, sectionIds, bo
           disabled={currentIndex === totalSections - 1}
           variant="outline"
           className={cn(
-            "flex items-center gap-2",
+            "flex items-center gap-2 bg-[#1e1e1e] hover:bg-[#262626] rounded-2xl",
             currentIndex === totalSections - 1 && "opacity-50 cursor-not-allowed"
           )}
         >

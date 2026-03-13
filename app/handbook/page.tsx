@@ -1,13 +1,15 @@
 import { requireAuth } from '@/lib/auth'
-import Link from 'next/link'
-import { ArrowLeft, BookOpen } from 'lucide-react'
-import { Page, PageHeader, PageTitle, PageContent } from '@/components/layout/Page'
+import { Page, PageContent } from '@/components/layout/Page'
 import { HandbookNavigation } from '@/components/layout/HandbookNavigation'
-import { BookSelector } from '@/components/layout/BookSelector'
-import { HandbookContents } from '@/components/layout/HandbookContents'
 import { HandbookSearch } from '@/components/layout/HandbookSearch'
 import { HighlightContent } from '@/components/layout/HighlightContent'
-import { CocktailCard } from '@/components/layout/CocktailCard'
+import { CocktailGrid } from '@/components/handbook/CocktailGrid'
+import { HandbookNav } from '@/components/handbook/HandbookNav'
+import { HandbookHeader } from '@/components/handbook/HandbookHeader'
+import { CompactBookSelector } from '@/components/handbook/CompactBookSelector'
+import { BackToTop } from '@/components/handbook/BackToTop'
+import { HandbookContentsList } from '@/components/handbook/HandbookContentsList'
+import { HandbookLanding } from '@/components/handbook/HandbookLanding'
 
 export default async function HandbookPage({
   searchParams,
@@ -109,135 +111,139 @@ export default async function HandbookPage({
           
           <p className="mt-6 italic text-spirits-cyan font-medium">"Pour yourself into your craft, and watch the bar come alive."</p>
           
-          <div className="mt-8 space-y-4">
-            <CocktailCard
-              name="5* Tea"
-              ingredients="12.5ml White Rum, 12.5ml Gold Rum, 12.5ml Spiced Rum, 12.5ml Dark Rum, 12.5ml Wray & Nephew, 50ml Sweet & Sour, Top with Pepsi"
-              method="Shake all rums and sweet & sour in a shaker with ice. Strain into glass, with ice and top with Pepsi."
-              garnishGlass="Lime Wedge. Collins/Hurricane"
-            />
-            <CocktailCard
-              name="Aperol Spritz"
-              ingredients="50ml Aperol, 100ml Prosecco, Top with Soda"
-              method="Build into glass, Aperol, Prosecco and Ice. Top with Soda"
-              garnishGlass="Orange Wheel. Gin Balloon."
-            />
-            <CocktailCard
-              name="Blue Lagoon"
-              ingredients="25ml Vodka, 25ml Blue Curacao, Top with Lemonade"
-              method="Build into glass, Vodka and Blue curacao. Ice and then top with lemonade."
-              garnishGlass="Lemon Wedge. Hurricane/Sling."
-            />
-            <CocktailCard
-              name="Bramble"
-              ingredients="50ml Gin, 25ml Lemon Juice, 12.5ml Sugar Syrup, Drizzle Crème de Cassis"
-              method="Add Gin, lemon juice and sugar syrup to glass and stir with spoon. Add crushed Ice. Then drizzle a small amount of crème de Cassis on the top."
-              garnishGlass="Lemon Wedge. Rocks Glass."
-            />
-            <CocktailCard
-              name="Cosmopolitan"
-              ingredients="37.5ml Vodka, 12.5ml Triple Sec, 12.5ml Lime, 50ml Cranberry Juice"
-              method="Shake all ingredients together with ice. Double strain into a glass."
-              garnishGlass="Lime or Orange. Martini Glass"
-            />
-            <CocktailCard
-              name="Daiquiri Flavours (Mango + Raspberry)"
-              ingredients="37.5ml White Rum, 12.5ml Flavour rum, 50ml Flavour Puree, 25ml Gomme, 50ml Lime Juice"
-              method="Shake all ingredients together with ice. Fill a glass with crushed ice and strain shaker into glass."
-              garnishGlass="Lime Wedge. Hurricane/Sling."
-            />
-            <CocktailCard
-              name="Daiquiri (Bubble Gum)"
-              ingredients="50ml White Rum, 50ml Bubble-gum, 25ml Sugar Syrup, 50ml Apple Juice"
-              method="Shake all ingredients together with ice. Fill a glass with crushed ice and strain shaker into glass."
-              garnishGlass="Lime Wedge. Hurricane/Sling."
-            />
-            <CocktailCard
-              name="God Father"
-              ingredients="25ml Disaronno, 25ml Jim Bean, Top with Pepsi"
-              method="Add Disaronno and Jim Bean to a glass. Fill with ice and top with Pepsi."
-              garnishGlass="Lemon Wedge. Hurricane/Sling/Collins"
-            />
-            <CocktailCard
-              name="Jelly Baby"
-              ingredients="12.5ml Vodka, 12.5ml Archers, 12.5ml Malibu, 12.5ml Blue Curacao, 12.5ml Grenadine, 100ml Pineapple"
-              method="Shake Vodka, Archers, Malibu and Blue Curacao with ice in a shaker. Get a glass with the 12.5ml grenadine in the bottom, fill with ice and add pineapple. Then strain shaker on top. Should all sit in 3 different colours."
-              garnishGlass="Lemon Wedge. Hurricane/Sling. Crushed Ice cap"
-            />
-            <CocktailCard
-              name="Largerita"
-              ingredients="25ml Tequila, 25ml Triple Sec, 25ml Lime, Top with Corona"
-              method="Shake tequila, triple sec and lime in a shaker with ice. Strain into glass full of ice. Then Top with Corona."
-              garnishGlass="Lime wedge. Tiki Glass."
-            />
-            <CocktailCard
-              name="Mango Margarita"
-              ingredients="25ml Tequila, 15ml Triple Sec, 35ml Mango Puree, 50ml Lemon Juice, Drop of Grenadine"
-              method="Shake all ingredients together with ice. Add grenadine to bottom of glass. Double strain."
-              garnishGlass="Lemon wedge. Margarita Glass"
-            />
-            <CocktailCard
-              name="Mango Sunrise"
-              ingredients="37.5ml Tequila, 12.5ml Triple Sec, 1 Can Monster Mango"
-              method="Get a can of Monster Mango and pour out about 3 shots (75ml) Then add all ingredients to the can."
-              garnishGlass="Monster Can. Lime Wedge."
-            />
-            <CocktailCard
-              name="Mojito + Flavours (Passion fruit + Raspberry)"
-              ingredients="Normal: 50ml Rum, 5 Lime Wedges, 6-8 Mint leaves, 12.5ml Gomme, Top with Soda. Flavours: 37.5ml White Rum, 12.5ml Flavour of Rum, 5 Lime Wedges, 6-8 Mint leaves, 25ml of flavour puree"
-              method="Add lime wedges to glass with gomme, muddle the lime and gomme. Clap mint and add to glass, with rums (if doing flavour, add puree) with crushed ice half way. Stir well! Fill with crushed ice and top with a little soda water."
-              garnishGlass="Collins. Lime wedge and mint sprig."
-            />
-            <CocktailCard
-              name="Porn Star"
-              ingredients="25ml Passionfruit Rum, 25ml Vanilla Vodka, 25ml Passion fruit puree, 12.5ml Sugar Syrup, 25ml Orange, 25ml Prosecco (on side)"
-              method="Shake all ingredients together with ice (not prosecco). Double strain into glass."
-              garnishGlass="Martini Glass. Prosecco in a shot glass on the side."
-            />
-            <CocktailCard
-              name="Sex On The Beach"
-              ingredients="25ml Vodka, 25ml Archers, Top half Orange and Cranberry"
-              method="Build all ingredients into the glass and fill with ice. Top with half orange and cranberry"
-              garnishGlass="Orange wheel. Collins/Sling/Hurricane."
-            />
-            <CocktailCard
-              name="Tropical Punch"
-              ingredients="25ml Midori, 25ml Malibu, 6 lime wedges, Top with Pineapple"
-              method="Add limes to glass and muddle them. Then add Midori and Malibu, fill glass with ice and then top with pineapple juice."
-              garnishGlass="Lime wedge. Collins."
-            />
-            <CocktailCard
-              name="Woo Woo"
-              ingredients="25ml Vodka, 25ml Archers, Fill with Cranberry"
-              method="Build all ingredients into the glass and fill with ice. Top with cranberry"
-              garnishGlass="Lime wedge. Sling/Hurricane."
-            />
-            <CocktailCard
-              name="Zombie"
-              ingredients="25ml White Rum, 12.5ml Wray & Nephew, 12.5ml Dark Rum, 25ml Sweet n Sour, 50ml Pineapple Juice, Dash Grenadine"
-              method="Shake all ingredients in a shaker with ice. Strain into a glass full of ice. Drizzle Grenadine over the top"
-              garnishGlass="Lime Wedge. Hurricane/Skull glass. Crushed Ice cap"
-            />
-            <CocktailCard
-              name="Vimto Nojito"
-              ingredients="3 limes, 12.5ml Sugar Syrup, Top with Vimto, Approx 6 mint leaves"
-              method="Muddle 3 limes and sugar syrup, added crushed ice, stir, add more ice and top with Vimto."
-              garnishGlass="Lime wedge"
-              isMocktail={true}
-            />
-            <CocktailCard
-              name="Wannabe Pornstar"
-              ingredients="50ml Orange Juice, 12.5ml Sugar Syrup, 12.5ml Lemon Jucie, 25ml Passionfruit Puree"
-              method="Shake all ingredients together and double strain into martini glass"
-              garnishGlass="Shot of lemonade"
-              isMocktail={true}
-            />
-            <CocktailCard
-              name="Shrubble"
-              ingredients="12.5ml Sugar Syrup, 25ml Lemon Juice, Top with Apple juice, Drizzle Grenadine"
-              method="Add all ingredients to glass and stir, then add grenadine."
-              garnishGlass="Lemon Wedge"
-              isMocktail={true}
+          <div className="mt-8 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+            <CocktailGrid
+              cocktails={[
+                {
+                  name: "5* Tea",
+                  ingredients: "12.5ml White Rum, 12.5ml Gold Rum, 12.5ml Spiced Rum, 12.5ml Dark Rum, 12.5ml Wray & Nephew, 50ml Sweet & Sour, Top with Pepsi",
+                  method: "Shake all rums and sweet & sour in a shaker with ice. Strain into glass, with ice and top with Pepsi.",
+                  garnishGlass: "Lime Wedge. Collins/Hurricane"
+                },
+                {
+                  name: "Aperol Spritz",
+                  ingredients: "50ml Aperol, 100ml Prosecco, Top with Soda",
+                  method: "Build into glass, Aperol, Prosecco and Ice. Top with Soda",
+                  garnishGlass: "Orange Wheel. Gin Balloon."
+                },
+                {
+                  name: "Blue Lagoon",
+                  ingredients: "25ml Vodka, 25ml Blue Curacao, Top with Lemonade",
+                  method: "Build into glass, Vodka and Blue curacao. Ice and then top with lemonade.",
+                  garnishGlass: "Lemon Wedge. Hurricane/Sling."
+                },
+                {
+                  name: "Bramble",
+                  ingredients: "50ml Gin, 25ml Lemon Juice, 12.5ml Sugar Syrup, Drizzle Crème de Cassis",
+                  method: "Add Gin, lemon juice and sugar syrup to glass and stir with spoon. Add crushed Ice. Then drizzle a small amount of crème de Cassis on the top.",
+                  garnishGlass: "Lemon Wedge. Rocks Glass."
+                },
+                {
+                  name: "Cosmopolitan",
+                  ingredients: "37.5ml Vodka, 12.5ml Triple Sec, 12.5ml Lime, 50ml Cranberry Juice",
+                  method: "Shake all ingredients together with ice. Double strain into a glass.",
+                  garnishGlass: "Lime or Orange. Martini Glass"
+                },
+                {
+                  name: "Daiquiri Flavours (Mango + Raspberry)",
+                  ingredients: "37.5ml White Rum, 12.5ml Flavour rum, 50ml Flavour Puree, 25ml Gomme, 50ml Lime Juice",
+                  method: "Shake all ingredients together with ice. Fill a glass with crushed ice and strain shaker into glass.",
+                  garnishGlass: "Lime Wedge. Hurricane/Sling."
+                },
+                {
+                  name: "Daiquiri (Bubble Gum)",
+                  ingredients: "50ml White Rum, 50ml Bubble-gum, 25ml Sugar Syrup, 50ml Apple Juice",
+                  method: "Shake all ingredients together with ice. Fill a glass with crushed ice and strain shaker into glass.",
+                  garnishGlass: "Lime Wedge. Hurricane/Sling."
+                },
+                {
+                  name: "God Father",
+                  ingredients: "25ml Disaronno, 25ml Jim Bean, Top with Pepsi",
+                  method: "Add Disaronno and Jim Bean to a glass. Fill with ice and top with Pepsi.",
+                  garnishGlass: "Lemon Wedge. Hurricane/Sling/Collins"
+                },
+                {
+                  name: "Jelly Baby",
+                  ingredients: "12.5ml Vodka, 12.5ml Archers, 12.5ml Malibu, 12.5ml Blue Curacao, 12.5ml Grenadine, 100ml Pineapple",
+                  method: "Shake Vodka, Archers, Malibu and Blue Curacao with ice in a shaker. Get a glass with the 12.5ml grenadine in the bottom, fill with ice and add pineapple. Then strain shaker on top. Should all sit in 3 different colours.",
+                  garnishGlass: "Lemon Wedge. Hurricane/Sling. Crushed Ice cap"
+                },
+                {
+                  name: "Largerita",
+                  ingredients: "25ml Tequila, 25ml Triple Sec, 25ml Lime, Top with Corona",
+                  method: "Shake tequila, triple sec and lime in a shaker with ice. Strain into glass full of ice. Then Top with Corona.",
+                  garnishGlass: "Lime wedge. Tiki Glass."
+                },
+                {
+                  name: "Mango Margarita",
+                  ingredients: "25ml Tequila, 15ml Triple Sec, 35ml Mango Puree, 50ml Lemon Juice, Drop of Grenadine",
+                  method: "Shake all ingredients together with ice. Add grenadine to bottom of glass. Double strain.",
+                  garnishGlass: "Lemon wedge. Margarita Glass"
+                },
+                {
+                  name: "Mango Sunrise",
+                  ingredients: "37.5ml Tequila, 12.5ml Triple Sec, 1 Can Monster Mango",
+                  method: "Get a can of Monster Mango and pour out about 3 shots (75ml) Then add all ingredients to the can.",
+                  garnishGlass: "Monster Can. Lime Wedge."
+                },
+                {
+                  name: "Mojito + Flavours (Passion fruit + Raspberry)",
+                  ingredients: "Normal: 50ml Rum, 5 Lime Wedges, 6-8 Mint leaves, 12.5ml Gomme, Top with Soda. Flavours: 37.5ml White Rum, 12.5ml Flavour of Rum, 5 Lime Wedges, 6-8 Mint leaves, 25ml of flavour puree",
+                  method: "Add lime wedges to glass with gomme, muddle the lime and gomme. Clap mint and add to glass, with rums (if doing flavour, add puree) with crushed ice half way. Stir well! Fill with crushed ice and top with a little soda water.",
+                  garnishGlass: "Collins. Lime wedge and mint sprig."
+                },
+                {
+                  name: "Porn Star",
+                  ingredients: "25ml Passionfruit Rum, 25ml Vanilla Vodka, 25ml Passion fruit puree, 12.5ml Sugar Syrup, 25ml Orange, 25ml Prosecco (on side)",
+                  method: "Shake all ingredients together with ice (not prosecco). Double strain into glass.",
+                  garnishGlass: "Martini Glass. Prosecco in a shot glass on the side."
+                },
+                {
+                  name: "Sex On The Beach",
+                  ingredients: "25ml Vodka, 25ml Archers, Top half Orange and Cranberry",
+                  method: "Build all ingredients into the glass and fill with ice. Top with half orange and cranberry",
+                  garnishGlass: "Orange wheel. Collins/Sling/Hurricane."
+                },
+                {
+                  name: "Tropical Punch",
+                  ingredients: "25ml Midori, 25ml Malibu, 6 lime wedges, Top with Pineapple",
+                  method: "Add limes to glass and muddle them. Then add Midori and Malibu, fill glass with ice and then top with pineapple juice.",
+                  garnishGlass: "Lime wedge. Collins."
+                },
+                {
+                  name: "Woo Woo",
+                  ingredients: "25ml Vodka, 25ml Archers, Fill with Cranberry",
+                  method: "Build all ingredients into the glass and fill with ice. Top with cranberry",
+                  garnishGlass: "Lime wedge. Sling/Hurricane."
+                },
+                {
+                  name: "Zombie",
+                  ingredients: "25ml White Rum, 12.5ml Wray & Nephew, 12.5ml Dark Rum, 25ml Sweet n Sour, 50ml Pineapple Juice, Dash Grenadine",
+                  method: "Shake all ingredients in a shaker with ice. Strain into a glass full of ice. Drizzle Grenadine over the top",
+                  garnishGlass: "Lime Wedge. Hurricane/Skull glass. Crushed Ice cap"
+                },
+                {
+                  name: "Vimto Nojito",
+                  ingredients: "3 limes, 12.5ml Sugar Syrup, Top with Vimto, Approx 6 mint leaves",
+                  method: "Muddle 3 limes and sugar syrup, added crushed ice, stir, add more ice and top with Vimto.",
+                  garnishGlass: "Lime wedge",
+                  isMocktail: true
+                },
+                {
+                  name: "Wannabe Pornstar",
+                  ingredients: "50ml Orange Juice, 12.5ml Sugar Syrup, 12.5ml Lemon Jucie, 25ml Passionfruit Puree",
+                  method: "Shake all ingredients together and double strain into martini glass",
+                  garnishGlass: "Shot of lemonade",
+                  isMocktail: true
+                },
+                {
+                  name: "Shrubble",
+                  ingredients: "12.5ml Sugar Syrup, 25ml Lemon Juice, Top with Apple juice, Drizzle Grenadine",
+                  method: "Add all ingredients to glass and stir, then add grenadine.",
+                  garnishGlass: "Lemon Wedge",
+                  isMocktail: true
+                }
+              ]}
             />
           </div>
         </>
@@ -2150,20 +2156,21 @@ export default async function HandbookPage({
     },
   ]
 
-  // Determine which book to show
-  const currentBookId = searchParams?.book || 'spirit-guide'
-  const currentBook = books.find(b => b.id === currentBookId) || books[0]
+  // Determine which book to show (no default selection)
+  const currentBookId = searchParams?.book
+  const currentBook = currentBookId ? books.find(b => b.id === currentBookId) : null
   
   // Determine which section to show within the book
-  const sectionIds = currentBook.sections.map(s => s.id)
+  const sectionIds = currentBook?.sections.map(s => s.id) || []
   const currentSectionId = searchParams?.section
-  const currentIndex = currentSectionId ? sectionIds.indexOf(currentSectionId) : -1
-  const currentSection = currentSectionId && currentIndex >= 0 
+  const currentIndex = currentSectionId && currentBook ? sectionIds.indexOf(currentSectionId) : -1
+  const currentSection = currentSectionId && currentIndex >= 0 && currentBook
     ? currentBook.sections[currentIndex] 
     : null
   
-  // Show contents page if no section is selected
-  const showContents = !currentSectionId || currentIndex < 0
+  // Show contents page if no section is selected but book is selected
+  const showContents = currentBook && (!currentSectionId || currentIndex < 0)
+  const showLanding = !currentBook
   
   // Get highlight search words from URL
   const highlightQuery = searchParams?.highlight || ''
@@ -2175,85 +2182,118 @@ export default async function HandbookPage({
     : []
 
   return (
-    <div className="min-h-screen relative z-10 pb-24">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Dashboard</span>
-          </Link>
-          <div className="flex items-center gap-3 mb-2">
-            <BookOpen className="h-8 w-8 text-spirits-cyan" />
-            <h1 className="text-4xl font-bold text-foreground tracking-tight">Staff Handbook</h1>
+    <div className="min-h-screen relative z-10 pb-32">
+      {/* Fixed Header - always show */}
+      <HandbookHeader
+        books={books.map(b => ({ id: b.id, title: b.title }))}
+        currentBookId={currentBookId || undefined}
+        currentSectionTitle={currentSection?.title}
+        sections={currentBook?.sections.map(s => ({ id: s.id, title: s.title }))}
+      />
+      
+      {/* Spacer for fixed header - accounts for safe area */}
+      <div 
+        style={{
+          height: 'calc(env(safe-area-inset-top, 0px) + 64px)',
+        }}
+        className="sm:h-[calc(env(safe-area-inset-top,0px)+73px)]"
+      />
+
+      {showLanding ? (
+          /* Landing Page - Book Selection */
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {/* Search Bar - Centered */}
+          <div className="max-w-2xl mx-auto mb-12">
+            <HandbookSearch books={books} />
           </div>
-          <p className="text-muted-foreground text-lg">
-            Your guide to working at Gaitens Leisure Group
-          </p>
+
+          {/* Book Covers */}
+          <HandbookLanding books={books} />
         </div>
+      ) : currentBook ? (
+        /* Book Content View */
+        <div className="w-full relative">
+          {/* Dark Background Box */}
+          <div className="fixed inset-0 bg-[#1e1e1e] -z-10" />
+          
+          {/* Search Bar */}
+          <div className="mb-6 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative z-10">
+            <HandbookSearch books={books} />
+          </div>
 
-        {/* Search Bar */}
-        <HandbookSearch books={books} />
-
-        {/* Book Selector */}
-        <BookSelector books={books.map(b => ({ id: b.id, title: b.title }))} currentBookId={currentBookId} />
-
-        {/* Handbook Content */}
-        {currentBook.sections.length > 0 ? (
-          <>
-            {showContents ? (
+          {/* Handbook Content */}
+          {currentBook.sections.length > 0 ? (
+            <>
+              {showContents ? (
+                <div className="relative z-10">
+                  {/* Page Title */}
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+                    <h2 className="text-3xl sm:text-4xl font-bold mb-2">
+                      Contents
+                    </h2>
+                    <p className="text-muted-foreground text-lg">
+                      Select a section to begin reading
+                    </p>
+                  </div>
+                  
+                  <Page>
+                    <PageContent className="max-w-4xl mx-auto">
+                      <HandbookContentsList
+                        sections={currentBook.sections.map(s => ({ id: s.id, title: s.title }))}
+                        bookId={currentBookId!}
+                      />
+                    </PageContent>
+                  </Page>
+                </div>
+              ) : (
+                <>
+                  {/* Page Title */}
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 relative z-10">
+                    <h2 className="text-3xl sm:text-4xl font-bold mb-2">
+                      {currentSection?.title}
+                    </h2>
+                  </div>
+                  
+                  <Page className="rounded-none mx-0 relative z-10">
+                    <PageContent className="max-w-none px-0">
+                      <div className="prose prose-lg max-w-none text-foreground prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground px-4 sm:px-6 lg:px-8">
+                        <HighlightContent searchWords={highlightWords}>
+                          {currentSection?.content}
+                        </HighlightContent>
+                      </div>
+                    </PageContent>
+                  </Page>
+                  
+                  <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                    <HandbookNavigation
+                      currentIndex={currentIndex}
+                      totalSections={currentBook.sections.length}
+                      sectionIds={sectionIds}
+                      bookId={currentBookId!}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="relative z-10">
               <Page>
-                <PageHeader>
-                  <PageTitle>{currentBook.title}</PageTitle>
-                </PageHeader>
-                <PageContent>
-                  <HandbookContents 
-                    sections={currentBook.sections.map(s => ({ id: s.id, title: s.title }))}
-                    bookId={currentBookId}
-                  />
+                <PageContent className="py-12 text-center max-w-4xl mx-auto">
+                  <h2 className="text-xl font-semibold text-foreground mb-2">
+                    Handbook Coming Soon
+                  </h2>
+                  <p className="text-muted-foreground">
+                    The staff handbook is being prepared. Check back soon for updates.
+                  </p>
                 </PageContent>
               </Page>
-            ) : (
-              <>
-                <Page>
-                  <PageHeader>
-                    <PageTitle>{currentSection?.title}</PageTitle>
-                  </PageHeader>
-                  <PageContent>
-                    <div className="prose prose-lg max-w-none text-foreground">
-                      <HighlightContent searchWords={highlightWords}>
-                        {currentSection?.content}
-                      </HighlightContent>
-                    </div>
-                  </PageContent>
-                </Page>
-                
-                <HandbookNavigation
-                  currentIndex={currentIndex}
-                  totalSections={currentBook.sections.length}
-                  sectionIds={sectionIds}
-                  bookId={currentBookId}
-                />
-              </>
-            )}
-          </>
-        ) : (
-          <Page>
-            <PageContent className="py-12 text-center">
-              <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h2 className="text-xl font-semibold text-foreground mb-2">
-                Handbook Coming Soon
-              </h2>
-              <p className="text-muted-foreground">
-                The staff handbook is being prepared. Check back soon for updates.
-              </p>
-            </PageContent>
-          </Page>
-        )}
-      </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Back to Top Button */}
+      <BackToTop />
     </div>
   )
 }

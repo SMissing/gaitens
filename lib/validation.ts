@@ -36,14 +36,20 @@ export const noticeSchema = z.object({
 
 // Grievance schema
 export const grievanceSchema = z.object({
-  subject: z.string().min(1, 'Subject is required'),
-  content: z.string().min(1, 'Content is required'),
+  subject: z.string().min(1, 'Subject is required').max(200, 'Subject is too long'),
+  content: z.string().min(1, 'What the grievance is - required').max(2000, 'Description is too long'),
+  employeeName: z.string().min(1, 'Employee name is required').max(100, 'Name is too long'),
+  relatesToEmployment: z.string().min(1, 'How it relates to employment is required').max(1000, 'Description is too long'),
+  howToResolve: z.string().min(1, 'How the problem could be resolved is required').max(1000, 'Description is too long'),
+  otherParties: z.string().min(1, 'Other parties involved is required').max(500, 'Description is too long'),
+  whatHasBeenDone: z.string().min(1, 'What has been done to date is required').max(1000, 'Description is too long'),
 })
 
 // Idea schema
 export const ideaSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().min(1, 'Description is required'),
+  venue: z.enum(['Garrison', 'Spirits', 'Bassment', 'All']),
+  title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
+  description: z.string().min(1, 'Description is required').max(2000, 'Description is too long'),
 })
 
 // Employee vote schema

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { Page } from '@/components/layout/Page'
 import { formatDate } from '@/lib/date-utils'
 import { Search, Plus, Edit2, UserCheck, UserX, Users } from 'lucide-react'
@@ -157,30 +158,32 @@ export function StaffList() {
               className="pl-10"
             />
           </div>
-          <select
+          <Select
+            options={[
+              { value: 'all', label: 'All Roles' },
+              { value: 'staff', label: 'Staff' },
+              { value: 'manager', label: 'Manager' },
+              { value: 'admin', label: 'Admin' },
+            ]}
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="all">All Roles</option>
-            <option value="staff">Staff</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </select>
-          <select
+            onChange={(value) => setRoleFilter(value)}
+            placeholder="All Roles"
+          />
+          <Select
+            options={[
+              { value: 'all', label: 'All Status' },
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ]}
             value={activeFilter}
-            onChange={(e) => setActiveFilter(e.target.value)}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+            onChange={(value) => setActiveFilter(value)}
+            placeholder="All Status"
+          />
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-md">
+          <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-xl">
             {error}
           </div>
         )}

@@ -28,20 +28,31 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
     const [activeItem, setActiveItem] = React.useState<string | null>(null)
     const dockRef = React.useRef<HTMLDivElement>(null)
 
-    // Close accordion when clicking outside
+    // Close overlay when clicking outside (but not on overlay content)
     React.useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
-        if (dockRef.current && !dockRef.current.contains(event.target as Node)) {
-          setActiveItem(null)
+        const target = event.target as Node
+        // Don't close if clicking on the overlay itself
+        const overlay = document.querySelector('[data-dock-overlay]')
+        if (overlay && overlay.contains(target)) {
+          return
         }
+        // Don't close if clicking on dock buttons
+        if (dockRef.current && dockRef.current.contains(target)) {
+          return
+        }
+        setActiveItem(null)
       }
 
       if (activeItem) {
-        document.addEventListener('mousedown', handleClickOutside)
-      }
-
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside)
+        // Use a small delay to avoid immediate closure
+        const timeout = setTimeout(() => {
+          document.addEventListener('mousedown', handleClickOutside)
+        }, 100)
+        return () => {
+          clearTimeout(timeout)
+          document.removeEventListener('mousedown', handleClickOutside)
+        }
       }
     }, [activeItem])
 
@@ -92,9 +103,9 @@ const DockItem = React.forwardRef<HTMLDivElement, DockItemProps>(
         <div
           onClick={() => setActiveItem(isActive ? null : itemId)}
           className={cn(
-            "cursor-pointer transition-all duration-300",
-            "hover:scale-110 active:scale-95",
-            isActive && "scale-110"
+            "cursor-pointer transition-all duration-200 touch-manipulation rounded-lg p-2",
+            "active:scale-95 sm:hover:scale-105",
+            isActive && "bg-spirits-cyan/20 scale-105 sm:scale-110"
           )}
         >
           {children}
@@ -113,7 +124,7 @@ const DockIcon = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        'flex items-center justify-center h-12 w-12',
+        'flex items-center justify-center h-12 w-12 sm:h-12 sm:w-12 flex-shrink-0',
         className
       )}
       {...props}
@@ -196,7 +207,7 @@ const DockIconCircle = React.forwardRef<HTMLDivElement, DockIconCircleProps>(
       <div
         ref={ref}
         className={cn(
-          'aspect-square rounded-full bg-card border flex items-center justify-center hover:bg-accent transition-all h-full w-full',
+          'aspect-square rounded-full bg-card border flex items-center justify-center active:bg-accent sm:hover:bg-accent transition-all h-full w-full touch-manipulation',
           isActive
             ? 'border-spirits-cyan shadow-[0_0_20px_rgba(0,217,255,0.5)] shadow-spirits-cyan/50'
             : 'border-border',

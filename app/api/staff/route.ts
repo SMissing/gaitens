@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireManager } from '@/lib/auth'
+import { requireAuth, requireManager } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import type { User } from '@/types/database'
 
 // GET all staff members
 export async function GET(request: NextRequest) {
   try {
-    await requireManager()
+    // Allow both managers and admins to fetch staff
+    const user = await requireAuth()
     const supabase = createServerClient()
+    
+    // Check if user is manager or admin
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!userData || !['manager', 'admin'].includes(userData.role)) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Manager or Admin access required' },
+        { status: 403 }
+      )
+    }
     
     const { searchParams } = new URL(request.url)
     const active = searchParams.get('active')

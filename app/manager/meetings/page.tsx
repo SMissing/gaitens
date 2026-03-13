@@ -1,14 +1,23 @@
 import { requireManager } from '@/lib/auth'
+import { PageHeader } from '@/components/layout/PageHeader'
+import { Calendar } from 'lucide-react'
+import { MeetingsClient } from '@/components/meetings/MeetingsClient'
 
 export default async function MeetingsPage() {
-  await requireManager()
+  const user = await requireManager()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Meetings</h1>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-gray-600">Meeting management coming soon...</p>
+    <div className="min-h-screen bg-background">
+      <PageHeader 
+        title="Meetings"
+        icon={<Calendar className="h-6 w-6 text-spirits-magenta" />}
+        description="Schedule and manage meetings with staff"
+        showBack={true}
+        backHref="/dashboard"
+      />
+      <div className="p-4 sm:p-6 lg:p-8 pb-32">
+        <div className="max-w-4xl mx-auto">
+          <MeetingsClient currentUserId={user.id} />
         </div>
       </div>
     </div>
