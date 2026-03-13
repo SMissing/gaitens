@@ -28,9 +28,9 @@ export default async function LoginPage() {
           overscrollBehavior: 'none',
           WebkitOverflowScrolling: 'auto',
           WebkitOverscrollBehavior: 'none'
-        }}
+        } as React.CSSProperties}
       >
-      <div className="w-full max-w-md space-y-8 sm:space-y-10" style={{ touchAction: 'manipulation', WebkitTouchAction: 'manipulation' }}>
+      <div className="w-full max-w-md space-y-8 sm:space-y-10" style={{ touchAction: 'manipulation', WebkitTouchAction: 'manipulation' } as React.CSSProperties}>
         {/* Logo Section */}
         <div className="flex justify-center">
           <div className="relative w-full max-w-[90%] h-auto">
