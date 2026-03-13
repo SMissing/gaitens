@@ -371,6 +371,7 @@ export function TrainingManagement() {
                       videoUrl: '',
                       content: '',
                       site: '',
+                      category: '',
                       moduleType: 'video',
                       duration: '',
                       quizQuestions: [],

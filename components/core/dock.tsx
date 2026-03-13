@@ -26,7 +26,7 @@ interface DockProps extends React.HTMLAttributes<HTMLDivElement> {
 const Dock = React.forwardRef<HTMLDivElement, DockProps>(
   ({ className, children, ...props }, ref) => {
     const [activeItem, setActiveItem] = React.useState<string | null>(null)
-    const dockRef = React.useRef<HTMLDivElement>(null)
+    const dockRef = React.useRef<HTMLDivElement | null>(null)
 
     // Close overlay when clicking outside (but not on overlay content)
     React.useEffect(() => {
