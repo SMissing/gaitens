@@ -3,8 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   // Base path for GitHub Pages (if repo name is not username.github.io)
   // Set NEXT_PUBLIC_BASE_PATH to your repo name, e.g., '/GaitensLeisure'
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
-  trailingSlash: process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true',
+  ...(process.env.NEXT_PUBLIC_BASE_PATH && { basePath: process.env.NEXT_PUBLIC_BASE_PATH }),
+  ...(process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true' && { trailingSlash: true }),
   images: {
     remotePatterns: [
       {
