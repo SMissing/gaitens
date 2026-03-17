@@ -146,7 +146,16 @@ export async function clearSession(): Promise<void> {
 }
 
 /**
+ * Get authenticated user for API routes - returns null if not authenticated
+ * Use this in API routes instead of requireAuth() to avoid redirect errors
+ */
+export async function getAuthUser(): Promise<User | null> {
+  return await getCurrentUser()
+}
+
+/**
  * Require authentication - redirects to login if not authenticated
+ * Use this in page components and server components
  */
 export async function requireAuth(): Promise<User> {
   const user = await getCurrentUser()

@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import LoginForm from '@/components/forms/LoginForm'
-import { PreventScroll } from '@/components/forms/PreventScroll'
 import Image from 'next/image'
 
 export default async function LoginPage() {
@@ -12,25 +11,8 @@ export default async function LoginPage() {
   }
 
   return (
-    <>
-      <PreventScroll />
-      <div 
-        className="h-screen flex flex-col items-center justify-center bg-background overflow-hidden px-4 sm:px-6" 
-        style={{ 
-          height: '100dvh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100%',
-          touchAction: 'none',
-          overscrollBehavior: 'none',
-          WebkitOverflowScrolling: 'auto',
-          WebkitOverscrollBehavior: 'none'
-        } as React.CSSProperties}
-      >
-      <div className="w-full max-w-md space-y-8 sm:space-y-10" style={{ touchAction: 'manipulation', WebkitTouchAction: 'manipulation' } as React.CSSProperties}>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background overflow-hidden px-4 sm:px-6">
+      <div className="w-full max-w-md space-y-8 sm:space-y-10">
         {/* Logo Section */}
         <div className="flex justify-center">
           <div className="relative w-full max-w-[90%] h-auto">
@@ -48,10 +30,9 @@ export default async function LoginPage() {
 
         {/* Login Form */}
         <div className="w-full">
-        <LoginForm />
+          <LoginForm />
         </div>
       </div>
     </div>
-    </>
   )
 }

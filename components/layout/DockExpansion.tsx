@@ -181,6 +181,13 @@ export function DockExpansion() {
               <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Disciplinaries</div>
             </Link>
+            <Link
+              href="/admin/achievements"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Create Badges</div>
+            </Link>
           </div>
         )
       default:

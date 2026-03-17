@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Flame, CheckCircle2, Calendar } from 'lucide-react'
@@ -14,6 +15,7 @@ interface StreakData {
 }
 
 export function DailyCheckInCard() {
+  const router = useRouter()
   const [streakData, setStreakData] = useState<StreakData | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkingIn, setCheckingIn] = useState(false)
@@ -46,10 +48,8 @@ export function DailyCheckInCard() {
       if (response.ok) {
         const data = await response.json()
         setStreakData(data)
-        // Refresh the page to show any new achievements
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
+        // Refresh the dashboard data (including achievements) without full page reload
+        router.refresh()
       } else {
         const error = await response.json()
         console.error('Check-in failed:', error)

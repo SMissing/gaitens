@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AchievementBadge } from './AchievementBadge'
+import { BadgeDetailModal } from './BadgeDetailModal'
 import { Award, Users, Trophy } from 'lucide-react'
 import type { Achievement, UserAchievement } from '@/types/database'
 import { Card } from '@/components/ui/card'
@@ -33,6 +34,7 @@ export function AchievementsClient({
 }: AchievementsClientProps) {
   const router = useRouter()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
 
   const completedCount = Array.from(userAchievements.values()).filter(ua => ua.completed).length
   const totalCount = achievements.length
@@ -115,10 +117,21 @@ export function AchievementsClient({
                 userAchievement={userAchievement}
                 size="md"
                 showProgress={true}
+                onClick={() => setSelectedAchievement(achievement)}
               />
             )
           })}
       </div>
+
+      {/* Badge Detail Modal */}
+      {selectedAchievement && (
+        <BadgeDetailModal
+          achievement={selectedAchievement}
+          userAchievement={userAchievements.get(selectedAchievement.id)}
+          isOpen={!!selectedAchievement}
+          onClose={() => setSelectedAchievement(null)}
+        />
+      )}
 
       {/* Empty State */}
       {achievements.length === 0 && (

@@ -9,13 +9,15 @@ interface AchievementBadgeProps {
   userAchievement?: UserAchievement
   size?: 'sm' | 'md' | 'lg'
   showProgress?: boolean
+  onClick?: () => void
 }
 
 export function AchievementBadge({ 
   achievement, 
   userAchievement, 
   size = 'md',
-  showProgress = true 
+  showProgress = true,
+  onClick
 }: AchievementBadgeProps) {
   const isUnlocked = !!userAchievement
   const isCompleted = userAchievement?.completed ?? false
@@ -114,15 +116,27 @@ export function AchievementBadge({
   return (
     <div className="relative flex flex-col items-center gap-2">
       {/* Badge Container */}
-      <div className={cn(
-        'relative rounded-full border-4 transition-all',
-        sizeClasses[size],
-        rarityStyles.border,
-        rarityStyles.bg,
-        rarityStyles.glow,
-        rarityStyles.pulse,
-        rarityStyles.completionRing
-      )}>
+      <div 
+        className={cn(
+          'relative rounded-full border-4 transition-all',
+          sizeClasses[size],
+          rarityStyles.border,
+          rarityStyles.bg,
+          rarityStyles.glow,
+          rarityStyles.pulse,
+          rarityStyles.completionRing,
+          onClick && 'cursor-pointer active:scale-95 sm:hover:scale-105'
+        )}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onClick()
+          }
+        } : undefined}
+      >
         {/* Progress Ring for progress-based achievements - Only show if not completed */}
         {achievement.requiresProgress && showProgress && !isCompleted && (
           <svg 

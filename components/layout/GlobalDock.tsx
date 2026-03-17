@@ -17,13 +17,16 @@ export async function GlobalDock() {
       <div 
         className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
         style={{
-          height: 'calc(max(16px, env(safe-area-inset-bottom, 16px) + 16px) + 2.5rem)',
+          height: 'calc(env(safe-area-inset-bottom, 0px) + 2.75rem)',
           background: 'linear-gradient(to top, #121212 0%, rgba(18, 18, 18, 0.95) 12%, rgba(18, 18, 18, 0.8) 25%, rgba(18, 18, 18, 0.6) 38%, rgba(18, 18, 18, 0.4) 50%, rgba(18, 18, 18, 0.2) 62%, transparent 100%)'
         }}
       />
       
-      <div className="fixed bottom-[16px] left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-2 sm:px-4" style={{ bottom: 'max(16px, env(safe-area-inset-bottom, 16px) + 16px)' }}>
-        <Dock className="bg-card/80 backdrop-blur-md border border-border/50 rounded-2xl shadow-2xl overflow-hidden relative h-16 sm:h-20">
+      <div
+        className="fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-2 sm:px-4"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 2px)' }}
+      >
+        <Dock className="bg-card/80 backdrop-blur-md border border-border/50 rounded-3xl shadow-2xl overflow-hidden relative h-16 sm:h-20">
           {/* Dock Swipe Overlay - inside Dock for context access */}
           <DockSwipeOverlay user={user} />
           

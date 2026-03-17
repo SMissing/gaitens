@@ -206,6 +206,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
               <div className="text-lg font-medium text-card-foreground">Disciplinaries</div>
             </Link>
+            <Link
+              href="/admin/achievements"
+              onClick={() => setActiveItem(null)}
+              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[60px]"
+            >
+              <Award className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
+              <div className="text-lg font-medium text-card-foreground">Create Badges</div>
+            </Link>
           </div>
         )
       default:

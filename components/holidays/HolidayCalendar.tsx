@@ -279,9 +279,9 @@ export function HolidayCalendar({
             const dayHolidays = approvedHolidays[dateStr] || []
 
             const handleClick = () => {
-              // If admin clicks on a day with holidays, show holiday manager
-              // Otherwise, show calendar day editor or handle normal date selection
-              if (isAdmin && dayHolidays.length > 0) {
+              // Managers and admins can open the day to see who is off
+              // Otherwise, handle normal date selection
+              if (isManagerOrAdmin && dayHolidays.length > 0) {
                 onHolidayClick?.(date)
               } else {
                 handleDateClick(date)

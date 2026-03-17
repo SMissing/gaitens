@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/lib/auth'
+import { getAuthUser } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import type { UserAchievement } from '@/types/database'
 
@@ -9,7 +9,15 @@ export async function GET(
   { params }: { params: { userId: string } }
 ) {
   try {
-    await requireAuth()
+    const user = await getAuthUser()
+    
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+    
     const supabase = createServerClient()
     
     const { data, error } = await supabase
@@ -43,8 +51,8 @@ export async function GET(
   } catch (error) {
     console.error('Error in GET /api/achievements/user/[userId]:', error)
     return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
+      { error: 'Internal server error' },
+      { status: 500 }
     )
   }
 }

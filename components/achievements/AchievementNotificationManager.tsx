@@ -9,6 +9,24 @@ interface AchievementNotificationManagerProps {
   onAllAchievementsShown?: () => void // Callback when all achievements are shown
 }
 
+// Helpers for tracking the last time the user saw an achievement notification.
+// This uses the `awardedAt` timestamp on `user_achievements` so that:
+// - Achievements earned while the app is open show in real time
+// - Achievements earned while the user was away show on next login
+// - Previously shown achievements are not re-shown every login
+const getLastViewedAt = (userId: string): Date | null => {
+  if (typeof window === 'undefined') return null
+  const stored = localStorage.getItem(`last_achievement_viewed_at_${userId}`)
+  if (!stored) return null
+  const ts = Date.parse(stored)
+  return Number.isNaN(ts) ? null : new Date(ts)
+}
+
+const setLastViewedAt = (userId: string, date: Date) => {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(`last_achievement_viewed_at_${userId}`, date.toISOString())
+}
+
 export function AchievementNotificationManager({ userId, onAllAchievementsShown }: AchievementNotificationManagerProps) {
   const [achievementQueue, setAchievementQueue] = useState<Array<{
     achievement: Achievement
@@ -20,31 +38,6 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
   } | null>(null)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const hasCheckedInitialLoad = useRef(false)
-
-  // Get viewed achievement progress increments from localStorage
-  // Format: "userAchievementId_progress" (e.g., "abc123_1", "abc123_2", "abc123_3")
-  const getViewedAchievementProgress = useCallback((): Set<string> => {
-    if (typeof window === 'undefined') return new Set()
-    const stored = localStorage.getItem(`viewed_achievements_${userId}`)
-    if (!stored) return new Set()
-    try {
-      const ids = JSON.parse(stored) as string[]
-      return new Set(ids)
-    } catch {
-      return new Set()
-    }
-  }, [userId])
-
-  // Mark achievement progress increment as viewed in localStorage
-  // For progress-based achievements, each increment gets its own key
-  const markAchievementAsViewed = useCallback((userAchievementId: string, currentProgress: number) => {
-    if (typeof window === 'undefined') return
-    const viewed = getViewedAchievementProgress()
-    // Create a unique key for this specific progress increment
-    const progressKey = `${userAchievementId}_${currentProgress}`
-    viewed.add(progressKey)
-    localStorage.setItem(`viewed_achievements_${userId}`, JSON.stringify(Array.from(viewed)))
-  }, [userId, getViewedAchievementProgress])
 
   // Check for unviewed achievements on initial load
   useEffect(() => {
@@ -68,17 +61,18 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
 
         const data = await response.json()
         const achievements = data.achievements || []
-        const viewedProgress = getViewedAchievementProgress()
+        const lastViewedAt = getLastViewedAt(userId)
 
-        // Find all achievement progress increments that haven't been viewed yet
+        // Only show achievements that were awarded AFTER the last time
+        // the user saw an achievement notification.
         const unviewedAchievements = achievements
           .filter((ua: any) => {
             if (!ua.awardedAt || !ua.achievement) return false
-            // Check if this specific progress increment has been viewed
-            const progressKey = `${ua.id}_${ua.currentProgress || 1}`
-            return !viewedProgress.has(progressKey)
+            const awardedAt = new Date(ua.awardedAt)
+            if (!lastViewedAt) return true
+            return awardedAt.getTime() > lastViewedAt.getTime()
           })
-          .sort((a: any, b: any) => 
+          .sort((a: any, b: any) =>
             new Date(a.awardedAt).getTime() - new Date(b.awardedAt).getTime() // Oldest first
           )
           .map((ua: any) => ({
@@ -116,7 +110,7 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
     }
 
     checkForUnviewedAchievements()
-  }, [userId, getViewedAchievementProgress, onAllAchievementsShown])
+  }, [userId, onAllAchievementsShown])
 
   // Poll for new achievements after initial load (for real-time awards)
   useEffect(() => {
@@ -129,23 +123,20 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
 
         const data = await response.json()
         const achievements = data.achievements || []
-        const viewedProgress = getViewedAchievementProgress()
+        const lastViewedAt = getLastViewedAt(userId)
 
-        // Find newly awarded achievements (awarded in the last 10 seconds)
-        const now = new Date()
+        // Newly awarded achievements since the last viewed timestamp
         const recentAchievements = achievements.filter((ua: any) => {
           if (!ua.awardedAt || !ua.achievement) return false
           const awardedAt = new Date(ua.awardedAt)
-          const timeDiff = now.getTime() - awardedAt.getTime()
-          // Check if this specific progress increment has been viewed
-          const progressKey = `${ua.id}_${ua.currentProgress || 1}`
-          return timeDiff < 10000 && timeDiff > 0 && !viewedProgress.has(progressKey)
+          if (lastViewedAt && awardedAt.getTime() <= lastViewedAt.getTime()) return false
+          return true
         })
 
         // Add to queue if not already showing something
         if (recentAchievements.length > 0 && !currentNotification) {
-          const newest = recentAchievements.sort((a: any, b: any) => 
-            new Date(b.awardedAt).getTime() - new Date(a.awardedAt).getTime()
+          const newest = recentAchievements.sort((a: any, b: any) =>
+            new Date(a.awardedAt).getTime() - new Date(b.awardedAt).getTime()
           )[0]
 
           setCurrentNotification({
@@ -161,16 +152,20 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
     // Check every 5 seconds for new achievements
     const interval = setInterval(checkForNewAchievements, 5000)
     return () => clearInterval(interval)
-  }, [userId, isInitialLoad, currentNotification, getViewedAchievementProgress])
+  }, [userId, isInitialLoad, currentNotification])
 
   const handleClose = useCallback(() => {
     if (!currentNotification) return
 
-    // Mark current achievement progress increment as viewed
-    markAchievementAsViewed(
-      currentNotification.userAchievement.id,
-      currentNotification.userAchievement.currentProgress || 1
-    )
+    // Update the last viewed timestamp using this achievement's awardedAt
+    const awardedAt = currentNotification.userAchievement.awardedAt
+    if (awardedAt) {
+      const currentLast = getLastViewedAt(userId)
+      const thisAwarded = new Date(awardedAt)
+      if (!currentLast || thisAwarded.getTime() > currentLast.getTime()) {
+        setLastViewedAt(userId, thisAwarded)
+      }
+    }
 
     // Check if there are more in the queue
     if (achievementQueue.length > 1) {
@@ -189,7 +184,7 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
         window.dispatchEvent(new Event('achievements-ready'))
       }
     }
-  }, [currentNotification, achievementQueue, markAchievementAsViewed, onAllAchievementsShown])
+  }, [currentNotification, achievementQueue, onAllAchievementsShown, userId])
 
   if (!currentNotification) return null
 
