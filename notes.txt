@@ -157,3 +157,11 @@ DNS
 Garrison: @garrisonchelmsford
 Spirits: @spiritsbarandgames
 Bassment: @bassment_chelmsford
+
+
+
+
+
+LINK TO ESC ADMIN (https://smissing.github.io/esc/#admin)
+For escape rooms admin
+test
