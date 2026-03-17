@@ -1,11 +1,8 @@
 /** @type {import('next').NextConfig} */
-// Static export ONLY on GitHub Actions (see .github/workflows/deploy-pages.yml).
-// On Vercel, NEXT_PUBLIC_STATIC_EXPORT may still be set in env vars, but VERCEL is
-// not always visible when this file is evaluated — so we key off GITHUB_ACTIONS
-// (only true on github.com runners). Never export on Vercel or the build fails.
-const isStaticExport =
-  process.env.GITHUB_ACTIONS === 'true' &&
-  process.env.NEXT_PUBLIC_STATIC_EXPORT === 'true'
+// Static export ONLY for the GitHub Pages workflow. Set GITHUB_PAGES_BUILD there only.
+// Do NOT set this on Vercel — and remove NEXT_PUBLIC_STATIC_EXPORT from Vercel env
+// if present (it used to trigger export and breaks API routes / prerender).
+const isStaticExport = process.env.GITHUB_PAGES_BUILD === 'true'
 
 const nextConfig = {
   reactStrictMode: true,
