@@ -122,7 +122,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       note: created.note,
       createdAt: created.created_at,
       createdBy: creator
-        ? { id: creator.id, name: creator.name, staffCode: creator.staff_code || creator.staffCode }
+        ? {
+            id: creator.id,
+            name: creator.name,
+            // Supabase select uses `staffCode`, but some older code paths used `staff_code`.
+            // Cast to `any` to keep this resilient while satisfying TS types.
+            staffCode: (creator as any).staff_code ?? creator.staffCode,
+          }
         : null,
     }
 

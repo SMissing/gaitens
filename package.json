@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.11.0",
+    "@types/nodemailer": "^7.0.11",
     "@types/react": "^18.2.48",
     "@types/react-dom": "^18.2.18",
     "@types/react-highlight-words": "^0.20.1",
