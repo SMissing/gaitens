@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { z } from 'zod'
+import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 
 const addHolidaySchema = z.object({
   userId: z.string().uuid('Invalid user ID'),
@@ -20,8 +21,8 @@ export async function POST(request: NextRequest) {
     const { userId, startDate, endDate, reason } = addHolidaySchema.parse(body)
 
     // Validate date range
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseYyyyMmDdLocal(startDate)
+    const end = parseYyyyMmDdLocal(endDate)
 
     if (end < start) {
       return NextResponse.json(
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     const dateRange: string[] = []
     const currentDate = new Date(start)
     while (currentDate <= end) {
-      dateRange.push(currentDate.toISOString().split('T')[0])
+      dateRange.push(toYyyyMmDdLocal(currentDate))
       currentDate.setDate(currentDate.getDate() + 1)
     }
 

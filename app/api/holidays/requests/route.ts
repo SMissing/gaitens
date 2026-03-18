@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { z } from 'zod'
+import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 
 const holidayRequestSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format'),
@@ -58,8 +59,8 @@ export async function POST(request: NextRequest) {
     const { startDate, endDate, reason } = holidayRequestSchema.parse(body)
 
     // Validate date range
-    const start = new Date(startDate)
-    const end = new Date(endDate)
+    const start = parseYyyyMmDdLocal(startDate)
+    const end = parseYyyyMmDdLocal(endDate)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     const dateRange: string[] = []
     const currentDate = new Date(start)
     while (currentDate <= end) {
-      dateRange.push(currentDate.toISOString().split('T')[0])
+      dateRange.push(toYyyyMmDdLocal(currentDate))
       currentDate.setDate(currentDate.getDate() + 1)
     }
 

@@ -230,6 +230,10 @@ export function StaffList() {
                       <span>
                         Joined: {formatDate(member.createdAt)}
                       </span>
+                      <span>
+                        Last login:{' '}
+                        {member.last_login_at ? formatDate(member.last_login_at) : 'Never'}
+                      </span>
                     </div>
                   </div>
                   <div className="flex gap-2">

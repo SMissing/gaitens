@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { z } from 'zod'
+import { sendEmailToChelsea } from '@/lib/email'
 
 const approveRequestSchema = z.object({
   status: z.enum(['approved', 'rejected']),
@@ -86,6 +87,32 @@ export async function PUT(
         { error: 'Failed to update holiday request' },
         { status: 500 }
       )
+    }
+
+    if (status === 'approved') {
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name, staffCode')
+          .eq('id', holidayRequest.userId)
+          .single()
+
+        const staffName = userData?.name || `User ${holidayRequest.userId}`
+        const subject = `Holiday approved: ${staffName}`
+        const text = [
+          `Holiday request ID: ${holidayRequest.id}`,
+          `Staff: ${staffName}${userData?.staffCode ? ` (${userData.staffCode})` : ''}`,
+          `Dates: ${holidayRequest.startDate} - ${holidayRequest.endDate}`,
+          holidayRequest.reason ? `Reason: ${holidayRequest.reason}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n')
+
+        await sendEmailToChelsea(subject, text)
+      } catch (e) {
+        // Email is non-critical for the main approve operation.
+        console.error('[email] Holiday approval email failed:', e)
+      }
     }
 
     return NextResponse.json(data)

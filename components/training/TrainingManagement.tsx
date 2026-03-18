@@ -23,6 +23,7 @@ export function TrainingManagement() {
     videoUrl: '',
     content: '',
     site: '',
+    requiredScope: 'none' as 'none' | 'site' | 'all',
     category: '',
     moduleType: 'video' as 'video' | 'text' | 'guide',
     duration: '',
@@ -75,6 +76,7 @@ export function TrainingManagement() {
         duration: formData.duration ? parseInt(formData.duration) : null,
         site: formData.site || null,
         category: formData.category || null,
+        requiredScope: formData.requiredScope,
         quizQuestions: formData.quizQuestions.length > 0 ? formData.quizQuestions : [],
       }
 
@@ -95,6 +97,7 @@ export function TrainingManagement() {
         videoUrl: '',
         content: '',
         site: '',
+        requiredScope: 'none',
         category: '',
         moduleType: 'video',
         duration: '',
@@ -118,6 +121,7 @@ export function TrainingManagement() {
       videoUrl: course.videoUrl || '',
       content: course.content || '',
       site: course.site || '',
+      requiredScope: (course as any).requiredScope || 'none',
       category: course.category || '',
       moduleType: course.moduleType,
       duration: course.duration?.toString() || '',
@@ -230,7 +234,7 @@ export function TrainingManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="site">Site (Required for this site only, leave empty for all sites)</Label>
+                  <Label htmlFor="site">Site (optional, leave empty for all sites)</Label>
                   <Select
                     id="site"
                     options={[
@@ -243,20 +247,35 @@ export function TrainingManagement() {
                     }}
                     placeholder="All Sites"
                   />
+
+                  <div className="mt-4">
+                    <Label htmlFor="requiredScope">Required scope</Label>
+                    <Select
+                      id="requiredScope"
+                      options={[
+                        { value: 'none', label: 'Not required' },
+                        { value: 'site', label: 'Required for matching site only' },
+                        { value: 'all', label: 'Required for all sites' },
+                      ]}
+                      value={formData.requiredScope}
+                      onChange={(value) => setFormData({ ...formData, requiredScope: value as any })}
+                      placeholder="Required scope"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {formData.site && (
-                <div>
-                  <Label htmlFor="category">Category (Optional - e.g., Golf, Bar, Kitchen)</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="Enter category name"
-                  />
-                </div>
-              )}
+              <div>
+                <Label htmlFor="category">
+                  Category (Optional - e.g., Golf, Bar, Kitchen)
+                </Label>
+                <Input
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  placeholder="Enter category name"
+                />
+              </div>
 
               {formData.moduleType === 'video' && (
                 <div>
@@ -371,6 +390,7 @@ export function TrainingManagement() {
                       videoUrl: '',
                       content: '',
                       site: '',
+                      requiredScope: 'none',
                       category: '',
                       moduleType: 'video',
                       duration: '',

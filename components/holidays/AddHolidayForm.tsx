@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { User } from '@/types/database'
 import { X, Loader2, Calendar } from 'lucide-react'
+import { toYyyyMmDdLocal } from '@/lib/date-utils'
 
 interface AddHolidayFormProps {
   onSuccess: () => void
@@ -100,7 +101,7 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
   }
 
   // Set today as minimum date
-  const today = new Date().toISOString().split('T')[0]
+  const today = toYyyyMmDdLocal(new Date())
 
   return (
     <Card>

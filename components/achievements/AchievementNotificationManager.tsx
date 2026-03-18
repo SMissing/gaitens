@@ -36,6 +36,7 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
     achievement: Achievement
     userAchievement: UserAchievement
   } | null>(null)
+  const currentNotificationRef = useRef(currentNotification)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const hasCheckedInitialLoad = useRef(false)
 
@@ -112,12 +113,18 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
     checkForUnviewedAchievements()
   }, [userId, onAllAchievementsShown])
 
+  // Keep a ref to avoid restarting the polling interval.
+  useEffect(() => {
+    currentNotificationRef.current = currentNotification
+  }, [currentNotification])
+
   // Poll for new achievements after initial load (for real-time awards)
   useEffect(() => {
     if (isInitialLoad) return // Don't poll during initial load
 
     const checkForNewAchievements = async () => {
       try {
+        if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
         const response = await fetch(`/api/achievements/user/${userId}`)
         if (!response.ok) return
 
@@ -134,7 +141,7 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
         })
 
         // Add to queue if not already showing something
-        if (recentAchievements.length > 0 && !currentNotification) {
+        if (recentAchievements.length > 0 && !currentNotificationRef.current) {
           const newest = recentAchievements.sort((a: any, b: any) =>
             new Date(a.awardedAt).getTime() - new Date(b.awardedAt).getTime()
           )[0]
@@ -149,10 +156,10 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
       }
     }
 
-    // Check every 5 seconds for new achievements
-    const interval = setInterval(checkForNewAchievements, 5000)
+    // Check less frequently to reduce UI lag.
+    const interval = setInterval(checkForNewAchievements, 15000)
     return () => clearInterval(interval)
-  }, [userId, isInitialLoad, currentNotification])
+  }, [userId, isInitialLoad])
 
   const handleClose = useCallback(() => {
     if (!currentNotification) return

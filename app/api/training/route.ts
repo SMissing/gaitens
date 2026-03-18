@@ -55,7 +55,12 @@ export async function GET(request: NextRequest) {
     const coursesWithStatus = courses?.map(course => ({
       ...course,
       completed: completedCourseIds.has(course.id),
-      required: course.site === user.site || (course.site === null && user.site === null),
+      required:
+        course.requiredScope === 'all'
+          ? true
+          : course.requiredScope === 'site'
+            ? course.site === user.site
+            : false,
       completion: completions?.find(c => c.courseId === course.id),
     }))
 
@@ -77,7 +82,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
 
     const body = await request.json()
-    const { title, description, videoUrl, content, quizQuestions, site, category, moduleType, duration } = body
+    const { title, description, videoUrl, content, quizQuestions, site, category, moduleType, duration, requiredScope } = body
 
     if (!title) {
       return NextResponse.json(
@@ -111,6 +116,7 @@ export async function POST(request: NextRequest) {
         createdBy: user.id,
         moduleType: moduleType || 'video',
         duration: duration || null,
+        requiredScope: requiredScope || 'none',
         active: true,
       })
       .select()

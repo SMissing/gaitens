@@ -37,7 +37,17 @@ export default function IdeasPage() {
     }
 
     fetchIdeas()
-  }, [refreshKey])
+  }, [])
+
+  // "Live feed" MVP for ideas: poll on an interval while the tab is visible.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+      if (isModalOpen) return
+      setRefreshKey((prev) => prev + 1)
+    }, 8000)
+    return () => clearInterval(interval)
+  }, [isModalOpen])
 
   const handleIdeaSubmitted = () => {
     setRefreshKey(prev => prev + 1)
@@ -73,7 +83,12 @@ export default function IdeasPage() {
         {/* Ideas List */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-semibold text-foreground">All Ideas</h2>
+            <h2 className="text-2xl font-semibold text-foreground flex items-center gap-2">
+              All Ideas
+              <span className="text-xs px-2 py-1 rounded-full border border-spirits-magenta/30 bg-spirits-magenta/10 text-spirits-magenta">
+                Live
+              </span>
+            </h2>
             <IdeasSortFilter
               currentSort={sortBy}
               currentFilter={filterBy}

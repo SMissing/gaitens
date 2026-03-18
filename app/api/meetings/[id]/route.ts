@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createServerClient } from '@/lib/db'
 import { requireAuth } from '@/lib/auth'
+import { sendEmailToChelsea } from '@/lib/email'
 
 const updateMeetingSchema = z.object({
   action: z.enum(['accept', 'reschedule', 'propose_reschedule', 'cancel']),
@@ -147,6 +148,39 @@ export async function PATCH(
         { error: 'Failed to update meeting' },
         { status: 500 }
       )
+    }
+
+    try {
+      const [requestedByData, requestedForData] = await Promise.all([
+        supabase.from('users').select('name, staffCode').eq('id', requestedBy).single(),
+        supabase.from('users').select('name, staffCode').eq('id', requestedFor).single(),
+      ])
+
+      const byName = requestedByData.data?.name || `User ${requestedBy}`
+      const forName = requestedForData.data?.name || `User ${requestedFor}`
+      const actorName = user?.name || `User ${user.id}`
+
+      const subject = `Meeting ${meeting.status}: ${existingMeeting.title}`
+      const text = [
+        `Meeting ID: ${meeting.id}`,
+        `Title: ${existingMeeting.title}`,
+        `Requested by: ${byName}`,
+        `Requested for: ${forName}`,
+        `Actor: ${actorName}`,
+        `Action: ${validatedData.action}`,
+        `New status: ${meeting.status}`,
+        existingMeeting.meeting_date ? `Meeting date: ${existingMeeting.meeting_date}` : null,
+        existingMeeting.meeting_time ? `Meeting time: ${existingMeeting.meeting_time}` : null,
+        validatedData.suggestedDate ? `Suggested date: ${validatedData.suggestedDate}` : null,
+        validatedData.suggestedTime ? `Suggested time: ${validatedData.suggestedTime}` : null,
+        validatedData.rescheduleReason ? `Reschedule reason: ${validatedData.rescheduleReason}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      await sendEmailToChelsea(subject, text)
+    } catch (e) {
+      console.error('[email] Meeting update email failed:', e)
     }
 
     return NextResponse.json({ meeting })

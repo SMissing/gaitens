@@ -97,8 +97,10 @@ export function MeetingNotificationCard({ userId }: MeetingNotificationCardProps
           return true
         }
         
-        // Requester sees: reschedule_requested (when recipient requested reschedule)
-        if (isRequester && m.status === 'reschedule_requested') {
+        // Requester sees:
+        // - pending: awaiting recipient response
+        // - reschedule_requested: recipient requested reschedule
+        if (isRequester && ['pending', 'reschedule_requested'].includes(m.status)) {
           console.log('Match: User is requester with reschedule_requested status')
           return true
         }
@@ -145,15 +147,25 @@ export function MeetingNotificationCard({ userId }: MeetingNotificationCardProps
 
   const isRequester = nextMeeting.requestedBy?.id === userId
   const isRescheduleRequest = nextMeeting.status === 'reschedule_requested'
+  const requesterName = nextMeeting.requestedBy?.name || 'Unknown'
+  const recipientName = nextMeeting.requestedFor?.name || 'Unknown'
   
   // Determine the message based on user role and status
   let cardTitle = ''
-  if (isRescheduleRequest && isRequester) {
-    cardTitle = `Reschedule Request from ${nextMeeting.requestedFor?.name}`
+  if (nextMeeting.status === 'pending') {
+    cardTitle = isRequester
+      ? `Awaiting response from ${recipientName}`
+      : `Meeting request from ${requesterName}`
+  } else if (isRescheduleRequest && isRequester) {
+    cardTitle = `Reschedule requested by ${recipientName}`
   } else if (isRescheduleRequest && !isRequester) {
-    cardTitle = `Reschedule Proposed by ${nextMeeting.requestedBy?.name}`
+    cardTitle = `You requested to reschedule with ${requesterName}`
+  } else if (nextMeeting.status === 'reschedule_proposed') {
+    cardTitle = isRequester
+      ? `Reschedule approved pending recipient`
+      : `New time proposed by ${requesterName}`
   } else {
-    cardTitle = `Meeting Request from ${nextMeeting.requestedBy?.name}`
+    cardTitle = `Meeting update`
   }
 
   return (

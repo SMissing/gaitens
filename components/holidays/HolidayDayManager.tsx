@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatDate } from '@/lib/date-utils'
+import { formatDate, parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 import type { HolidayRequest } from '@/types/database'
 import type { User } from '@/types/database'
 import { X, Trash2, Loader2, Settings } from 'lucide-react'
@@ -17,13 +17,19 @@ interface HolidayDayManagerProps {
   onUpdate: () => void
   onClose: () => void
   onEditAvailability?: () => void
+  canRemove?: boolean
 }
 
-export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability }: HolidayDayManagerProps) {
+export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability, canRemove }: HolidayDayManagerProps) {
   const [holidays, setHolidays] = useState<ApprovedHolidayRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const isPast = date < today
+  const canActuallyRemove = Boolean(canRemove) && !isPast
 
   useEffect(() => {
     fetchHolidays()
@@ -32,10 +38,10 @@ export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability 
   const fetchHolidays = async () => {
     try {
       setLoading(true)
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toYyyyMmDdLocal(date)
       // Fetch a wider range to ensure we get all holidays that might cover this date
-      const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0]
-      const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0]
+      const startOfMonth = toYyyyMmDdLocal(new Date(date.getFullYear(), date.getMonth(), 1))
+      const endOfMonth = toYyyyMmDdLocal(new Date(date.getFullYear(), date.getMonth() + 1, 0))
       const response = await fetch(`/api/holidays/approved?startDate=${startOfMonth}&endDate=${endOfMonth}`, {
         cache: 'no-store',
       })
@@ -44,9 +50,9 @@ export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability 
         const data: ApprovedHolidayRequest[] = await response.json()
         // Filter to only include holidays that cover this specific date
         const dayHolidays = data.filter(req => {
-          const start = new Date(req.startDate)
+          const start = parseYyyyMmDdLocal(req.startDate)
           start.setHours(0, 0, 0, 0)
-          const end = new Date(req.endDate)
+          const end = parseYyyyMmDdLocal(req.endDate)
           end.setHours(23, 59, 59, 999)
           const checkDate = new Date(date)
           checkDate.setHours(0, 0, 0, 0)
@@ -203,7 +209,7 @@ export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability 
                     variant="destructive"
                     size="sm"
                     onClick={() => handleRemoveHoliday(holiday.id)}
-                    disabled={isDeleting}
+                    disabled={isDeleting || !canActuallyRemove}
                     className="ml-3"
                   >
                     {isDeleting ? (

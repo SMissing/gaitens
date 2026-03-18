@@ -150,7 +150,9 @@ BADGES
 // Extra Notes //
 \\ Dont Delete \\
 
-:: manager@thegaitens.co.uk
+Povider :: Ionos
+Email :: portal@thegaitens.co.uk
+Pass :: BugelMerlin123!
 DNS
 
 
@@ -165,3 +167,87 @@ Bassment: @bassment_chelmsford
 LINK TO ESC ADMIN (https://smissing.github.io/esc/#admin)
 For escape rooms admin
 test
+
+
+
+
+
+
+Deployment Issues that have arrised and features needed to be added.
+
+
+Calendar:
+    - Calender booking day before instead of selected Time
+    - Calender is not allow removal of some holidays.
+    - Holiday calender needs ability to look back on previous holiday days.
+    - Booking off section is messy and translucent
+    - Option for calendar in a list form (I.e. Tuedsay the 8th these people are off) [backdates]
+
+    - Secondary calander for management
+        - Management meetings
+        - Pubwatch
+        - XYZ has a disciplinary
+        - Ways to not add to calander
+        - Manually add stuff to the calander
+        - Repeat events I.E (Every wednesday at 1pm for the past 2 years.)
+
+    - Holiday approvals get emailed to Chelsea
+
+Ideas: 
+    - Ideas page could do with a live feed of some kind.
+    - Ideas page could do with some cosmetic work
+
+Achievements:
+    - Achievements being checked contantly seems to effect lag.
+    - Manager can see whos got what badges maybe just names of achieved badges
+
+Meetings:
+    - Meetings not initally appearing on the dashboard only appearing when requesting to reschedule
+    - Need to be able to read past meetings descriptions with who.
+    - Meetings should be able to CC in another memeber of staff if needed.
+    - Hook up the email
+    - Attach files
+    - Follow ups to the meetings on how they resulted
+    - Meeting banner can be different colours on severity.
+
+Training
+    - Badges for each.
+    - Be able to enter a catagory name.
+    - Generalised venue training
+    - Add a required button instead of venue
+    - Training needs to be refreshed every 4 months.
+    - 
+
+Disciplinary
+    - 
+
+
+
+General
+    Admins be able to see when staff last logged in
+
+    Venue Numbers Log
+
+    Keep track of how many times a staff has shared
+
+    Spirt Guide
+
+    Hierarchy Roles
+
+    Anonymous can be in person
+    Make aware
+
+    Manage staff tab needs permissions
+
+
+
+
+
+Managers are being able to see the admin tab but not being allowed on which is good but should be hidden
+
+Facebook and instagram sharing
+Link to fatsoma
+
+
+////
+Write a list of what accounts have what.

@@ -109,7 +109,7 @@ export function MeetingsList({ currentUserId }: MeetingsListProps) {
             <Card
               key={meeting.id}
               className="bg-[#1e1e1e] rounded-xl border border-border/50 cursor-pointer hover:border-spirits-magenta/50 transition-all"
-              onClick={() => isPending && setSelectedMeeting(meeting)}
+              onClick={() => setSelectedMeeting(meeting)}
             >
               <CardContent className="p-4">
                 <div className="space-y-2">
@@ -145,9 +145,13 @@ export function MeetingsList({ currentUserId }: MeetingsListProps) {
                     )}
                   </div>
 
-                  {isPending && (
+                  {isPending ? (
                     <p className="text-xs text-spirits-magenta mt-2">
-                      Click to {isRequester ? 'view' : 'respond'}
+                      Click to view
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Click to view details
                     </p>
                   )}
                 </div>

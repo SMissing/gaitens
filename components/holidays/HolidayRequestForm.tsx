@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { toYyyyMmDdLocal } from '@/lib/date-utils'
 import { X } from 'lucide-react'
 
 interface HolidayRequestFormProps {
@@ -42,8 +43,8 @@ export function HolidayRequestForm({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          startDate: selectedStartDate.toISOString().split('T')[0],
-          endDate: selectedEndDate.toISOString().split('T')[0],
+          startDate: toYyyyMmDdLocal(selectedStartDate),
+          endDate: toYyyyMmDdLocal(selectedEndDate),
           reason: reason || null,
         }),
       })

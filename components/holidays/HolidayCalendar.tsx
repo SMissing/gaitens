@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { HolidayCalendarAvailability, HolidayRequest } from '@/types/database'
 import type { User } from '@/types/database'
+import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 
 interface ApprovedHolidayRequest extends HolidayRequest {
   users: User | User[] | null
@@ -26,6 +27,7 @@ export function HolidayCalendar({
   selectedEndDate 
 }: HolidayCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [listMode, setListMode] = useState(false)
   const [availability, setAvailability] = useState<Record<string, 'green' | 'yellow' | 'red'>>({})
   const [holidayRequests, setHolidayRequests] = useState<HolidayRequest[]>([])
   const [approvedHolidays, setApprovedHolidays] = useState<Record<string, ApprovedHolidayRequest[]>>({})
@@ -50,8 +52,8 @@ export function HolidayCalendar({
       setLoading(true)
       const year = currentMonth.getFullYear()
       const month = currentMonth.getMonth()
-      const startDate = new Date(year, month, 1).toISOString().split('T')[0]
-      const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+      const startDate = toYyyyMmDdLocal(new Date(year, month, 1))
+      const endDate = toYyyyMmDdLocal(new Date(year, month + 1, 0))
 
       const fetchPromises = [
         fetch(`/api/holidays/calendar?startDate=${startDate}&endDate=${endDate}`, {
@@ -101,12 +103,12 @@ export function HolidayCalendar({
             console.warn('Holiday request missing user data:', request.id, request.userId)
           }
           
-          const start = new Date(request.startDate)
-          const end = new Date(request.endDate)
+          const start = parseYyyyMmDdLocal(request.startDate)
+          const end = parseYyyyMmDdLocal(request.endDate)
           const currentDate = new Date(start)
           
           while (currentDate <= end) {
-            const dateStr = currentDate.toISOString().split('T')[0]
+            const dateStr = toYyyyMmDdLocal(currentDate)
             if (!holidaysByDate[dateStr]) {
               holidaysByDate[dateStr] = []
             }
@@ -155,7 +157,7 @@ export function HolidayCalendar({
   }
 
   const getDayStatus = (date: Date): 'green' | 'yellow' | 'red' => {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = toYyyyMmDdLocal(date)
     return availability[dateStr] || 'green'
   }
 
@@ -222,6 +224,29 @@ export function HolidayCalendar({
   const days = getDaysInMonth(currentMonth)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const holidayDateKeys = Object.keys(approvedHolidays).sort()
+
+  const getHolidayUsersLabel = (req: ApprovedHolidayRequest): string => {
+    const users = req.users
+    const userList = Array.isArray(users) ? users : users ? [users] : []
+    const names = userList
+      .map((u) => u?.name)
+      .filter((n): n is string => Boolean(n))
+    return names.length > 0 ? names.join(', ') : 'Unknown'
+  }
+
+  const getHolidayUsersLabelForRequests = (requests: ApprovedHolidayRequest[]): string => {
+    const allUsers = requests.flatMap((req) => {
+      const users = req.users
+      return Array.isArray(users) ? users : users ? [users] : []
+    })
+    const names = allUsers
+      .map((u) => u?.name)
+      .filter((n): n is string => Boolean(n))
+    // Deduplicate while preserving order
+    const unique = Array.from(new Set(names))
+    return unique.length > 0 ? unique.join(', ') : 'Unknown'
+  }
 
   return (
     <div className="bg-card/80 backdrop-blur-md rounded-lg border border-border/50 p-6">
@@ -265,6 +290,54 @@ export function HolidayCalendar({
       {/* Calendar Grid */}
       {loading ? (
         <div className="text-center py-8 text-muted-foreground">Loading...</div>
+      ) : listMode && isManagerOrAdmin ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold text-foreground">Backdates</h3>
+            <Button variant="ghost" size="sm" onClick={() => setListMode(false)} className="h-7 px-2">
+              Show calendar
+            </Button>
+          </div>
+
+          {holidayDateKeys.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-6 text-center">
+              No approved holidays in this month
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {holidayDateKeys.map((dateStr) => {
+                const dayHolidays = approvedHolidays[dateStr] || []
+                const dateObj = parseYyyyMmDdLocal(dateStr)
+                const isPast = dateObj < today
+                const usersLabel = getHolidayUsersLabelForRequests(dayHolidays)
+                return (
+                  <button
+                    key={dateStr}
+                    className="w-full text-left p-3 rounded-lg border border-border/50 bg-card/50 hover:border-spirits-magenta/40 transition-colors"
+                    onClick={() => onHolidayClick?.(dateObj)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="text-sm font-medium text-foreground">
+                          {dateObj.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long' })}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {usersLabel}
+                        </div>
+                        {isPast && (
+                          <div className="text-[11px] text-muted-foreground">Past day (view)</div>
+                        )}
+                      </div>
+                      <div className="text-xs text-spirits-magenta font-medium">
+                        {dayHolidays.length} off
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-7 gap-1">
           {days.map((date, index) => {
@@ -275,40 +348,43 @@ export function HolidayCalendar({
             const isToday = date.toDateString() === today.toDateString()
             const isPast = date < today
             const status = getDayStatus(date)
-            const dateStr = date.toISOString().split('T')[0]
+            const dateStr = toYyyyMmDdLocal(date)
             const dayHolidays = approvedHolidays[dateStr] || []
+            const canOpenHolidayDetails = isManagerOrAdmin && dayHolidays.length > 0
 
             const handleClick = () => {
-              // Managers and admins can open the day to see who is off
+              // Managers/admins can open the day to see who is off
               // Otherwise, handle normal date selection
-              if (isManagerOrAdmin && dayHolidays.length > 0) {
+              if (canOpenHolidayDetails) {
                 onHolidayClick?.(date)
               } else {
                 handleDateClick(date)
               }
             }
 
-            // Admins can always click (including red days), regular users cannot click red days or past days
-            const isClickable = !isPast && (isAdmin || status !== 'red')
+            // Allow past clicks only when we have holiday details to show.
+            // This is what enables "backdates" viewing and (for admins) removal from past.
+            const isClickable = canOpenHolidayDetails || (!isPast && (isAdmin || status !== 'red'))
 
             return (
               <button
-                key={date.toISOString()}
+                key={toYyyyMmDdLocal(date)}
                 onClick={handleClick}
                 disabled={!isClickable}
                 className={`
                   aspect-square rounded-lg border transition-all
                   ${getDayColor(date)}
                   ${isToday ? 'ring-2 ring-spirits-cyan ring-offset-2 ring-offset-background' : ''}
-                  ${isPast ? 'opacity-40 cursor-not-allowed' : ''}
-                  ${isAdmin && dayHolidays.length > 0 ? 'hover:ring-2 hover:ring-garrison-orange/50' : ''}
+                  ${isPast ? 'opacity-40' : ''}
+                  ${isPast && !canOpenHolidayDetails ? 'cursor-not-allowed' : ''}
+                  ${canOpenHolidayDetails ? 'hover:ring-2 hover:ring-spirits-magenta/40' : ''}
                   ${isAdmin && status === 'red' ? 'hover:ring-2 hover:ring-red-500/50' : ''}
                   flex flex-col items-center justify-between text-sm font-medium
                   text-foreground relative overflow-hidden p-1
                 `}
               >
                 <span className="text-xs font-semibold">{date.getDate()}</span>
-                {isManagerOrAdmin && dayHolidays.length > 0 && (
+                {canOpenHolidayDetails && (
                   <div className="w-full">
                     <div className="text-[9px] leading-tight text-foreground/90 font-normal space-y-0.5">
                       {dayHolidays.slice(0, 2).map((req, idx) => {
@@ -333,21 +409,32 @@ export function HolidayCalendar({
         </div>
       )}
 
-      {/* Legend */}
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500/50" />
-          <span className="text-muted-foreground">Available</span>
+      {/* Legend + List toggle */}
+      {isManagerOrAdmin && (
+        <div className="mt-6 flex flex-col gap-4">
+          <div className="flex justify-end">
+            {!listMode && (
+              <Button variant="outline" size="sm" onClick={() => setListMode(true)} className="h-8 px-3">
+                Backdates list
+              </Button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500/50" />
+              <span className="text-muted-foreground">Available</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-yellow-500/40 border border-yellow-500/50" />
+              <span className="text-muted-foreground">Limited Availability</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded bg-red-500/40 border border-red-500/50" />
+              <span className="text-muted-foreground">Unavailable</span>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-yellow-500/40 border border-yellow-500/50" />
-          <span className="text-muted-foreground">Limited Availability</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded bg-red-500/40 border border-red-500/50" />
-          <span className="text-muted-foreground">Unavailable</span>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

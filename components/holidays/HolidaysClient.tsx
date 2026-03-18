@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Plus, X } from 'lucide-react'
 import type { HolidayRequest, UserRole } from '@/types/database'
+import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 
 interface HolidaysClientProps {
   userRole: UserRole
@@ -74,11 +75,11 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     const upcomingApproved = myRequests
       .filter((req) => {
         if (req.status !== 'approved') return false
-        const end = new Date(req.endDate)
+        const end = parseYyyyMmDdLocal(req.endDate)
         end.setHours(0, 0, 0, 0)
         return end >= today
       })
-      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+      .sort((a, b) => parseYyyyMmDdLocal(a.startDate).getTime() - parseYyyyMmDdLocal(b.startDate).getTime())
 
     const pendingRequests = myRequests
       .filter((req) => req.status === 'pending')
@@ -91,8 +92,8 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
   }, [myRequests, today])
 
   const countDays = (start: string, end: string) => {
-    const startDate = new Date(start)
-    const endDate = new Date(end)
+    const startDate = parseYyyyMmDdLocal(start)
+    const endDate = parseYyyyMmDdLocal(end)
     startDate.setHours(0, 0, 0, 0)
     endDate.setHours(0, 0, 0, 0)
     const diff = endDate.getTime() - startDate.getTime()
@@ -149,7 +150,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
   }
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr)
+    const date = parseYyyyMmDdLocal(dateStr)
     return date.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
@@ -184,8 +185,8 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          startDate: selectedStartDate.toISOString().split('T')[0],
-          endDate: selectedEndDate.toISOString().split('T')[0],
+          startDate: toYyyyMmDdLocal(selectedStartDate),
+          endDate: toYyyyMmDdLocal(selectedEndDate),
           reason: requestReason || null,
         }),
       })
@@ -387,7 +388,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
 
             {managingHolidaysDate && (
               <HolidayDayManager
-                key={`manager-${managingHolidaysDate.toISOString()}-${refreshKey}`}
+                key={`manager-${toYyyyMmDdLocal(managingHolidaysDate)}-${refreshKey}`}
                 date={managingHolidaysDate}
                 onUpdate={() => {
                   setRefreshKey(prev => prev + 1)
@@ -396,6 +397,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
                   }, 500)
                 }}
                 onClose={() => setManagingHolidaysDate(null)}
+                canRemove={userRole === 'admin'}
                 onEditAvailability={() => {
                   setEditingDate(managingHolidaysDate)
                   setManagingHolidaysDate(null)
@@ -458,8 +460,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
 
             {/* Bottom bar with start/end and request controls */}
             <div className="fixed bottom-0 left-0 right-0 z-[70]">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/95 to-transparent" />
-              <div className="relative px-4 sm:px-6 pb-3 pt-2 space-y-2">
+              <div className="relative bg-background/95 backdrop-blur-md border-t border-border/60 px-4 sm:px-6 pb-3 pt-2 space-y-2">
                 {requestError && (
                   <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
                     {requestError}

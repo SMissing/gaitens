@@ -19,6 +19,7 @@ import {
   X,
   AlertCircle,
   Image as ImageIcon,
+  ClipboardList,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -184,9 +185,34 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <Calendar className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
               <div className="text-lg font-medium text-card-foreground">Meetings</div>
             </Link>
+            <Link
+              href="/manager/management-calendar"
+              onClick={() => setActiveItem(null)}
+              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+            >
+              <Calendar className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
+              <div className="text-lg font-medium text-card-foreground">Management Calendar</div>
+            </Link>
+            <Link
+              href="/manager/venue-numbers"
+              onClick={() => setActiveItem(null)}
+              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[60px]"
+            >
+              <ClipboardList className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
+              <div className="text-lg font-medium text-card-foreground">Venue Numbers</div>
+            </Link>
+            <Link
+              href="/manager/achievements"
+              onClick={() => setActiveItem(null)}
+              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+            >
+              <Award className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
+              <div className="text-lg font-medium text-card-foreground">Staff Badges</div>
+            </Link>
           </div>
         )
       case 'admin':
+        if (user.role !== 'admin') return null
         return (
           <div className="flex flex-col gap-4">
             <h2 className="text-2xl font-bold text-foreground mb-2">Admin</h2>

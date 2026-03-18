@@ -13,6 +13,8 @@ Vercel is the easiest way to deploy Next.js applications:
 4. Click "Deploy"
 5. Your app will be live at `https://glg.vercel.app` (or your custom domain)
 
+**Vercel env:** Do **not** set `GITHUB_PAGES_BUILD` or `NEXT_PUBLIC_STATIC_EXPORT` (those are only for the GitHub Pages workflow). Set `NODE_ENV` to `production` or leave it unset. Use the default output (not `out`).
+
 Vercel automatically:
 - Builds your Next.js app
 - Deploys on every push to main
@@ -21,28 +23,7 @@ Vercel automatically:
 
 ## Option 2: GitHub Pages (Static Export)
 
-If you want to use GitHub Pages, you'll need to export as static HTML. However, this won't work with:
-- API routes (`/api/*`)
-- Server Components that fetch data
-- Authentication (Supabase client-side only)
-
-To set up static export:
-
-1. Update `next.config.js`:
-```js
-const nextConfig = {
-  output: 'export',
-  images: {
-    unoptimized: true
-  }
-}
-```
-
-2. Build and deploy:
-```bash
-npm run build
-# Then push the 'out' folder to gh-pages branch
-```
+The repo uses `.github/workflows/deploy-pages.yml`, which sets **`GITHUB_PAGES_BUILD=true`** during `npm run build` so `next.config.js` enables `output: 'export'`. That flow is limited (no real API routes on Pages). **Vercel does not use that variable.**
 
 ## Option 3: Other Platforms
 

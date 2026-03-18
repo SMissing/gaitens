@@ -26,6 +26,8 @@ export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
   const [requestedFor, setRequestedFor] = useState('')
   const [suggestedDate, setSuggestedDate] = useState('')
   const [suggestedTime, setSuggestedTime] = useState('')
+  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium')
+  const [ccUserIds, setCcUserIds] = useState<string[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(true)
@@ -88,6 +90,8 @@ export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
           requestedFor,
           suggestedDate,
           suggestedTime: suggestedTime.trim() || null,
+          severity,
+          ccUserIds: ccUserIds.length > 0 ? ccUserIds : null,
         }),
       })
 
@@ -105,6 +109,8 @@ export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
         setRequestedFor('')
         setSuggestedDate('')
         setSuggestedTime('')
+        setSeverity('medium')
+        setCcUserIds([])
         onSuccess()
       }, 1500)
     } catch (err) {
@@ -193,6 +199,54 @@ export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
               onChange={(e) => setSuggestedTime(e.target.value)}
               className="mt-1"
             />
+          </div>
+
+          <div>
+            <Label htmlFor="severity">Severity (optional)</Label>
+            <Select
+              id="severity"
+              value={severity}
+              onChange={(v) => setSeverity(v as any)}
+              options={[
+                { value: 'low', label: 'Low' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'high', label: 'High' },
+                { value: 'critical', label: 'Critical' },
+              ]}
+              className="mt-1"
+            />
+          </div>
+
+          <div>
+            <Label>CC additional staff (optional)</Label>
+            {loadingUsers ? (
+              <div className="mt-1 text-sm text-muted-foreground">Loading users...</div>
+            ) : (
+              <div className="mt-1 space-y-2 max-h-40 overflow-y-auto p-2 rounded-lg border border-border/50 bg-card/30">
+                {users
+                  .filter((u) => u.id !== requestedFor)
+                  .map((u) => (
+                    <label key={u.id} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={ccUserIds.includes(u.id)}
+                        onChange={() => {
+                          setCcUserIds((prev) => {
+                            if (prev.includes(u.id)) return prev.filter((id) => id !== u.id)
+                            return [...prev, u.id]
+                          })
+                        }}
+                      />
+                      <span>
+                        {u.name} ({u.staffCode}){u.role === 'manager' ? ' - Manager' : ''}
+                      </span>
+                    </label>
+                  ))}
+                {users.filter((u) => u.id !== requestedFor).length === 0 && (
+                  <div className="text-xs text-muted-foreground">No eligible CC users.</div>
+                )}
+              </div>
+            )}
           </div>
 
           <div>

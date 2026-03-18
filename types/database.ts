@@ -9,6 +9,7 @@ export interface User {
   role: UserRole
   site: string | null
   createdAt: string
+  last_login_at?: string | null
   active: boolean
 }
 
@@ -50,6 +51,7 @@ export interface TrainingCourse {
   content: string | null
   quizQuestions: QuizQuestion[]
   site: string | null // null means available to all sites
+  requiredScope?: 'none' | 'site' | 'all'
   category: string | null // Category within the site (e.g., "Golf", "Bar", "Kitchen")
   createdBy: string | null
   moduleType: 'video' | 'text' | 'guide'

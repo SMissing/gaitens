@@ -32,6 +32,16 @@ export async function POST(request: NextRequest) {
     // Create session
     await createSession(userId)
 
+    // Track last login (best-effort)
+    try {
+      await supabase
+        .from('users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', userId)
+    } catch (e) {
+      console.warn('[auth] Failed to update last_login_at:', e)
+    }
+
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json(

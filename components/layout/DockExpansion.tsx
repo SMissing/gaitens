@@ -15,6 +15,7 @@ import {
   CheckCircle,
   AlertCircle,
   Image as ImageIcon,
+  ClipboardList,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -160,6 +161,27 @@ export function DockExpansion() {
             >
               <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Meetings</div>
+            </Link>
+            <Link
+              href="/manager/management-calendar"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Management Calendar</div>
+            </Link>
+            <Link
+              href="/manager/venue-numbers"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <ClipboardList className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Venue Numbers</div>
+            </Link>
+            <Link
+              href="/manager/achievements"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Staff Badges</div>
             </Link>
           </div>
         )

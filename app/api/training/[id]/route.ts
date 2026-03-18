@@ -12,7 +12,7 @@ export async function PUT(
     const supabase = createServerClient()
 
     const body = await request.json()
-    const { title, description, videoUrl, content, quizQuestions, site, category, moduleType, duration, active } = body
+    const { title, description, videoUrl, content, quizQuestions, site, category, moduleType, duration, active, requiredScope } = body
 
     const updateData: any = {
       updatedAt: new Date().toISOString(),
@@ -27,6 +27,7 @@ export async function PUT(
     if (category !== undefined) updateData.category = category
     if (moduleType !== undefined) updateData.moduleType = moduleType
     if (duration !== undefined) updateData.duration = duration
+    if (requiredScope !== undefined) updateData.requiredScope = requiredScope
     if (active !== undefined) updateData.active = active
 
     const { data: course, error } = await supabase

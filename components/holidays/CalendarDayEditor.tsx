@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { HolidayCalendarAvailability } from '@/types/database'
+import { toYyyyMmDdLocal } from '@/lib/date-utils'
 
 interface CalendarDayEditorProps {
   date: Date
@@ -27,7 +28,7 @@ export function CalendarDayEditor({ date, onUpdate }: CalendarDayEditorProps) {
   const fetchCurrentStatus = async () => {
     try {
       setFetching(true)
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toYyyyMmDdLocal(date)
       const response = await fetch(`/api/holidays/calendar?startDate=${dateStr}&endDate=${dateStr}`)
       
       if (response.ok) {
@@ -54,7 +55,7 @@ export function CalendarDayEditor({ date, onUpdate }: CalendarDayEditorProps) {
     setSuccess(false)
 
     try {
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toYyyyMmDdLocal(date)
       const response = await fetch(`/api/holidays/calendar/${dateStr}`, {
         method: 'PUT',
         headers: {
