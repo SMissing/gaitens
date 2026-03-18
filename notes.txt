@@ -212,14 +212,9 @@ Meetings:
 
 Training
     - Badges for each.
-    - Be able to enter a catagory name.
     - Generalised venue training
     - Add a required button instead of venue
     - Training needs to be refreshed every 4 months.
-    - 
-
-Disciplinary
-    - 
 
 
 
@@ -245,9 +240,19 @@ General
 
 Managers are being able to see the admin tab but not being allowed on which is good but should be hidden
 
-Facebook and instagram sharing
-Link to fatsoma
+Facebook and instagram sharing for events will be able to add links to fatsoma for tickets.
 
 
 ////
 Write a list of what accounts have what.
+
+
+
+
+
+
+
+
+Once in a training module quiz, you cannot leave it, it takes you right back to the quiz after loading the training section, only when clicking back to buisness section is when it works like that.
+
+     whenkf
