@@ -1,5 +1,9 @@
 Chelsea's Wants and Dreams
 --------------------------
+Legend (status):
+✅ = Working / Implemented
+⚠️ = Idea / Planned / Partial
+❌ = Not implemented / Needs work
 
 ✅ - Admin access to approve holidays only
 ✅ - States who is off on holiday on a given day on the calender
@@ -32,61 +36,6 @@ Chelsea's Wants and Dreams
     ⚠️ - Be able to look at other peoples badges [Viewing own badges complete, but viewing other staff members' badges not yet implemented]
 
 
-New Feature Ideas
------------------
-
-💡 - Staff Directory: A searchable directory of all staff members with their roles, contact info, and photos. Could include birthday reminders and work anniversaries.
-
-💡 - Shift Swap System: Allow staff to post available shifts and request swaps with other team members. Managers can approve swap requests.
-
-💡 - Performance Reviews: Digital performance review system where managers can schedule and conduct reviews, set goals, and track progress over time.
-
-💡 - Staff Recognition Board: A public board where staff can give shoutouts/kudos to colleagues for good work. Could include categories like "Team Player", "Going Above and Beyond", etc.
-
-💡 - Document Library: Centralized location for staff handbooks, policies, procedures, and important documents. Version control and read receipts.
-
-💡 - Event RSVP System: For upcoming events, allow staff to RSVP so managers can track attendance and plan accordingly.
-
-💡 - Staff Polls/Surveys: Quick polls or surveys for staff feedback on various topics (menu changes, event ideas, workplace improvements, etc.)
-
-
-Gamification Ideas (To Make App More Engaging)
------------------------------------------------
-
-🎮 - Achievement Leaderboard: Show top achievers ranked by number of completed badges. Could have monthly/quarterly resets with special rewards for top performers.
-
-tocl - Daily Check-In Streaks: Staff earn points/achievements for consecutive days of opening the app. Longer streaks unlock special badges (7-day, 30-day, 100-day milestones).
-
-🎮 - Points System: Award points for various activities (completing training, submitting ideas, voting for EOTM, attending events, etc.). Points can unlock exclusive badges or be redeemed for rewards.
-
-🎮 - Weekly Challenges: Managers can create weekly challenges (e.g., "Complete 3 training modules this week", "Submit 2 ideas", "Help train a new staff member"). Completing challenges awards bonus points/badges.
-
-🎮 - Badge Collections & Sets: Group badges into collections (e.g., "Venue Master" - complete all venue knowledge badges, "Training Champion" - complete all training modules). Completing a set unlocks a special "Master" badge.
-
-🎮 - Social Badge Sharing: When someone earns a rare achievement, it appears in a "Recent Achievements" feed that all staff can see, creating FOMO and motivation.
-
-🎮 - Level System: Staff level up based on total points/achievements. Each level unlocks new features, badges, or profile customization options (colours, themes, profile frames).
-
-lets do - Achievement Rarity System: Some badges are "Common", "Rare", "Epic", or "Legendary" with different visual effects. Rare badges create more excitement when earned.
-
-🎮 - Team Competitions: Monthly team-based competitions (by venue or shift) where teams compete for points. Winning team gets a special badge or reward.
-
-🎮 - Mystery Badges: Hidden achievements that staff discover by doing unexpected things. Creates exploration and surprise elements.
-
-🎮 - Achievement Progress Dashboard: Visual progress bars showing how close staff are to unlocking the next badge in each category. Shows "X more shifts needed" or "Y% complete".
-
-🎮 - Badge Showcase on Profile: Each staff member has a profile page showing their top 3-5 most impressive badges, total achievement count, and level. Others can view profiles to see achievements.
-
-🎮 - Achievement Milestones: Special celebrations when staff hit major milestones (e.g., "50th Achievement Unlocked!" with a special animation/notification).
-
-🎮 - Training Completion Streaks: Track consecutive training completions without letting any expire. Streaks unlock special "Dedicated Learner" badges.
-
-🎮 - Idea Contribution Badges: Badges for submitting ideas that get implemented, most upvoted ideas, or being the first to suggest something that becomes popular.
-
-🎮 - Event Participation Badges: Badges for attending X number of events, RSVPing early, or being part of special event teams.
-
-🎮 - Referral/Recruitment Badges: Badges for helping recruit new staff members or successfully training new hires.
-
 
 
 
@@ -97,7 +46,6 @@ lets do - Achievement Rarity System: Some badges are "Common", "Rare", "Epic", o
     ✅ Achievements per staff member, admins and managers can send them their achievement. [Complete - Full achievement system implemented]
 
  
-                💡 Cash bonus for the highest achiever [Idea - Could be implemented with leaderboard system]
                 ✅ Some achievements require multiple awards for them until completed i.e. 1 out of 5 (1/5) [Complete - Progress-based achievements with requiredCount]
 
                     Potential Badges (Can be added via admin panel)
@@ -130,7 +78,7 @@ lets do - Achievement Rarity System: Some badges are "Common", "Rare", "Epic", o
 
 
 
-BADGES
+## Badges (Implemented)
 
 
 ✅ - Line Clean
@@ -147,36 +95,15 @@ BADGES
 
 
 
-// Extra Notes //
-\\ Dont Delete \\
-
-Povider :: Ionos
-Email :: portal@thegaitens.co.uk
-Pass :: BugelMerlin123!
-DNS
-
-
-Garrison: @garrisonchelmsford
-Spirits: @spiritsbarandgames
-Bassment: @bassment_chelmsford
 
 
 
 
 
-LINK TO ESC ADMIN (https://smissing.github.io/esc/#admin)
-For escape rooms admin
-test
+## Deployment Issues / Features Needed that have arrised and features needed to be added.
 
 
-
-
-
-
-Deployment Issues that have arrised and features needed to be added.
-
-
-Calendar:
+### Calendar:
     - Calender booking day before instead of selected Time
     - Calender is not allow removal of some holidays.
     - Holiday calender needs ability to look back on previous holiday days.
@@ -197,11 +124,11 @@ Ideas:
     - Ideas page could do with a live feed of some kind.
     - Ideas page could do with some cosmetic work
 
-Achievements:
+### Achievements:
     - Achievements being checked contantly seems to effect lag.
     - Manager can see whos got what badges maybe just names of achieved badges
 
-Meetings:
+### Meetings:
     - Meetings not initally appearing on the dashboard only appearing when requesting to reschedule
     - Need to be able to read past meetings descriptions with who.
     - Meetings should be able to CC in another memeber of staff if needed.
@@ -210,15 +137,17 @@ Meetings:
     - Follow ups to the meetings on how they resulted
     - Meeting banner can be different colours on severity.
 
-Training
+### Training:
     - Badges for each.
     - Generalised venue training
     - Add a required button instead of venue
     - Training needs to be refreshed every 4 months.
+    - Once in a training module quiz, you cannot leave it, it takes you right back to the quiz after loading the training section, only when clicking back to buisness section is when it works like that.
 
 
 
-General
+
+### General:
     Admins be able to see when staff last logged in
 
     Venue Numbers Log
@@ -243,7 +172,7 @@ Managers are being able to see the admin tab but not being allowed on which is g
 Facebook and instagram sharing for events will be able to add links to fatsoma for tickets.
 
 
-////
+## Misc / Scratch Notes
 Write a list of what accounts have what.
 
 
@@ -252,7 +181,38 @@ Write a list of what accounts have what.
 
 
 
+     
 
-Once in a training module quiz, you cannot leave it, it takes you right back to the quiz after loading the training section, only when clicking back to buisness section is when it works like that.
+## Provider / Deployment (keep credentials secure)
+Provider :: Ionos
+Email :: portal@thegaitens.co.uk
+Pass :: BugelMerlin123!
+DNS
 
-     whenkf
+
+Garrison: @garrisonchelmsford
+Spirits: @spiritsbarandgames
+Bassment: @bassment_chelmsford
+
+
+
+
+
+LINK TO ESC ADMIN (https://smissing.github.io/esc/#admin)
+For escape rooms admin
+test
+
+
+
+
+A Barred List.
+    Image of the person.
+    Their name if we have it.
+    A reason for the bar.
+    Length of bar.
+    Says how many days/weeks/months/years they have left on their bar.
+    Anti screenshot feature?
+
+// #region agent log (SW registration)// #endregion agent log
+
+

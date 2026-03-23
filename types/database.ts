@@ -13,6 +13,21 @@ export interface User {
   active: boolean
 }
 
+export type BarDurationUnit = 'days' | 'weeks' | 'months' | 'years'
+
+export interface BarredPerson {
+  id: string
+  name: string | null
+  imageUrl: string | null
+  imagePath?: string | null
+  reason: string
+  barDurationValue: number
+  barDurationUnit: BarDurationUnit
+  barEndDate: string
+  createdBy?: string
+  createdAt: string
+}
+
 export interface HolidayRequest {
   id: string
   userId: string

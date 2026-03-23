@@ -1,12 +1,21 @@
 // Service Worker for Gaitens Leisure Group Staff Portal
 const CACHE_NAME = 'gaitens-portal-v1'
 const urlsToCache = [
-  '/',
-  '/dashboard',
-  '/login',
   '/manifest.json',
   '/logos/gaitens-text-logo.png',
 ]
+
+// #region agent log (debug instrumentation helpers)
+const DEBUG_ENDPOINT = 'http://127.0.0.1:7877/ingest/9d5d80a7-cef2-45ef-b10c-77db6895456c'
+const DEBUG_SESSION_ID = '3ce7f9'
+const DEBUG_RUN_ID = 'post-fix'
+const debugPost = (payload) =>
+  fetch(DEBUG_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': DEBUG_SESSION_ID },
+    body: JSON.stringify(payload),
+  }).catch(() => {})
+// #endregion agent log
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
@@ -29,6 +38,33 @@ self.addEventListener('activate', (event) => {
       )
     })
   )
+  event.waitUntil(
+    (async () => {
+      // Purge cached navigation responses that may reference stale chunk filenames.
+      const cache = await caches.open(CACHE_NAME)
+      const keys = await cache.keys()
+      let deleted = 0
+      await Promise.all(
+        keys.map(async (req) => {
+          const url = req && req.url ? req.url : ''
+          if (url.includes('/login') || url.includes('/dashboard') || url.endsWith('://localhost:3000/') || url.endsWith('://localhost:3000/dashboard') || url.endsWith('://localhost:3000/login')) {
+            const didDelete = await cache.delete(req)
+            if (didDelete) deleted += 1
+          }
+        })
+      )
+
+      debugPost({
+        sessionId: DEBUG_SESSION_ID,
+        runId: DEBUG_RUN_ID,
+        hypothesisId: 'H1',
+        location: 'public/sw.js:activate',
+        message: 'Purged cached /login entries on SW activate',
+        data: { cacheName: CACHE_NAME, deletedLoginEntries: deleted },
+        timestamp: Date.now(),
+      })
+    })()
+  )
   return self.clients.claim()
 })
 
@@ -39,37 +75,98 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Never cache/intercept the service worker script itself.
+  if (event.request.url.includes('/sw.js')) {
+    return
+  }
+
+  // Never intercept our own debug ingest calls (avoids feedback loops).
+  if (event.request.url.includes('127.0.0.1:7877/ingest/')) {
+    return
+  }
+
+  // Never cache navigation/HTML responses. In dev, stale cached HTML can reference old chunk filenames and cause ChunkLoadError/404s.
+  const accept = event.request.headers && event.request.headers.get
+    ? (event.request.headers.get('accept') || '')
+    : ''
+  const isNavigation =
+    event.request.mode === 'navigate' || accept.includes('text/html')
+  if (isNavigation) {
+    return event.respondWith(fetch(event.request))
+  }
+
+  // #region agent log (prove SW fetch handler sees /login-related requests)
+  // Note: we log only, not cache, for any request that targets /login.
+  let pathname = null
+  try {
+    pathname = new URL(event.request.url).pathname
+  } catch (e) {}
+  const isLoginRequest =
+    pathname === '/login' || pathname === '/login/' || (pathname && pathname.startsWith('/login'))
+
+  if (isLoginRequest) {
+    debugPost({
+      sessionId: DEBUG_SESSION_ID,
+      runId: DEBUG_RUN_ID,
+      hypothesisId: 'H1',
+      location: 'public/sw.js:fetch(loginBypass)',
+      message: 'SW bypasses cache for /login request',
+      data: { cacheName: CACHE_NAME, url: event.request.url, pathname },
+      timestamp: Date.now(),
+    })
+    // Always serve /login from network to avoid stale cached HTML/RSC references.
+    event.respondWith(fetch(event.request))
+    return
+  }
+  // #endregion agent log
+
   // Skip API routes and external requests
   if (
+    // Never cache/intercept Next.js assets/HMR artifacts.
+    // Service worker caching stale `/_next/static/*` or `hot-update.json` can
+    // lead to ChunkLoadError (404 for the client chunk) and hydration failures.
+    event.request.url.includes('/_next/') ||
     event.request.url.includes('/api/') ||
     event.request.url.includes('supabase.co') ||
     event.request.url.startsWith('chrome-extension://')
   ) {
+    // #region agent log (confirm we skip the failing login chunk asset)
+    if (event.request.url.includes('/_next/static/chunks/app/login/page.js')) {
+      debugPost({
+        sessionId: DEBUG_SESSION_ID,
+        runId: DEBUG_RUN_ID,
+        hypothesisId: 'H3',
+        location: 'public/sw.js:fetch(skipNextAsset)',
+        message: 'SW skipping Next asset request',
+        data: {
+          cacheName: CACHE_NAME,
+          url: event.request.url,
+        },
+        timestamp: Date.now(),
+      })
+    }
+    // #endregion agent log
     return
   }
 
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Return cached version or fetch from network
-      return (
-        response ||
-        fetch(event.request).then((response) => {
-          // Don't cache if not a valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response
-          }
+    (async () => {
+      // Default: cache-first (for non-Next assets, non-api, etc.)
+      const response = await caches.match(event.request)
+      if (response) return response
 
-          // Clone the response
-          const responseToCache = response.clone()
+      const networkResponse = await fetch(event.request)
 
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache)
-          })
+      // Don't cache if not a valid response
+      if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+        return networkResponse
+      }
 
-          return response
-        })
-      )
-    })
+      const responseToCache = networkResponse.clone()
+      const cache = await caches.open(CACHE_NAME)
+      await cache.put(event.request, responseToCache)
+      return networkResponse
+    })()
   )
 })
 

@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Image as ImageIcon,
   ClipboardList,
+  Ban,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -160,6 +161,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Users className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
               <div className="text-lg font-medium text-card-foreground">Manage Staff</div>
+            </Link>
+            <Link
+              href="/manager/barred"
+              onClick={() => setActiveItem(null)}
+              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+            >
+              <Ban className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
+              <div className="text-lg font-medium text-card-foreground">Barred List</div>
             </Link>
             <Link
               href="/manager/training"

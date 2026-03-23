@@ -1,0 +1,275 @@
+GaitensLeisure - Plan Of Action (POA)
+
+Legend:
+    ✓ Done / implemented
+    ✗ Not done
+    ✎ New idea / planned / partial
+    𖢥 Bug / incorrect behavior
+
+
+## General Style
+
+
+## Calendar & Holiday (Time Off)
+    ✓ Admin access to approve holidays only
+    ✓ States who is off on holiday on a given day on the calender
+    ✓ Denied holidays can be given a reason (optional)
+    ✓ Calendar section renamed from "Time Off" with upcoming events feature
+    ✎ Holiday request submission does not email immediately; email to Chelsea is sent when the request is approved
+    𖢥 Calendar booking shows the day before the selected time
+    𖢥 Calendar does not allow removal of some holidays
+    ✎ Holiday calendar ability to look back on previous holiday days
+    𖢥 Booking off section is messy and translucent
+    ✎ Calendar list form (ex: "Tuesday the 8th these people are off") [backdates]
+    ✎ Secondary management calendar (limited)
+    ✓ Secondary calendar: Management meetings
+    ✎ Secondary calendar: Pubwatch
+    ✓ Secondary calendar: XYZ has a disciplinary
+    ✎ Secondary calendar: Ways to not add to calander
+    ✎ Secondary calendar: Manually add stuff to the calander
+    ✎ Secondary calendar: Repeat events (ex: Every wednesday at 1pm for the past 2 years.)
+    ✓ Holiday approvals get emailed to Chelsea (SMTP via lib/email.ts)
+
+## Training
+    ✓ Training section: upload videos/content, next flow, quizzes, completion tracking per date, reminders to redo
+    ✓ Training supports videos/content/quizzes completion tracking, site-specific modules, and categories
+    𖢥 Once in a training module quiz, you cannot leave it; reloading sends you back to the quiz after loading training (fixes only when going back to Business section)
+    ✓ Badges for each training module/item (training completion awards achievements by name)
+    ✎ Generalised venue training
+    ✓ Add a required button / mandatory scope instead of only selecting a venue (requiredScope)
+    ✓ Training needs refreshing every 4 months (completions expire via expiresAt)
+
+## Businesses, Community & Events
+    ✓ A page about each business
+    ✓ Social feed page
+    ✓ Photo Album (upload multiple photos; displayed in 3-column grid, most recent first)
+    ✓ Upcoming events: create events with optional photos, show date/time/location and countdown
+    ✓ Dashboard improvements: next upcoming event card and modal view, footer branding/logo
+    ✎ Hierarchy Roles (org structure to display on business/about pages)
+        Head Office
+            Owners
+                Samuel Gaitens
+                Chelsea Gaitens
+            Ops Manager
+                Kyle Price
+            Branding Manager
+                Nick Henton
+        Site Management
+            Garrison General Manager
+                James Harvey
+            Garrison Assistant Manager
+                Matt Douglas
+            Spirits General Manager
+                Unfilled
+            Bassment General Manager
+                Daisy King
+        Infrastructure
+            Maintanence
+                Dan Gaitens
+            IT
+                Sam Missing
+
+## Ideas (Businesses)
+    ✓ Ideas page with voting system, sorting, filtering by venue
+    ✓ Ideas page live feed (live updates via polling while visible)
+    ✎ Ideas page cosmetic improvements
+
+## Anonymous Reports & Grievances
+    ✓ Anonymous Report system (staff submit anonymous reports to admins under Feedback tab; status management)
+    ✎ Online grievance forms are functional, but email forwarding to you is not implemented yet
+
+## Meetings (Staff)
+    ✓ Manager/admin meeting request form (stores meeting request for staff + emails Chelsea)
+    𖢥 Meetings not initially appearing on the dashboard (only after requesting to reschedule)
+    ✓ Read past meeting descriptions with requester/recipient (and CC if present)
+    ✓ Meetings can CC another staff member if needed
+    ✓ Meeting email integration (emails Chelsea via SMTP)
+    ✓ Attach files to meetings
+    ✓ Track follow-ups to meetings and how they resulted
+    ✓ Meeting banner can be different colours based on severity
+
+## Achievements, Badges & Employee of the Month
+    ✓ Achievements/Badges system: award achievements to staff, progress tracking, badge images, push notifications, manager/admin award form
+    ✓ Achievements per staff member; admins/managers can send achievements to staff
+    ✓ Progress-based achievements (example: 1 out of 5, completed after requiredCount)
+    ✎ Be able to view other peoples badges (not yet implemented)
+
+    ✓ Employee of the Month: voting system, admin winner selection, certificate display with trophy
+    ✓ Trophy awarded when a staff member is Employee of the Month
+    ✎ Admin holds winners and chooses when to publish; automatic notice posting to all staff pages not implemented
+
+
+
+    𖢥 Achievements being checked constantly seems to affect lag/performance
+    ✓ Manager can see who has what badges (currently as badge names)
+
+## Admin, Roles & General
+    ✓ Admins be able to see when staff last logged in
+    ✓ Venue Numbers Log
+    ✓ Keep track of how many times a staff member has shared (via venue-numbers log)
+    ✓ Spirit Guide (Handbook content)
+    ✎ Hierarchy Roles
+    ✎ Anonymous can be in person (make aware)
+    ✓ Manage staff tab is manager/admin-only (permissioned)
+    𖢥 Managers can see the admin tab UI, but should be hidden (even though access is blocked)
+    ✎ Facebook and instagram sharing for events: add links to Fatsoma for tickets
+
+## Extra Implemented Features (not currently in the original POA bullets)
+    ✓ Staff login (4-digit code) + lockout + name confirmation
+    ✓ Notices board (post/pin + unread counts)
+    ✓ Daily check-in / streak badges (checkin API + dashboard integration)
+    ✓ Push notifications (VAPID + send API + UI buttons)
+
+## Misc / Scratch
+    ✎ Write a list of what accounts have what.
+
+## Provider / Deployment References (from notes)
+    Provider :: Ionos
+    Email :: portal@thegaitens.co.uk
+    Pass :: (redacted from poa.txt; still exists in notes.txt)
+    DNS
+    Garrison: @garrisonchelmsford
+    Spirits: @spiritsbarandgames
+    Bassment: @bassment_chelmsford
+
+    LINK TO ESC ADMIN (https://smissing.github.io/esc/#admin)
+    For escape rooms admin
+
+## Vercel Deployment (Next.js)
+    Recommended: Deploy to Vercel for best Next.js server + API support.
+    Steps (high level):
+    1. Connect/import the repo in Vercel
+    2. Add environment variables (names only):
+        - Supabase: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+        - Push: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`, `INTERNAL_API_SECRET`
+        - Email (optional, for holiday/meeting emails to Chelsea): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `EMAIL_CHELSEA_ADDRESS` (or `CHELSEA_EMAIL`)
+    3. Deploy (auto-builds on pushes to `main`)
+    Notes:
+    - Vercel ignores GitHub Pages-only env vars like `GITHUB_PAGES_BUILD`
+    - Use the default Next.js build/output (not `output: 'export'`)
+
+
+
+
+
+
+
+
+
+
+    𖢥 The app doesnt like when you go back on previous tabs or open the dashboard after some time of being out of the app. This is causing a lot of issues with staff using it.
+    I reveice these on the console when this happens:
+                    𖢥 The FetchEvent for "https://gaitens.vercel.app/dashboard" resulted in a network error response: a redirected response was used for a request whose redirect mode is not "follow".Understand this warning
+                    𖢥 The FetchEvent for "https://gaitens.vercel.app/dashboard" resulted in a network error response: a redirected response was used for a request whose redirect mode is not "follow".
+
+
+
+
+
+
+
+
+
+                    ✎ NICKS REQUESTS
+                        - Animations: Click something to animate to the next window.
+                        - Tabs slide up from dash
+                        - Opening page animations
+
+
+                        - No X on any on some of the pages
+                        - Tiling the background
+    
+
+
+
+    ✎ Achievements fill bar is currently a gradient of 3 colours. Instead I would like it to follow your title on the achiemvents page. 
+        So if you're a newbie the colour would be Grey like common badges
+        if you're a novice the colour would be blue like rare badges
+        if you're a trooper the colour would be purple like the epic badges
+        and if you're a legend the colour would be yellow/orange like the legendary badges
+
+
+
+
+
+
+### Not implimented at all:
+        - (none marked ✗ in the current POA)
+### In progress:
+        - ✎ Holiday request submission does not email immediately; email to Chelsea is sent when the request is approved
+        - ✎ Holiday calendar ability to look back on previous holiday days
+        - ✎ Calendar list form (ex: "Tuesday the 8th these people are off") [backdates]
+        - ✎ Secondary management calendar (limited)
+        - ✎ Secondary calendar: Pubwatch
+        - ✎ Secondary calendar: Ways to not add to calander
+        - ✎ Secondary calendar: Manually add stuff to the calander
+        - ✎ Secondary calendar: Repeat events (ex: Every wednesday at 1pm for the past 2 years.)
+        - ✎ Generalised venue training
+        - ✎ Ideas page cosmetic improvements
+        - ✎ Online grievance forms are functional, but email forwarding to you is not implemented yet
+        - ✎ Be able to view other peoples badges (not yet implemented)
+        - ✎ Admin holds winners and chooses when to publish; automatic notice posting to all staff pages not implemented
+        - ✎ Potential badges (added via admin panel): Clean the ice machine
+        - ✎ Potential badges (added via admin panel): Know Circus
+        - ✎ Potential badges (added via admin panel): Know Labyrinth
+        - ✎ Potential badges (added via admin panel): Know Cabin
+        - ✎ Potential badges (added via admin panel): Know Sharpshooters
+        - ✎ Potential badges (added via admin panel): Work a shift at Spirits (1/5)
+        - ✎ Potential badges (added via admin panel): Work a shift at Garrison (1/5)
+        - ✎ Potential badges (added via admin panel): Work a shift at Bassment (1/5)
+        - ✎ Potential badges (added via admin panel): Cocktail Expert (know the cocktails of each venue (1/3))
+        - ✎ Potential badges (added via admin panel): More to come
+        - ✎ Hierarchy Roles
+        - ✎ Anonymous can be in person (make aware)
+        - ✎ Facebook and instagram sharing for events: add links to Fatsoma for tickets
+        - ✎ Write a list of what accounts have what.
+        - ✎ NICKS REQUESTS: Animations click something to animate to the next window; tabs slide up from dash; opening page animations; no X on some pages; tiling background
+        - ✎ Achievements fill bar should follow title rarity colors (newbie grey, novice blue, trooper purple, legend yellow/orange)
+### Bugs bugs bugs
+        - 𖢥 Calendar booking shows the day before the selected time
+        - 𖢥 Calendar does not allow removal of some holidays
+        - 𖢥 Booking off section is messy and translucent
+        - 𖢥 Once in a training module quiz, you cannot leave it; reloading sends you back to the quiz after loading the training section (unless you go back to the Business section)
+        - 𖢥 Meetings not initially appearing on the dashboard (only appearing when requesting to reschedule)
+        - 𖢥 Achievements being checked contantly seems to effect lag/performance
+        - 𖢥 Managers can see the admin tab UI, but should be hidden (even though access is blocked)
+        - 𖢥 The app doesn't like when you go back on previous tabs or open the dashboard after some time of being out of the app (console shows FetchEvent redirect/network errors)
+
+
+
+
+
+
+Head Office
+        Owners
+            Samuel Gaitens
+            Chelsea Gaitens
+
+        Ops Manager
+            Kyle Price
+        
+        Branding Manager
+            Nick Henton
+
+
+
+Site Management
+        Garrison General Manager
+            James Harvey
+        
+        Garrison Assistant Manager
+            Matt Douglas
+        
+        Spirits General Manager
+            Unfilled
+        
+        Bassment General Manager
+            Daisy King
+
+
+Infrastructure
+        Maintanence
+            Dan Gaitens
+        
+        IT
+            Sam Missing

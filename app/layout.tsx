@@ -54,25 +54,38 @@ export default function RootLayout({
             `,
           }}
         />
+        {/* #region agent log (SW registration) */}
         <Script
           id="register-service-worker"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('ServiceWorker registration successful');
-                    })
-                    .catch(function(err) {
-                      console.log('ServiceWorker registration failed: ', err);
-                    });
-                });
+                // Version the SW script URL in dev so Chrome fetches the new script.
+                // This avoids being stuck with an older cached SW that throws at runtime.
+                const SW_SCRIPT_URL = '/sw.js?swver=20260318_1'
+                navigator.serviceWorker.register(SW_SCRIPT_URL)
+                  .then(function(registration) {
+                    console.log('ServiceWorker registration successful');
+                    fetch('http://127.0.0.1:7877/ingest/9d5d80a7-cef2-45ef-b10c-77db6895456c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3ce7f9'},body:JSON.stringify({sessionId:'3ce7f9',location:'app/layout.tsx:register-service-worker',message:'ServiceWorker registration successful',hypothesisId:'H4',runId:'post-fix',data:{scope:registration && registration.scope},timestamp:Date.now()})}).catch(()=>{});
+                    registration.update && registration.update()
+                    fetch('http://127.0.0.1:7877/ingest/9d5d80a7-cef2-45ef-b10c-77db6895456c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3ce7f9'},body:JSON.stringify({sessionId:'3ce7f9',location:'app/layout.tsx:register-service-worker',message:'ServiceWorker registration triggered update',hypothesisId:'H4',runId:'post-fix',data:{swScriptUrl:SW_SCRIPT_URL},timestamp:Date.now()})}).catch(()=>{});
+                  })
+                  .catch(function(err) {
+                    console.log('ServiceWorker registration failed: ', err);
+                    fetch('http://127.0.0.1:7877/ingest/9d5d80a7-cef2-45ef-b10c-77db6895456c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3ce7f9'},body:JSON.stringify({sessionId:'3ce7f9',location:'app/layout.tsx:register-service-worker',message:'ServiceWorker registration failed',hypothesisId:'H4',runId:'post-fix',data:{error:String(err && err.message || err)},timestamp:Date.now()})}).catch(()=>{});
+                  });
+
+                // #region agent log (prove SW control)
+                try {
+                  fetch('http://127.0.0.1:7877/ingest/9d5d80a7-cef2-45ef-b10c-77db6895456c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3ce7f9'},body:JSON.stringify({sessionId:'3ce7f9',location:'app/layout.tsx:sw-controller',message:'Service worker controller on register',hypothesisId:'H4',runId:'post-fix',data:{controllerUrl:(navigator.serviceWorker && navigator.serviceWorker.controller && navigator.serviceWorker.controller.url) || null},timestamp:Date.now()})}).catch(()=>{});
+                } catch(e) {}
+                // #endregion agent log
               }
             `,
           }}
         />
+        {/* #endregion agent log */}
         {/* Background logo watermark */}
         <div 
           className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"

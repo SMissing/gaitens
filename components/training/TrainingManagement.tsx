@@ -249,7 +249,7 @@ export function TrainingManagement() {
                   />
 
                   <div className="mt-4">
-                    <Label htmlFor="requiredScope">Required scope</Label>
+                    <Label htmlFor="requiredScope">Mandatory</Label>
                     <Select
                       id="requiredScope"
                       options={[
