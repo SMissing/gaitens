@@ -1,13 +1,19 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
+import { getPostLoginPath } from '@/lib/safe-return-url'
 import LoginForm from '@/components/forms/LoginForm'
 import Image from 'next/image'
 
-export default async function LoginPage() {
-  // Redirect if already logged in
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: { from?: string | string[] }
+}) {
+  const fromRaw = Array.isArray(searchParams.from) ? searchParams.from[0] : searchParams.from
+
   const user = await getCurrentUser()
   if (user) {
-    redirect('/dashboard')
+    redirect(getPostLoginPath(fromRaw))
   }
 
   return (
@@ -30,7 +36,7 @@ export default async function LoginPage() {
 
         {/* Login Form */}
         <div className="w-full">
-          <LoginForm />
+          <LoginForm fromQuery={fromRaw} />
         </div>
       </div>
     </div>

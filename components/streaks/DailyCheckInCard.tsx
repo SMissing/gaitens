@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Flame, CheckCircle2, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fetchWithAuth } from '@/lib/fetch-with-auth'
 
 interface StreakData {
   checkedInToday: boolean
@@ -26,7 +27,7 @@ export function DailyCheckInCard() {
 
   const fetchStreakData = async () => {
     try {
-      const response = await fetch('/api/checkin')
+      const response = await fetchWithAuth('/api/checkin')
       if (response.ok) {
         const data = await response.json()
         setStreakData(data)
@@ -41,7 +42,7 @@ export function DailyCheckInCard() {
   const handleCheckIn = async () => {
     setCheckingIn(true)
     try {
-      const response = await fetch('/api/checkin', {
+      const response = await fetchWithAuth('/api/checkin', {
         method: 'POST',
       })
 

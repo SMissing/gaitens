@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
+import { fetchWithAuth } from '@/lib/fetch-with-auth'
 import type { Idea } from '@/types/database'
 
 interface IdeaWithVotes extends Idea {
@@ -107,7 +108,7 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
     setVotingIdeas(prev => new Set(prev).add(ideaId))
 
     try {
-      const response = await fetch(`/api/ideas/${ideaId}/votes`, {
+      const response = await fetchWithAuth(`/api/ideas/${ideaId}/votes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +121,7 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
       }
 
       // Refresh ideas list
-      const refreshResponse = await fetch('/api/ideas')
+      const refreshResponse = await fetchWithAuth('/api/ideas')
       const data = await refreshResponse.json()
       if (data.ideas) {
         setIdeas(data.ideas)

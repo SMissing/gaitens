@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Lightbulb, X } from 'lucide-react'
+import { fetchWithAuth } from '@/lib/fetch-with-auth'
 
 interface IdeaFormProps {
   onSuccess?: () => void
@@ -34,7 +35,7 @@ export function IdeaForm({ onSuccess, onIdeaSubmitted, onClose }: IdeaFormProps)
     setLoading(true)
 
     try {
-      const response = await fetch('/api/ideas', {
+      const response = await fetchWithAuth('/api/ideas', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

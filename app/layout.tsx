@@ -4,6 +4,7 @@ import './globals.css'
 import { GlobalDock } from '@/components/layout/GlobalDock'
 import { DockWrapper } from '@/components/layout/DockWrapper'
 import { GlobalAchievementNotification } from '@/components/achievements/GlobalAchievementNotification'
+import { SessionResumeRefresh } from '@/components/auth/SessionResumeRefresh'
 
 export const metadata: Metadata = {
   title: 'Gaitens Leisure Group - Staff Portal',
@@ -100,6 +101,7 @@ export default function RootLayout({
           />
         </div>
         <div className="relative z-10">
+          <SessionResumeRefresh />
           {children}
         </div>
         <DockWrapper>

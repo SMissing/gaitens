@@ -2,6 +2,7 @@ import { createServerClient } from './db'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { User } from '@/types/database'
+import { SESSION_COOKIE_NAME } from './session-constants'
 
 // Session duration: 8 hours
 const SESSION_DURATION = 8 * 60 * 60 * 1000
@@ -102,10 +103,11 @@ export async function createSession(userId: string): Promise<void> {
   const expiresAt = new Date(Date.now() + SESSION_DURATION)
 
   // Store session in cookie
-  cookieStore.set('session_user_id', userId, {
+  cookieStore.set(SESSION_COOKIE_NAME, userId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
+    path: '/',
     expires: expiresAt,
   })
 }
@@ -115,7 +117,7 @@ export async function createSession(userId: string): Promise<void> {
  */
 export async function getCurrentUser(): Promise<User | null> {
   const cookieStore = cookies()
-  const userId = cookieStore.get('session_user_id')?.value
+  const userId = cookieStore.get(SESSION_COOKIE_NAME)?.value
 
   if (!userId) {
     return null
@@ -142,7 +144,13 @@ export async function getCurrentUser(): Promise<User | null> {
  */
 export async function clearSession(): Promise<void> {
   const cookieStore = cookies()
-  cookieStore.delete('session_user_id')
+  cookieStore.set(SESSION_COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
 }
 
 /**

@@ -2,13 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { getPostLoginPath } from '@/lib/safe-return-url'
 import { loginSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { Delete } from 'lucide-react'
 
-export default function LoginForm() {
+interface LoginFormProps {
+  fromQuery?: string | null
+}
+
+export default function LoginForm({ fromQuery }: LoginFormProps) {
   const router = useRouter()
   const [staffCode, setStaffCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -43,8 +48,8 @@ export default function LoginForm() {
         body: JSON.stringify({ staffCode }),
       })
 
-      // Redirect to dashboard
-      router.push('/dashboard')
+      const destination = getPostLoginPath(fromQuery)
+      router.push(destination)
       router.refresh()
     } catch (err) {
       setError('An error occurred. Please try again.')
