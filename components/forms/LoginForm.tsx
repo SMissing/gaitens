@@ -210,7 +210,8 @@ export default function LoginForm({ fromQuery }: LoginFormProps) {
               "shadow-lg"
             )}
           >
-            {staffCode[index] || '•'}
+            {/* Mask PIN: never show digits on screen — one * per digit entered */}
+            {staffCode[index] ? '*' : '•'}
           </div>
         ))}
       </div>
