@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type { BarredPerson } from '@/types/database'
 import { BarredPersonForm } from './BarredPersonForm'
 import { BarredPersonModal } from './BarredPersonModal'
+import { BarredDisclaimerModal } from './BarredDisclaimerModal'
 import { Button } from '@/components/ui/button'
 import { Plus, RefreshCcw, X } from 'lucide-react'
 
@@ -18,6 +19,8 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<BarredPerson | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  /** No localStorage — shown every time this page’s client tree mounts. */
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false)
   const [activeView, setActiveView] = useState<'active' | 'past'>('active')
   const touchStartXRef = useRef<number | null>(null)
   const touchStartYRef = useRef<number | null>(null)
@@ -50,9 +53,10 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
   }
 
   useEffect(() => {
+    if (!disclaimerAccepted) return
     if (initialPeople.length === 0) fetchPeople()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [disclaimerAccepted, initialPeople.length])
 
   useEffect(() => {
     if (!showAddModal) return
@@ -103,6 +107,10 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
 
     touchStartXRef.current = null
     touchStartYRef.current = null
+  }
+
+  if (!disclaimerAccepted) {
+    return <BarredDisclaimerModal onAccept={() => setDisclaimerAccepted(true)} />
   }
 
   return (

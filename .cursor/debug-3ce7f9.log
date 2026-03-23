@@ -62,3 +62,6 @@
 {"sessionId":"3ce7f9","location":"app/layout.tsx:sw-controller","message":"Service worker controller on register","hypothesisId":"H4","runId":"post-fix","data":{"controllerUrl":null},"timestamp":1774288012226}
 {"sessionId":"3ce7f9","location":"app/layout.tsx:register-service-worker","message":"ServiceWorker registration successful","hypothesisId":"H4","runId":"post-fix","data":{"scope":"http://localhost:3000/"},"timestamp":1774288012228}
 {"sessionId":"3ce7f9","location":"app/layout.tsx:register-service-worker","message":"ServiceWorker registration triggered update","hypothesisId":"H4","runId":"post-fix","data":{"swScriptUrl":"/sw.js?swver=20260318_1"},"timestamp":1774288012229}
+{"sessionId":"3ce7f9","location":"app/layout.tsx:sw-controller","message":"Service worker controller on register","hypothesisId":"H4","runId":"post-fix","data":{"controllerUrl":null},"timestamp":1774288781505}
+{"sessionId":"3ce7f9","location":"app/layout.tsx:register-service-worker","message":"ServiceWorker registration successful","hypothesisId":"H4","runId":"post-fix","data":{"scope":"http://localhost:3000/"},"timestamp":1774288781536}
+{"sessionId":"3ce7f9","location":"app/layout.tsx:register-service-worker","message":"ServiceWorker registration triggered update","hypothesisId":"H4","runId":"post-fix","data":{"swScriptUrl":"/sw.js?swver=20260318_1"},"timestamp":1774288781536}
