@@ -11,6 +11,9 @@ export interface User {
   createdAt: string
   last_login_at?: string | null
   active: boolean
+  /** Times user accepted Barred List disclaimer (see scripts/55-*.sql). */
+  barredDisclaimerAcceptCount?: number
+  barredDisclaimerLastAcceptedAt?: string | null
 }
 
 export type BarDurationUnit = 'days' | 'weeks' | 'months' | 'years'

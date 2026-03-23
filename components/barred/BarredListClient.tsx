@@ -109,8 +109,17 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
     touchStartYRef.current = null
   }
 
+  const handleDisclaimerAccept = async () => {
+    const res = await fetch('/api/barred/disclaimer-accept', { method: 'POST' })
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) {
+      throw new Error(data.error || 'Could not record acceptance.')
+    }
+    setDisclaimerAccepted(true)
+  }
+
   if (!disclaimerAccepted) {
-    return <BarredDisclaimerModal onAccept={() => setDisclaimerAccepted(true)} />
+    return <BarredDisclaimerModal onAccept={handleDisclaimerAccept} />
   }
 
   return (

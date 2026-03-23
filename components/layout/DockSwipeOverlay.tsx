@@ -19,8 +19,8 @@ import {
   X,
   AlertCircle,
   Image as ImageIcon,
-  ClipboardList,
   Ban,
+  Scale,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -203,14 +203,6 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <div className="text-lg font-medium text-card-foreground">Management Calendar</div>
             </Link>
             <Link
-              href="/manager/venue-numbers"
-              onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[60px]"
-            >
-              <ClipboardList className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Venue Numbers</div>
-            </Link>
-            <Link
               href="/manager/achievements"
               onClick={() => setActiveItem(null)}
               className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
@@ -249,6 +241,19 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <Award className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
               <div className="text-lg font-medium text-card-foreground">Create Badges</div>
             </Link>
+            <div className="pt-2 border-t border-border/40 mt-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
+                Legal
+              </p>
+              <Link
+                href="/admin/bardisc"
+                onClick={() => setActiveItem(null)}
+                className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[60px]"
+              >
+                <Scale className="h-6 w-6 text-garrison-orange flex-shrink-0" />
+                <div className="text-lg font-medium text-card-foreground">Barred Disclaimers</div>
+              </Link>
+            </div>
           </div>
         )
       default:

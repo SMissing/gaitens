@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { AlertTriangle } from 'lucide-react'
 
 interface BarredDisclaimerModalProps {
-  onAccept: () => void
+  /** Must complete server-side logging before resolving; throw on failure. */
+  onAccept: () => Promise<void>
 }
 
 /**
@@ -18,6 +19,8 @@ export function BarredDisclaimerModal({ onAccept }: BarredDisclaimerModalProps) 
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [acknowledged, setAcknowledged] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [acceptError, setAcceptError] = useState<string | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -33,6 +36,18 @@ export function BarredDisclaimerModal({ onAccept }: BarredDisclaimerModalProps) 
 
   const handleDecline = () => {
     router.push('/dashboard')
+  }
+
+  const handleAccept = async () => {
+    setAcceptError(null)
+    setSubmitting(true)
+    try {
+      await onAccept()
+    } catch (e) {
+      setAcceptError(e instanceof Error ? e.message : 'Could not record your acceptance. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   if (!mounted) return null
@@ -97,19 +112,31 @@ export function BarredDisclaimerModal({ onAccept }: BarredDisclaimerModalProps) 
               information.
             </span>
           </label>
+
+          {acceptError && (
+            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-sm text-destructive">
+              {acceptError}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-2 p-4 sm:p-6 border-t border-border/50 bg-card">
-          <Button type="button" variant="outline" className="w-full sm:flex-1" onClick={handleDecline}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:flex-1"
+            onClick={handleDecline}
+            disabled={submitting}
+          >
             Decline — leave
           </Button>
           <Button
             type="button"
             className="w-full sm:flex-1"
-            disabled={!acknowledged}
-            onClick={onAccept}
+            disabled={!acknowledged || submitting}
+            onClick={() => void handleAccept()}
           >
-            Accept and continue
+            {submitting ? 'Recording…' : 'Accept and continue'}
           </Button>
         </div>
       </div>

@@ -15,7 +15,7 @@ import {
   CheckCircle,
   AlertCircle,
   Image as ImageIcon,
-  ClipboardList,
+  Scale,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -170,13 +170,6 @@ export function DockExpansion() {
               <div className="text-sm font-medium text-card-foreground">Management Calendar</div>
             </Link>
             <Link
-              href="/manager/venue-numbers"
-              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
-            >
-              <ClipboardList className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
-              <div className="text-sm font-medium text-card-foreground">Venue Numbers</div>
-            </Link>
-            <Link
               href="/manager/achievements"
               className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
             >
@@ -209,6 +202,16 @@ export function DockExpansion() {
             >
               <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Create Badges</div>
+            </Link>
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-3 mb-1 px-1">
+              Legal
+            </h3>
+            <Link
+              href="/admin/bardisc"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Scale className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Barred Disclaimers</div>
             </Link>
           </div>
         )
