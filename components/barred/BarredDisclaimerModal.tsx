@@ -92,7 +92,7 @@ export function BarredDisclaimerModal({ onAccept }: BarredDisclaimerModalProps) 
           <p>
             Having access to this list does <strong>not</strong> authorise copying, screenshots,
             forwarding, or any other misuse. Misuse may breach data protection law, employment
-            terms, and company policy and could result in disciplinary action.
+            terms, and company policy and could result in disciplinary action and instant dismissal.
           </p>
           <p>
             By accepting below, you confirm you understand these risks and will use this data only

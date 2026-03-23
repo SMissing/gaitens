@@ -90,12 +90,14 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     .order('createdAt', { ascending: false })
     .limit(5)
 
-  // Recent rejected holiday requests (last 3) - only for the current user
+  // Rejected holiday requests from the last 7 days only (dashboard); up to 3 most recent
+  const rejectedSinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const { data: rejectedRequests } = await supabase
     .from('holiday_requests')
     .select('*')
-    .eq('userId', user.id) // Only show rejected requests for the current logged-in user
+    .eq('userId', user.id)
     .eq('status', 'rejected')
+    .gte('updatedAt', rejectedSinceIso)
     .order('updatedAt', { ascending: false })
     .limit(3)
 
