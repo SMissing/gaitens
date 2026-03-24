@@ -1,13 +1,23 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import type { DayButtonProps } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { Calendar, Clock, Plus, X } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, Plus, X } from 'lucide-react'
 import { toYyyyMmDdLocal } from '@/lib/date-utils'
+import { cn } from '@/lib/utils'
 
 type ManagementEventType = 'management_meeting' | 'pubwatch' | 'disciplinary' | 'custom'
 type RecurrenceType = 'none' | 'weekly'
@@ -52,6 +62,61 @@ function formatTime(time: string | null): string | null {
   const ampm = h >= 12 ? 'PM' : 'AM'
   const display = (h % 12) || 12
   return `${display}:${mm} ${ampm}`
+}
+
+type ManagementCalendarContextValue = {
+  occurrencesByDate: Record<string, Occurrence[]>
+  today: Date
+}
+
+const ManagementCalendarContext = createContext<ManagementCalendarContextValue | null>(null)
+
+function useManagementCalendarContext() {
+  const ctx = useContext(ManagementCalendarContext)
+  if (!ctx) throw new Error('ManagementDayButton must be used within ManagementCalendar')
+  return ctx
+}
+
+function ManagementDayButton({ day, modifiers, className, children, ...buttonProps }: DayButtonProps) {
+  const ctx = useManagementCalendarContext()
+  const ref = useRef<HTMLButtonElement>(null)
+  const dateStr = toYyyyMmDdLocal(day.date)
+  const dayEvents = ctx.occurrencesByDate[dateStr] || []
+
+  useEffect(() => {
+    if (modifiers.focused) ref.current?.focus()
+  }, [modifiers.focused])
+
+  return (
+    <button ref={ref} type="button" className={className} {...buttonProps}>
+      <div className="flex w-full items-start justify-between gap-1">
+        <div className="text-xs font-semibold text-foreground">{children}</div>
+        {dayEvents.length > 0 && (
+          <div className="text-[10px] text-muted-foreground">{dayEvents.length}</div>
+        )}
+      </div>
+
+      {dayEvents.length > 0 && (
+        <div className="mt-1 w-full space-y-1">
+          {dayEvents.slice(0, 2).map((ev) => (
+            <div
+              key={`${dateStr}-${ev.occurrenceId}`}
+              className={cn(
+                'truncate rounded-lg border px-2 py-0.5 text-[10px] leading-tight',
+                getEventBadgeClass(ev.eventType)
+              )}
+              title={ev.title}
+            >
+              {ev.title}
+            </div>
+          ))}
+          {dayEvents.length > 2 && (
+            <div className="text-[9px] text-muted-foreground">+{dayEvents.length - 2} more</div>
+          )}
+        </div>
+      )}
+    </button>
+  )
 }
 
 export function ManagementCalendar() {
@@ -110,43 +175,34 @@ export function ManagementCalendar() {
     return map
   }, [occurrences])
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
-
-    const cells: (Date | null)[] = []
-    for (let i = 0; i < startingDayOfWeek; i++) cells.push(null)
-    for (let i = 1; i <= daysInMonth; i++) cells.push(new Date(year, month, i))
-    return cells
-  }
-
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     return d
   }, [])
 
-  const monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ]
+  const managementCtx = useMemo<ManagementCalendarContextValue>(
+    () => ({ occurrencesByDate, today }),
+    [occurrencesByDate, today]
+  )
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const days = getDaysInMonth(currentMonth)
+  const modifiers = useMemo(
+    () => ({
+      hasEvents: (d: Date) => (occurrencesByDate[toYyyyMmDdLocal(d)] || []).length > 0,
+      noEvents: (d: Date) => (occurrencesByDate[toYyyyMmDdLocal(d)] || []).length === 0,
+    }),
+    [occurrencesByDate]
+  )
+
+  const modifiersClassNames = useMemo(
+    () => ({
+      hasEvents:
+        '[&_button]:rounded-2xl [&_button]:border [&_button]:border-spirits-magenta/35 [&_button]:bg-spirits-magenta/[0.08] [&_button]:hover:border-spirits-magenta/50 [&_button]:hover:bg-spirits-magenta/[0.12]',
+      noEvents:
+        '[&_button]:rounded-2xl [&_button]:border [&_button]:border-border/30 [&_button]:bg-black/10 [&_button]:hover:border-border/45 [&_button]:hover:bg-white/[0.04]',
+    }),
+    []
+  )
 
   const refresh = async () => {
     setRefreshKey((k) => k + 1)
@@ -154,94 +210,54 @@ export function ManagementCalendar() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <Calendar className="h-6 w-6 text-spirits-magenta" />
-          <h2 className="text-xl font-bold text-foreground">
-            Management Calendar - {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          <CalendarIcon className="h-6 w-6 shrink-0 text-spirits-magenta" />
+          <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+            Management calendar
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}>
-            Prev
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}>
-            Next
-          </Button>
-          <Button
-            className="ml-1"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add event
-          </Button>
-        </div>
+        <Button
+          className="w-full rounded-xl sm:w-auto"
+          onClick={() => setShowAddModal(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add event
+        </Button>
       </div>
 
-      {loading ? (
-        <div className="text-center py-10 text-muted-foreground">Loading...</div>
-      ) : (
-        <Card className="bg-card/80 backdrop-blur-sm rounded-lg border border-border/50 p-4">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-7 gap-2 mb-3">
-              {dayNames.map((d) => (
-                <div key={d} className="text-center text-xs font-semibold text-muted-foreground">
-                  {d}
-                </div>
-              ))}
+      <Card className="rounded-2xl border border-border/50 bg-[#1e1e1e] p-5 sm:p-6">
+        <CardContent className="relative min-h-[320px] p-0">
+          <ManagementCalendarContext.Provider value={managementCtx}>
+            <Calendar
+              month={currentMonth}
+              onMonthChange={setCurrentMonth}
+              showOutsideDays={false}
+              disabled={loading ? () => true : undefined}
+              onDayClick={(date) => {
+                const ds = toYyyyMmDdLocal(date)
+                if ((occurrencesByDate[ds] || []).length > 0) setSelectedDate(date)
+              }}
+              modifiers={modifiers}
+              modifiersClassNames={modifiersClassNames}
+              components={{ DayButton: ManagementDayButton }}
+              className={cn('border-0 p-0', loading && 'opacity-40')}
+              classNames={{
+                root: 'w-full',
+                caption_label: 'text-lg font-semibold tracking-tight sm:text-xl',
+                today:
+                  '[&_button]:ring-1 [&_button]:ring-spirits-magenta/80 [&_button]:ring-offset-1 [&_button]:ring-offset-background',
+              }}
+            />
+          </ManagementCalendarContext.Provider>
+          {loading && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-2 top-14 flex items-center justify-center rounded-xl bg-[#1e1e1e]/88 backdrop-blur-[2px]">
+              <span className="text-sm font-medium text-muted-foreground">Loading…</span>
             </div>
-
-            <div className="grid grid-cols-7 gap-1">
-              {days.map((date, idx) => {
-                if (!date) return <div key={`empty-${idx}`} className="aspect-square" />
-
-                const isToday = date.toDateString() === today.toDateString()
-                const dateStr = toYyyyMmDdLocal(date)
-                const dayEvents = occurrencesByDate[dateStr] || []
-
-                return (
-                  <button
-                    key={dateStr}
-                    onClick={() => {
-                      if (dayEvents.length > 0) setSelectedDate(date)
-                    }}
-                    className={`
-                      aspect-square rounded-lg border transition-all text-left p-1.5
-                      ${isToday ? 'ring-2 ring-spirits-magenta ring-offset-2 ring-offset-background' : ''}
-                      ${dayEvents.length > 0 ? 'border-spirits-magenta/50 hover:border-spirits-magenta/80 bg-card/60' : 'bg-background/30 border-border/30'}
-                    `}
-                  >
-                    <div className="flex items-start justify-between gap-1">
-                      <div className="text-xs font-semibold text-foreground">{date.getDate()}</div>
-                      {dayEvents.length > 0 && (
-                        <div className="text-[10px] text-muted-foreground">{dayEvents.length}</div>
-                      )}
-                    </div>
-
-                    {dayEvents.length > 0 && (
-                      <div className="mt-1 space-y-1">
-                        {dayEvents.slice(0, 2).map((ev) => (
-                          <div
-                            key={`${dateStr}-${ev.eventId}-${ev.title}`}
-                            className={`text-[10px] leading-tight px-2 py-0.5 rounded-md border ${getEventBadgeClass(ev.eventType)}`}
-                            title={ev.title}
-                          >
-                            <div className="truncate">{ev.title}</div>
-                          </div>
-                        ))}
-                        {dayEvents.length > 2 && (
-                          <div className="text-[9px] text-muted-foreground">+{dayEvents.length - 2} more</div>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Day details modal */}
       {selectedDate && (
@@ -250,21 +266,21 @@ export function ManagementCalendar() {
             className="bg-[#1e1e1e] rounded-2xl border border-border/50 max-w-2xl w-full max-h-[80vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+            <div className="flex items-center justify-between border-b border-border/50 p-4">
               <div>
-                <div className="text-lg font-bold text-foreground">
+                <div className="text-lg font-semibold tracking-tight text-foreground">
                   {selectedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
                 <div className="text-xs text-muted-foreground">{(occurrencesByDate[toYyyyMmDdLocal(selectedDate)] || []).length} events</div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(null)} className="h-9 w-9">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedDate(null)} className="h-9 w-9 rounded-xl hover:bg-white/[0.06]">
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="p-4 space-y-3 overflow-y-auto">
+            <div className="space-y-3 overflow-y-auto p-4">
               {(occurrencesByDate[toYyyyMmDdLocal(selectedDate)] || []).map((ev) => (
-                <div key={ev.occurrenceId} className="border border-border/50 rounded-lg bg-card/50 p-3">
+                <div key={ev.occurrenceId} className="rounded-xl border border-border/40 bg-black/20 p-3.5">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="font-semibold text-foreground">{ev.title}</div>
@@ -272,7 +288,7 @@ export function ManagementCalendar() {
                       {ev.description && <div className="text-sm text-muted-foreground whitespace-pre-wrap">{ev.description}</div>}
                       {ev.site && <div className="text-xs text-muted-foreground">Site: {ev.site}</div>}
                     </div>
-                    <div className={`text-xs px-2 py-1 rounded-md border ${getEventBadgeClass(ev.eventType)}`}>
+                    <div className={`rounded-lg border px-2 py-1 text-xs ${getEventBadgeClass(ev.eventType)}`}>
                       {formatTime(ev.startTime) ? (
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />

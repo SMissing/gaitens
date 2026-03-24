@@ -32,12 +32,6 @@ const Dock = React.forwardRef<HTMLDivElement, DockProps>(
     React.useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
         const target = event.target as Node
-        // Don't close if clicking on the overlay itself
-        const overlay = document.querySelector('[data-dock-overlay]')
-        if (overlay && overlay.contains(target)) {
-          return
-        }
-        // Don't close if clicking on dock buttons
         if (dockRef.current && dockRef.current.contains(target)) {
           return
         }

@@ -26,7 +26,7 @@ export async function GlobalDock() {
         className="fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-2 sm:px-4"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 2px)' }}
       >
-        <Dock className="bg-card/80 backdrop-blur-md border border-border/50 rounded-3xl shadow-2xl overflow-hidden relative h-16 sm:h-20">
+        <Dock className="bg-card/80 backdrop-blur-md border border-border/50 rounded-3xl shadow-2xl overflow-visible relative h-16 sm:h-20">
           {/* Dock Swipe Overlay - inside Dock for context access */}
           <DockSwipeOverlay user={user} />
           

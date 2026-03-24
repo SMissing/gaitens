@@ -5,6 +5,7 @@ import { GlobalDock } from '@/components/layout/GlobalDock'
 import { DockWrapper } from '@/components/layout/DockWrapper'
 import { GlobalAchievementNotification } from '@/components/achievements/GlobalAchievementNotification'
 import { SessionResumeRefresh } from '@/components/auth/SessionResumeRefresh'
+import { CalmPortalBackground } from '@/components/layout/CalmPortalBackground'
 
 export const metadata: Metadata = {
   title: 'Gaitens Leisure Group - Staff Portal',
@@ -101,6 +102,7 @@ export default function RootLayout({
           />
         </div>
         <div className="relative z-10">
+          <CalmPortalBackground />
           <SessionResumeRefresh />
           {children}
         </div>

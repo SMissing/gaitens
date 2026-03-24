@@ -17,7 +17,7 @@
   font-display: swap;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 
 :root {
   --background: oklch(0.05 0 0);
@@ -231,6 +231,12 @@
     color-scheme: dark;
     /* Help prevent iOS rubber-band from pulling content away from the top bar */
     overscroll-behavior-y: none;
+    overflow-x: hidden;
+    width: 100%;
+    /* 100vw ignores scrollbar width and causes horizontal jump when scrollbar toggles */
+    max-width: 100%;
+    /* Root scroll container: reserve gutter so layout width stays stable */
+    scrollbar-gutter: stable;
   }
   
   body {
@@ -242,17 +248,19 @@
     position: relative;
     overflow-x: hidden;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     font-family: var(--font-sans);
     width: 100%;
-    max-width: 100vw;
+    max-width: 100%;
     /* Lock body itself against rubber-band so the header feels fixed */
     overscroll-behavior-y: none;
   }
-  
-  html {
-    overflow-x: hidden;
-    width: 100%;
-    max-width: 100vw;
+
+  /* Always reserve vertical scrollbar track on larger screens (avoids content shifting right) */
+  @media (min-width: 641px) {
+    html {
+      overflow-y: scroll;
+    }
   }
   
   /* Dark grainy background with neon flashes - no image background */
@@ -280,15 +288,36 @@
     width: 100%;
     height: 100%;
     background-color: oklch(0.05 0 0);
-    background-image: 
-      url("/textures/grunge-texture.jpg"),
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E");
-    background-size: cover, auto;
-    background-position: center, center;
-    background-repeat: no-repeat, repeat;
+    /* Temporarily disabled high-res texture for perf check */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.4'/%3E%3C/svg%3E");
+    background-size: auto;
+    background-position: center;
+    background-repeat: repeat;
     pointer-events: none;
     z-index: -1;
     opacity: 0.4;
+  }
+
+  /* Calm backdrop (Ideas-style): all portal pages except dashboard/login via body class */
+  body.calm-portal-background::before {
+    background-image:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, transparent 45%),
+      linear-gradient(320deg, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
+    animation: none;
+    opacity: 0.9;
+  }
+
+  body.calm-portal-background::after {
+    background-color: oklch(0.05 0 0);
+    background-image:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0%, rgba(255, 255, 255, 0) 40%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.35'/%3E%3C/svg%3E");
+    opacity: 0.52;
+  }
+
+  /* Ideas page only: Roboto (https://fonts.google.com/specimen/Roboto) */
+  body.ideas-page-font {
+    font-family: 'Roboto', ui-sans-serif, system-ui, sans-serif;
   }
   
   @keyframes pulse-glow {

@@ -1,8 +1,7 @@
 'use client'
 
-import { createPortal } from 'react-dom'
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { AnimatePresence, motion } from 'motion/react'
 import { useDockContext } from '@/components/core/dock'
 import {
   BookOpen,
@@ -14,9 +13,7 @@ import {
   Award,
   Building2,
   Users,
-  Shield,
   CheckCircle,
-  X,
   AlertCircle,
   Image as ImageIcon,
   Ban,
@@ -28,232 +25,247 @@ interface DockSwipeOverlayProps {
   user: User
 }
 
+const panelTransition = {
+  type: 'spring' as const,
+  bounce: 0.1,
+  duration: 0.25,
+}
+
+function categoryTitle(activeItem: string | null): string {
+  switch (activeItem) {
+    case 'timeoff':
+      return 'Calendar'
+    case 'learning':
+      return 'Learning'
+    case 'community':
+      return 'Community'
+    case 'feedback':
+      return 'Feedback'
+    case 'manager':
+      return 'Manager'
+    case 'admin':
+      return 'Admin'
+    default:
+      return ''
+  }
+}
+
+const linkClass =
+  'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors touch-manipulation sm:hover:bg-accent active:scale-[0.99]'
+
 export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
   const { activeItem, setActiveItem } = useDockContext()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const renderCategoryContent = () => {
     switch (activeItem) {
       case 'timeoff':
         return (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Calendar</h2>
+          <div className="grid gap-1">
             <Link
               href="/holidays"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Calendar className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Holidays</div>
+              <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Holidays</span>
             </Link>
             <Link
               href="/upcoming-events"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Calendar className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Upcoming Events</div>
+              <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Upcoming Events</span>
             </Link>
           </div>
         )
       case 'learning':
         return (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Learning</h2>
+          <div className="grid gap-1">
             <Link
               href="/training"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <GraduationCap className="h-6 w-6 text-spirits-yellow flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Training</div>
+              <GraduationCap className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Training</span>
             </Link>
             <Link
               href="/handbook"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <BookOpen className="h-6 w-6 text-spirits-yellow flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Handbook</div>
+              <BookOpen className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Handbook</span>
             </Link>
             <Link
               href="/businesses"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Building2 className="h-6 w-6 text-spirits-yellow flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Businesses</div>
+              <Building2 className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Businesses</span>
             </Link>
           </div>
         )
       case 'community':
         return (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Community</h2>
+          <div className="grid gap-1">
             <Link
               href="/social"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <MessageSquare className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Social</div>
+              <MessageSquare className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Social</span>
             </Link>
             <Link
               href="/employee-of-the-month"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Award className="h-6 w-6 text-spirits-yellow flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Employee of the Month</div>
+              <Award className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Employee of the Month</span>
             </Link>
             <Link
               href="/photo-album"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <ImageIcon className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Photo Album</div>
+              <ImageIcon className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Photo Album</span>
             </Link>
           </div>
         )
       case 'feedback':
         return (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Feedback</h2>
+          <div className="grid gap-1">
             <Link
               href="/ideas"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Lightbulb className="h-6 w-6 text-spirits-yellow flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Ideas</div>
+              <Lightbulb className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Ideas</span>
             </Link>
             <Link
               href="/grievance"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <FileText className="h-6 w-6 text-garrison-orange flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Grievance</div>
+              <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <span className="font-medium text-foreground">Grievance</span>
             </Link>
             <Link
               href="/anonymous-report"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <FileText className="h-6 w-6 text-garrison-orange flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Anonymous Report</div>
+              <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <span className="font-medium text-foreground">Anonymous Report</span>
             </Link>
           </div>
         )
       case 'manager':
         return (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Manager</h2>
+          <div className="grid gap-1 max-h-[min(280px,45vh)] overflow-y-auto overscroll-contain pr-0.5 -mr-0.5">
             <Link
               href="/manager/staff"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Users className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Manage Staff</div>
+              <Users className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Manage Staff</span>
             </Link>
             <Link
               href="/manager/barred"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Ban className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Barred List</div>
+              <Ban className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Barred List</span>
             </Link>
             <Link
               href="/manager/training"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <GraduationCap className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Module Maker</div>
+              <GraduationCap className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Module Maker</span>
             </Link>
             <Link
               href="/manager/notices/post"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <FileText className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Post Notice</div>
+              <FileText className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Post Notice</span>
             </Link>
             <Link
               href="/manager/meetings"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Calendar className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Meetings</div>
+              <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Meetings</span>
             </Link>
             <Link
               href="/manager/management-calendar"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Calendar className="h-6 w-6 text-spirits-magenta flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Management Calendar</div>
+              <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Management Calendar</span>
             </Link>
             <Link
               href="/manager/achievements"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Award className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Staff Badges</div>
+              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Staff Badges</span>
             </Link>
           </div>
         )
       case 'admin':
         if (user.role !== 'admin') return null
         return (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Admin</h2>
+          <div className="grid gap-1 max-h-[min(280px,45vh)] overflow-y-auto overscroll-contain pr-0.5 -mr-0.5">
             <Link
               href="/admin/holidays/approve"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <CheckCircle className="h-6 w-6 text-garrison-orange flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Approve Holidays</div>
+              <CheckCircle className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <span className="font-medium text-foreground">Approve Holidays</span>
             </Link>
             <Link
               href="/admin/disciplinaries"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-red-500/50 sm:hover:bg-accent sm:hover:border-red-500/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Disciplinaries</div>
+              <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+              <span className="font-medium text-foreground">Disciplinaries</span>
             </Link>
             <Link
               href="/admin/achievements"
               onClick={() => setActiveItem(null)}
-              className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[60px]"
+              className={linkClass}
             >
-              <Award className="h-6 w-6 text-spirits-cyan flex-shrink-0" />
-              <div className="text-lg font-medium text-card-foreground">Create Badges</div>
+              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Create Badges</span>
             </Link>
-            <div className="pt-2 border-t border-border/40 mt-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 px-1">
-                Legal
-              </p>
-              <Link
-                href="/admin/bardisc"
-                onClick={() => setActiveItem(null)}
-                className="flex items-center gap-4 p-4 border border-border rounded-xl active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[60px]"
-              >
-                <Scale className="h-6 w-6 text-garrison-orange flex-shrink-0" />
-                <div className="text-lg font-medium text-card-foreground">Barred Disclaimers</div>
-              </Link>
-            </div>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground px-1 pt-2 pb-0.5">
+              Legal
+            </p>
+            <Link
+              href="/admin/bardisc"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Scale className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <span className="font-medium text-foreground">Barred Disclaimers</span>
+            </Link>
           </div>
         )
       default:
@@ -261,33 +273,26 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
     }
   }
 
-  if (!activeItem || !mounted) return null
-
-  const overlayContent = (
-    <div 
-      data-dock-overlay
-      className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-xl transition-transform duration-300 ease-out transform translate-y-0"
-    >
-      <div 
-        className="absolute right-4"
-        style={{
-          top: 'calc(env(safe-area-inset-top, 0px) + 60px)',
-        }}
-      >
-        <button
-          onClick={() => setActiveItem(null)}
-          className="p-2 active:opacity-70 transition-opacity touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+  return (
+    <AnimatePresence initial={false}>
+      {activeItem && (
+        <motion.div
+          key={activeItem}
+          data-dock-category-panel
+          transition={panelTransition}
+          initial={{ opacity: 0, y: 10, height: 0 }}
+          animate={{ opacity: 1, y: 0, height: 'auto' }}
+          exit={{ opacity: 0, y: 10, height: 0 }}
+          className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden z-[1] pointer-events-auto"
         >
-          <X className="h-6 w-6 text-foreground" />
-        </button>
-      </div>
-      <div className="h-full flex items-center justify-center px-4 py-20 pb-32">
-        <div className="w-full max-w-md">
-          {renderCategoryContent()}
-        </div>
-      </div>
-    </div>
+          <div className="rounded-2xl border border-white/10 bg-[#171717] shadow-2xl p-2">
+            <p className="px-1 pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground truncate">
+              {categoryTitle(activeItem)}
+            </p>
+            {renderCategoryContent()}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
-
-  return createPortal(overlayContent, document.body)
 }

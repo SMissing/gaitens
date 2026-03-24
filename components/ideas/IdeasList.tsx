@@ -4,9 +4,9 @@ import { useEffect, useState, useMemo } from 'react'
 import * as React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { GlowEffect } from '@/components/ui/glow-effect'
 import { ThumbsUp, ThumbsDown } from 'lucide-react'
-import Image from 'next/image'
-import { cn } from '@/lib/utils'
 import { fetchWithAuth } from '@/lib/fetch-with-auth'
 import type { Idea } from '@/types/database'
 
@@ -25,30 +25,36 @@ interface IdeasListProps {
   filterBy?: FilterOption
 }
 
-const getVenueBorderStyle = (venue: string): React.CSSProperties => {
+const getVenueGlowColors = (venue: string): string[] => {
   switch (venue) {
     case 'Garrison':
-      return { borderColor: 'oklch(0.5500 0.2000 50)' } // Burnt orange
+      return ['#f97316', '#fb923c', '#fdba74']
     case 'Spirits':
-      return { borderColor: 'oklch(0.9500 0.2000 100)' } // Yellow
+      return ['#eab308', '#facc15', '#fde047']
     case 'Bassment':
-      return { borderColor: 'oklch(0.6500 0.3000 320)' } // Magenta
+      return ['#d946ef', '#e879f9', '#f0abfc']
     default:
-      return {} // Use default border color
+      return ['#71717a', '#a1a1aa', '#71717a']
   }
 }
 
-const statusColors = {
-  submitted: 'bg-blue-500/20 text-blue-500 border-blue-500/50',
-  under_review: 'bg-yellow-500/20 text-yellow-500 border-yellow-500/50',
-  implemented: 'bg-green-500/20 text-green-500 border-green-500/50',
-  rejected: 'bg-red-500/20 text-red-500 border-red-500/50',
+const getVenueLogo = (venue: string): string | null => {
+  if (venue === 'Garrison') return '/logos/garrison-head-logo.png'
+  if (venue === 'Spirits') return '/logos/spirits-head-logo.png'
+  if (venue === 'Bassment') return '/logos/bassment-logo.png'
+  return null
+}
+
+const getVenueFallback = (venue: string): string => {
+  if (venue === 'All') return 'ALL'
+  return venue.slice(0, 2).toUpperCase()
 }
 
 export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterBy = 'All' }: IdeasListProps) {
   const [ideas, setIdeas] = useState<IdeaWithVotes[]>(initialIdeas)
   const [loading, setLoading] = useState(false)
   const [votingIdeas, setVotingIdeas] = useState<Set<string>>(new Set())
+  const [voteFlash, setVoteFlash] = useState<Record<string, 'up' | 'down'>>({})
 
   // Filter and sort ideas
   const filteredAndSortedIdeas = useMemo(() => {
@@ -126,6 +132,18 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
       if (data.ideas) {
         setIdeas(data.ideas)
       }
+
+      // Trigger a short glow flash on successful vote actions.
+      if (newVote !== 'remove') {
+        setVoteFlash(prev => ({ ...prev, [ideaId]: voteType }))
+        window.setTimeout(() => {
+          setVoteFlash(prev => {
+            const next = { ...prev }
+            delete next[ideaId]
+            return next
+          })
+        }, 900)
+      }
     } catch (error) {
       console.error('Failed to vote:', error)
     } finally {
@@ -153,40 +171,47 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
         const isVoting = votingIdeas.has(idea.id)
         const hasUpvoted = idea.userVote === 1
         const hasDownvoted = idea.userVote === -1
+        const flashType = voteFlash[idea.id]
 
         return (
           <Card 
             key={idea.id} 
-            className="bg-[#1e1e1e] rounded-2xl border-2"
-            style={getVenueBorderStyle(idea.venue)}
+            className="relative overflow-hidden rounded-2xl border border-transparent bg-[#1e1e1e]"
           >
-            <CardContent className="p-4 sm:p-6 pb-1">
+            <GlowEffect
+              colors={getVenueGlowColors(idea.venue)}
+              mode="rotate"
+              blur="strong"
+              duration={6}
+              scale={1.06}
+              className="opacity-80"
+            />
+            {flashType ? (
+              <GlowEffect
+                colors={flashType === 'up' ? ['#16a34a', '#22c55e', '#86efac'] : ['#dc2626', '#ef4444', '#fca5a5']}
+                mode="pulse"
+                blur="strongest"
+                duration={0.9}
+                scale={1.22}
+                className="opacity-100"
+              />
+            ) : null}
+            <div className="pointer-events-none absolute inset-[2px] z-0 rounded-[calc(1rem-2px)] bg-[#1e1e1e]" />
+            <CardContent className="relative z-10 p-4 sm:p-6 pb-1">
               <div className="space-y-2">
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3">
                   <h3 className="text-lg sm:text-xl font-semibold text-foreground flex-1">
                     {idea.title}
                   </h3>
-                  <div className="flex items-center flex-shrink-0">
-                    {idea.venue === 'All' ? (
-                      <span className="text-sm text-muted-foreground">All</span>
-                    ) : (
-                      <div className="relative h-5 w-16 sm:h-6 sm:w-20">
-                        <Image
-                          src={
-                            idea.venue === 'Garrison'
-                              ? '/logos/garrison-head-logo.png'
-                              : idea.venue === 'Spirits'
-                              ? '/logos/spirits-head-logo.png'
-                              : '/logos/bassment-logo.png'
-                          }
-                          alt={idea.venue}
-                          fill
-                          className="object-contain"
-                        />
-                      </div>
-                    )}
-                  </div>
+                  <Avatar className="h-8 w-8 sm:h-9 sm:w-9 rounded-full border-transparent bg-[#1e1e1e]">
+                    {getVenueLogo(idea.venue) ? (
+                      <AvatarImage src={getVenueLogo(idea.venue) ?? ''} alt={idea.venue} className="object-contain p-1" />
+                    ) : null}
+                    <AvatarFallback className="rounded-full bg-[#1e1e1e] text-[10px] sm:text-xs tracking-wide">
+                      {getVenueFallback(idea.venue)}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
 
                 {/* Description */}

@@ -203,16 +203,3 @@ For escape rooms admin
 test
 
 
-
-
-A Barred List.
-    Image of the person.
-    Their name if we have it.
-    A reason for the bar.
-    Length of bar.
-    Says how many days/weeks/months/years they have left on their bar.
-    Anti screenshot feature?
-
-// #region agent log (SW registration)// #endregion agent log
-
-

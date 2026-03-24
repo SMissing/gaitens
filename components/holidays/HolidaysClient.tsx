@@ -1,54 +1,235 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { HolidayCalendar } from './HolidayCalendar'
-import { CalendarDayEditor } from './CalendarDayEditor'
 import { HolidayDayManager } from './HolidayDayManager'
 import { AddHolidayForm } from './AddHolidayForm'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Plus, X } from 'lucide-react'
-import type { HolidayRequest, UserRole } from '@/types/database'
+import { X } from 'lucide-react'
+import type { HolidayRequest, User, UserRole } from '@/types/database'
 import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
+import {
+  emitHolidaysDockSync,
+  HOLIDAYS_ADD,
+  HOLIDAYS_DAY_CANCEL,
+  HOLIDAYS_DAY_CONFIRM,
+  HOLIDAYS_DAY_NOTES_CHANGE,
+  HOLIDAYS_DAY_SET_STATUS,
+  HOLIDAYS_SET_VIEW,
+  type HolidaysViewMode,
+} from '@/lib/holidays-dock-bridge'
 
 interface HolidaysClientProps {
   userRole: UserRole
 }
 
+interface ApprovedTeamHoliday extends HolidayRequest {
+  users: User | User[] | null
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d)
+  x.setHours(0, 0, 0, 0)
+  return x
+}
+
 export function HolidaysClient({ userRole }: HolidaysClientProps) {
+  const [pageView, setPageView] = useState<HolidaysViewMode>('calendar')
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null)
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null)
   const [editingDate, setEditingDate] = useState<Date | null>(null)
+  const [dayEditStatus, setDayEditStatus] = useState<'green' | 'yellow' | 'red'>('green')
+  const [dayEditNotes, setDayEditNotes] = useState('')
+  const [dayEditFetching, setDayEditFetching] = useState(false)
+  const [dayEditSubmitting, setDayEditSubmitting] = useState(false)
+  const [dayEditError, setDayEditError] = useState<string | null>(null)
   const [managingHolidaysDate, setManagingHolidaysDate] = useState<Date | null>(null)
   const [showAddHoliday, setShowAddHoliday] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  // Booking overlay state
   const [bookingMode, setBookingMode] = useState(false)
   const [requestReason, setRequestReason] = useState('')
   const [requestLoading, setRequestLoading] = useState(false)
   const [requestError, setRequestError] = useState<string | null>(null)
 
-  // Overview data
   const [myRequests, setMyRequests] = useState<HolidayRequest[]>([])
   const [requestsLoading, setRequestsLoading] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
 
+  const [teamUpcoming, setTeamUpcoming] = useState<ApprovedTeamHoliday[]>([])
+  const [teamListsLoading, setTeamListsLoading] = useState(false)
+
   const isAdmin = userRole === 'admin'
   const isManagerOrAdmin = userRole === 'manager' || userRole === 'admin'
 
+  const today = useMemo(() => startOfDay(new Date()), [])
+
+  const dockPhase = editingDate ? 'day_edit' : 'browse'
+
+  const dayEditDateLabel = useMemo(() => {
+    if (!editingDate) return ''
+    return editingDate.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }, [editingDate])
+
   useEffect(() => {
-    // Only staff and managers see their own summary here
+    emitHolidaysDockSync({
+      phase: dockPhase,
+      view: pageView,
+      dayEdit:
+        editingDate
+          ? {
+              dateLabel: dayEditDateLabel,
+              status: dayEditStatus,
+              notes: dayEditNotes,
+              fetching: dayEditFetching,
+              submitting: dayEditSubmitting,
+              error: dayEditError,
+            }
+          : undefined,
+    })
+  }, [
+    dockPhase,
+    pageView,
+    editingDate,
+    dayEditDateLabel,
+    dayEditStatus,
+    dayEditNotes,
+    dayEditFetching,
+    dayEditSubmitting,
+    dayEditError,
+  ])
+
+  useEffect(() => {
+    const onView = (e: Event) => {
+      const v = (e as CustomEvent<{ view: HolidaysViewMode }>).detail?.view
+      if (v) setPageView(v)
+    }
+    const onAdd = () => {
+      if (userRole === 'admin') {
+        setShowAddHoliday(true)
+      } else {
+        setBookingMode(true)
+        setSelectedStartDate(null)
+        setSelectedEndDate(null)
+        setRequestReason('')
+        setRequestError(null)
+      }
+    }
+    const onCancel = () => {
+      setEditingDate(null)
+      setDayEditError(null)
+    }
+    const onSetStatus = (e: Event) => {
+      const s = (e as CustomEvent<{ status: 'green' | 'yellow' | 'red' }>).detail?.status
+      if (s) setDayEditStatus(s)
+    }
+    const onNotes = (e: Event) => {
+      const n = (e as CustomEvent<{ notes: string }>).detail?.notes
+      if (typeof n === 'string') setDayEditNotes(n)
+    }
+
+    window.addEventListener(HOLIDAYS_SET_VIEW, onView)
+    window.addEventListener(HOLIDAYS_ADD, onAdd)
+    window.addEventListener(HOLIDAYS_DAY_CANCEL, onCancel)
+    window.addEventListener(HOLIDAYS_DAY_SET_STATUS, onSetStatus)
+    window.addEventListener(HOLIDAYS_DAY_NOTES_CHANGE, onNotes)
+
+    return () => {
+      window.removeEventListener(HOLIDAYS_SET_VIEW, onView)
+      window.removeEventListener(HOLIDAYS_ADD, onAdd)
+      window.removeEventListener(HOLIDAYS_DAY_CANCEL, onCancel)
+      window.removeEventListener(HOLIDAYS_DAY_SET_STATUS, onSetStatus)
+      window.removeEventListener(HOLIDAYS_DAY_NOTES_CHANGE, onNotes)
+    }
+  }, [userRole])
+
+  const submitDayEdit = useCallback(async () => {
+    if (!editingDate || !isAdmin) return
+    setDayEditSubmitting(true)
+    setDayEditError(null)
+    try {
+      const dateStr = toYyyyMmDdLocal(editingDate)
+      const response = await fetch(`/api/holidays/calendar/${dateStr}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: dayEditStatus,
+          notes: dayEditNotes || null,
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update calendar day')
+      }
+      setEditingDate(null)
+      setDayEditError(null)
+      setRefreshKey((k) => k + 1)
+    } catch (err) {
+      console.error(err)
+      setDayEditError(err instanceof Error ? err.message : 'Update failed')
+    } finally {
+      setDayEditSubmitting(false)
+    }
+  }, [editingDate, isAdmin, dayEditStatus, dayEditNotes])
+
+  useEffect(() => {
+    const onConfirm = () => {
+      void submitDayEdit()
+    }
+    window.addEventListener(HOLIDAYS_DAY_CONFIRM, onConfirm)
+    return () => window.removeEventListener(HOLIDAYS_DAY_CONFIRM, onConfirm)
+  }, [submitDayEdit])
+
+  useEffect(() => {
+    if (!editingDate || !isAdmin) {
+      setDayEditFetching(false)
+      return
+    }
+    setDayEditError(null)
+    let cancelled = false
+    ;(async () => {
+      setDayEditFetching(true)
+      try {
+        const dateStr = toYyyyMmDdLocal(editingDate)
+        const response = await fetch(`/api/holidays/calendar?startDate=${dateStr}&endDate=${dateStr}`)
+        if (response.ok && !cancelled) {
+          const data = await response.json()
+          if (Array.isArray(data) && data.length > 0) {
+            setDayEditStatus(data[0].status)
+            setDayEditNotes(data[0].notes || '')
+          } else if (!cancelled) {
+            setDayEditStatus('green')
+            setDayEditNotes('')
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setDayEditStatus('green')
+          setDayEditNotes('')
+        }
+      } finally {
+        if (!cancelled) setDayEditFetching(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [editingDate, isAdmin])
+
+  useEffect(() => {
     if (userRole === 'admin') return
 
     const fetchRequests = async () => {
       try {
         setRequestsLoading(true)
         setRequestsError(null)
-        const res = await fetch('/api/holidays/requests', {
-          cache: 'no-store',
-        })
+        const res = await fetch('/api/holidays/requests', { cache: 'no-store' })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
           throw new Error(data.error || 'Failed to load your holiday requests')
@@ -65,13 +246,40 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     fetchRequests()
   }, [refreshKey, userRole])
 
-  const today = useMemo(() => {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    return d
-  }, [])
+  useEffect(() => {
+    if (!isManagerOrAdmin || pageView !== 'upcoming_list') return
 
-  const { upcomingApproved, pendingRequests } = useMemo(() => {
+    let cancelled = false
+    ;(async () => {
+      setTeamListsLoading(true)
+      try {
+        const far = new Date()
+        far.setFullYear(far.getFullYear() + 2)
+        const farStr = toYyyyMmDdLocal(far)
+        const todayStr = toYyyyMmDdLocal(today)
+
+        const res = await fetch(
+          `/api/holidays/approved?startDate=${todayStr}&endDate=${farStr}`,
+          { cache: 'no-store' }
+        )
+        if (!res.ok) throw new Error('Failed to load holidays')
+        const data: ApprovedTeamHoliday[] = await res.json()
+        if (!cancelled) {
+          setTeamUpcoming(data.filter((r) => parseYyyyMmDdLocal(r.endDate) >= today))
+        }
+      } catch (e) {
+        console.error(e)
+        if (!cancelled) setTeamUpcoming([])
+      } finally {
+        if (!cancelled) setTeamListsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isManagerOrAdmin, pageView, today])
+
+  const { upcomingApproved, pastApproved } = useMemo(() => {
     const upcomingApproved = myRequests
       .filter((req) => {
         if (req.status !== 'approved') return false
@@ -81,14 +289,17 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
       })
       .sort((a, b) => parseYyyyMmDdLocal(a.startDate).getTime() - parseYyyyMmDdLocal(b.startDate).getTime())
 
-    const pendingRequests = myRequests
-      .filter((req) => req.status === 'pending')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    const pastApproved = myRequests
+      .filter((req) => {
+        if (req.status !== 'approved') return false
+        return parseYyyyMmDdLocal(req.endDate) < today
+      })
+      .sort(
+        (a, b) =>
+          parseYyyyMmDdLocal(b.endDate).getTime() - parseYyyyMmDdLocal(a.endDate).getTime()
+      )
 
-    return {
-      upcomingApproved,
-      pendingRequests,
-    }
+    return { upcomingApproved, pastApproved }
   }, [myRequests, today])
 
   const countDays = (start: string, end: string) => {
@@ -100,35 +311,29 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1
   }
 
-  const totalUpcomingDays = useMemo(
-    () => upcomingApproved.reduce((sum, req) => sum + countDays(req.startDate, req.endDate), 0),
-    [upcomingApproved]
-  )
-
   const handleDateClick = (date: Date) => {
     if (isAdmin && !bookingMode) {
-      // Admin management mode (outside booking overlay)
       setEditingDate(date)
       setManagingHolidaysDate(null)
       setSelectedStartDate(null)
       setSelectedEndDate(null)
+      return
+    }
+
+    if (selectedStartDate && date.toDateString() === selectedStartDate.toDateString()) {
+      setSelectedStartDate(null)
+      setSelectedEndDate(null)
+      return
+    }
+
+    if (!selectedStartDate) {
+      setSelectedStartDate(date)
+      setSelectedEndDate(date)
+    } else if (!selectedEndDate || date < selectedStartDate) {
+      setSelectedStartDate(date)
+      setSelectedEndDate(date)
     } else {
-      // Booking mode selection (staff/managers/admins)
-      if (selectedStartDate && date.toDateString() === selectedStartDate.toDateString()) {
-        setSelectedStartDate(null)
-        setSelectedEndDate(null)
-        return
-      }
-      
-      if (!selectedStartDate) {
-        setSelectedStartDate(date)
-        setSelectedEndDate(date)
-      } else if (!selectedEndDate || date < selectedStartDate) {
-        setSelectedStartDate(date)
-        setSelectedEndDate(date)
-      } else {
-        setSelectedEndDate(date)
-      }
+      setSelectedEndDate(date)
     }
   }
 
@@ -136,12 +341,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     setSelectedStartDate(null)
     setSelectedEndDate(null)
     setRequestReason('')
-    setRefreshKey(prev => prev + 1)
-  }
-
-  const handleEditorUpdate = () => {
-    setEditingDate(null)
-    setRefreshKey(prev => prev + 1)
+    setRefreshKey((prev) => prev + 1)
   }
 
   const handleClearSelection = () => {
@@ -181,9 +381,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
       setRequestError(null)
       const response = await fetch('/api/holidays/requests', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           startDate: toYyyyMmDdLocal(selectedStartDate),
           endDate: toYyyyMmDdLocal(selectedEndDate),
@@ -198,7 +396,6 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
       }
 
       handleRequestSuccess()
-      // Close booking mode after a successful request
       setBookingMode(false)
     } catch (err) {
       setRequestError(err instanceof Error ? err.message : 'Failed to submit request')
@@ -207,220 +404,221 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     }
   }
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-32 space-y-6">
-      {/* Holiday overview at the top */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
-        <Card className="lg:col-span-2 border-border/60 bg-card/80 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-base">
-              {userRole === 'admin' ? 'Holiday Overview' : 'Your Holiday Overview'}
-            </CardTitle>
-            <CardDescription>
-              {userRole === 'admin'
-                ? 'Use the calendar tools to manage staff availability and holidays.'
-                : 'Quick view of your upcoming holidays and any pending requests.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {userRole !== 'admin' ? (
+  const teamUserLabel = (req: ApprovedTeamHoliday) => {
+    const u = req.users
+    const list = Array.isArray(u) ? u : u ? [u] : []
+    const names = list.map((x) => x?.name).filter(Boolean) as string[]
+    return names[0] || 'Unknown'
+  }
+
+  const renderStaffListRow = (req: HolidayRequest, badge: 'approved' | 'pending') => (
+    <div
+      key={req.id}
+      className="w-full rounded-xl border border-border/40 bg-black/15 p-3.5 text-left transition-colors hover:border-spirits-magenta/35 hover:bg-white/[0.03]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="text-base font-semibold tracking-tight text-foreground">
+            {formatDate(req.startDate)}
+            {req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {countDays(req.startDate, req.endDate)} day{countDays(req.startDate, req.endDate) !== 1 ? 's' : ''}
+            {badge === 'pending' && (
               <>
-                {requestsLoading ? (
-                  <div className="text-sm text-muted-foreground">
-                    Loading your holiday summary...
-                  </div>
-                ) : requestsError ? (
-                  <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded p-2">
-                    {requestsError}
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex flex-wrap gap-4 items-baseline justify-between">
-                      <div className="space-y-1">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Upcoming approved days
-                        </div>
-                        <div className="text-2xl font-semibold">
-                          {totalUpcomingDays}
-                        </div>
-                      </div>
-                      <div className="space-y-1 min-w-[160px]">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Pending requests
-                        </div>
-                        <div className="text-lg font-semibold">
-                          {pendingRequests.length}
-                        </div>
-                      </div>
-                    </div>
-
-                    {upcomingApproved.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Next holidays
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-2">
-                          {upcomingApproved.slice(0, 4).map((req) => (
-                            <div
-                              key={req.id}
-                              className="rounded-md border border-border/60 bg-background/60 px-3 py-2 text-xs flex items-center justify-between"
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  {countDays(req.startDate, req.endDate)} day{countDays(req.startDate, req.endDate) !== 1 ? 's' : ''}
-                                </span>
-                              </div>
-                              <span className="inline-flex items-center rounded-full bg-emerald-500/10 text-emerald-500 px-2 py-0.5 text-[11px]">
-                                Approved
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {pendingRequests.length > 0 && (
-                      <div className="space-y-2 pt-2 border-t border-border/40">
-                        <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Pending requests
-                        </div>
-                        <div className="grid sm:grid-cols-2 gap-2">
-                          {pendingRequests.slice(0, 4).map((req) => (
-                            <div
-                              key={req.id}
-                              className="rounded-md border border-border/60 bg-background/60 px-3 py-2 text-xs flex items-center justify-between"
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {formatDate(req.startDate)}{req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">
-                                  Requested on{' '}
-                                  {new Date(req.createdAt).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                  })}
-                                </span>
-                              </div>
-                              <span className="inline-flex items-center rounded-full bg-amber-500/10 text-amber-500 px-2 py-0.5 text-[11px]">
-                                Pending
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
+                {' '}
+                · Requested{' '}
+                {new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
               </>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                Open the booking view or use the calendar tools below to see and manage
-                staff holidays and availability.
-              </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Right-hand quick actions */}
-        <div className="space-y-3">
-          <Button
-            variant="default"
-            className="w-full h-12 text-sm font-medium"
-            onClick={() => {
-              setBookingMode(true)
-              // Reset any previous selection for a fresh booking flow
-              setSelectedStartDate(null)
-              setSelectedEndDate(null)
-              setRequestReason('')
-              setRequestError(null)
-            }}
-          >
-            Book time off
-          </Button>
-          {isAdmin && (
-            <Button
-              variant="outline"
-              className="w-full h-12 text-sm font-medium"
-              onClick={() => setShowAddHoliday(true)}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add holiday for staff
-            </Button>
-          )}
+          </div>
+        </div>
+        <div
+          className={`rounded-lg border px-2.5 py-1 text-xs font-semibold ${
+            badge === 'approved'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+              : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+          }`}
+        >
+          {badge === 'approved' ? 'Approved' : 'Pending'}
         </div>
       </div>
+    </div>
+  )
 
-      {/* Admin tools grid (calendar + side panel) */}
-      {isAdmin && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
+  const renderTeamListRow = (req: ApprovedTeamHoliday) => (
+    <div
+      key={req.id}
+      className="w-full rounded-xl border border-border/40 bg-black/15 p-3.5 text-left"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="text-base font-semibold tracking-tight text-foreground">{teamUserLabel(req)}</div>
+          <div className="text-sm text-muted-foreground">
+            {formatDate(req.startDate)}
+            {req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
+          </div>
+          {req.reason && <div className="text-xs italic text-muted-foreground">{req.reason}</div>}
+        </div>
+        <div className="rounded-lg border border-spirits-magenta/25 bg-spirits-magenta/10 px-2.5 py-1 text-xs font-semibold text-spirits-magenta">
+          Approved
+        </div>
+      </div>
+    </div>
+  )
+
+  const mainAreaClass =
+    'fixed inset-x-0 z-0 flex flex-col overflow-hidden px-3 pt-2 pb-1 sm:px-5 lg:px-6 top-[calc(env(safe-area-inset-top,0px)+64px)] sm:top-[calc(env(safe-area-inset-top,0px)+80px)] lg:top-[calc(env(safe-area-inset-top,0px)+90px)] bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)]'
+
+  return (
+    <>
+      <div className={mainAreaClass}>
+      {pageView === 'calendar' && (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <HolidayCalendar
+            key={refreshKey}
+            pageFillHeight
+            userRole={userRole === 'admin' ? 'admin' : userRole === 'manager' ? 'manager' : 'staff'}
+            onDateClick={isAdmin && !bookingMode ? handleDateClick : bookingMode ? handleDateClick : undefined}
+            onHolidayClick={(date) => {
+              if (!isManagerOrAdmin) return
+              setManagingHolidaysDate(date)
+              setEditingDate(null)
+              setSelectedStartDate(null)
+              setSelectedEndDate(null)
+            }}
+            selectedStartDate={selectedStartDate}
+            selectedEndDate={selectedEndDate}
+            hideBackdatesListToggle={isManagerOrAdmin}
+            forcedListMode={false}
+          />
+        </div>
+      )}
+
+      {pageView === 'upcoming_list' && (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-border/50 bg-[#1e1e1e] p-5 sm:p-6">
+          <h3 className="mb-4 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Upcoming holidays
+          </h3>
+          {!isManagerOrAdmin && requestsError && (
+            <div className="mb-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+              {requestsError}
+            </div>
+          )}
+          {isManagerOrAdmin ? (
+            teamListsLoading ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+            ) : teamUpcoming.length === 0 ? (
+              <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                No upcoming approved holidays
+              </div>
+            ) : (
+              <div className="space-y-2">{teamUpcoming.map((r) => renderTeamListRow(r))}</div>
+            )
+          ) : requestsLoading ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+          ) : upcomingApproved.length === 0 ? (
+            <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+              No upcoming approved holidays
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingApproved.map((r) => renderStaffListRow(r, 'approved'))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {pageView === 'previous_list' && (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/50 bg-[#1e1e1e] p-4 sm:p-5">
+          {isManagerOrAdmin ? (
             <HolidayCalendar
-              key={refreshKey}
-              userRole={userRole}
-              onDateClick={handleDateClick}
+              key={`prev-${refreshKey}`}
+              pageFillHeight
+              userRole={userRole === 'admin' ? 'admin' : 'manager'}
+              forcedListMode
+              hideBackdatesListToggle
               onHolidayClick={(date) => {
                 setManagingHolidaysDate(date)
                 setEditingDate(null)
-                setSelectedStartDate(null)
-                setSelectedEndDate(null)
               }}
-              selectedStartDate={selectedStartDate}
-              selectedEndDate={selectedEndDate}
             />
-          </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+              <h3 className="mb-4 shrink-0 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Previous holidays
+              </h3>
+              {requestsError && (
+                <div className="mb-3 shrink-0 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+                  {requestsError}
+                </div>
+              )}
+              {requestsLoading ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : pastApproved.length === 0 ? (
+                <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                  No past approved holidays
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {pastApproved.map((r) => renderStaffListRow(r, 'approved'))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      </div>
 
-          <div className="space-y-6">
-            {showAddHoliday && (
-              <AddHolidayForm
-                onSuccess={() => {
-                  setShowAddHoliday(false)
-                  setTimeout(() => {
-                    setRefreshKey(prev => prev + 1)
-                  }, 300)
-                }}
-                onClose={() => setShowAddHoliday(false)}
-              />
-            )}
-
-            {managingHolidaysDate && (
-              <HolidayDayManager
-                key={`manager-${toYyyyMmDdLocal(managingHolidaysDate)}-${refreshKey}`}
-                date={managingHolidaysDate}
-                onUpdate={() => {
-                  setRefreshKey(prev => prev + 1)
-                  setTimeout(() => {
-                    setManagingHolidaysDate(null)
-                  }, 500)
-                }}
-                onClose={() => setManagingHolidaysDate(null)}
-                canRemove={userRole === 'admin'}
-                onEditAvailability={() => {
-                  setEditingDate(managingHolidaysDate)
-                  setManagingHolidaysDate(null)
-                }}
-              />
-            )}
-
-            {editingDate && (
-              <CalendarDayEditor
-                date={editingDate}
-                onUpdate={handleEditorUpdate}
-              />
-            )}
+      {showAddHoliday && (
+        <div
+          className="fixed inset-0 z-[58] flex items-center justify-center bg-black/80 px-4 py-8"
+          onClick={() => setShowAddHoliday(false)}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <AddHolidayForm
+              onSuccess={() => {
+                setShowAddHoliday(false)
+                setTimeout(() => setRefreshKey((k) => k + 1), 300)
+              }}
+              onClose={() => setShowAddHoliday(false)}
+            />
           </div>
         </div>
       )}
 
-      {/* Full-screen booking overlay */}
+      {managingHolidaysDate && (
+        <div
+          className="fixed inset-0 z-[58] flex items-center justify-center bg-black/80 px-4 py-8"
+          onClick={() => setManagingHolidaysDate(null)}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <HolidayDayManager
+              key={`manager-${toYyyyMmDdLocal(managingHolidaysDate)}-${refreshKey}`}
+              date={managingHolidaysDate}
+              onUpdate={() => {
+                setRefreshKey((k) => k + 1)
+                setTimeout(() => setManagingHolidaysDate(null), 400)
+              }}
+              onClose={() => setManagingHolidaysDate(null)}
+              canRemove={userRole === 'admin'}
+              onEditAvailability={
+                isAdmin
+                  ? () => {
+                      setEditingDate(managingHolidaysDate)
+                      setManagingHolidaysDate(null)
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        </div>
+      )}
+
       {bookingMode && (
         <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm">
-          <div className="flex flex-col h-full">
-            {/* Overlay header */}
-            <div className="px-4 sm:px-6 pt-3 pb-1 flex items-center justify-between border-b border-border/60">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between border-b border-border/60 px-4 pb-1 pt-3 sm:px-6">
               <div>
                 <h2 className="text-sm font-semibold">Book time off</h2>
                 <p className="text-[11px] text-muted-foreground">
@@ -441,53 +639,48 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
               </Button>
             </div>
 
-            {/* Scrollable calendar area */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-3 pb-28">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-3 pb-28 sm:px-6">
               <HolidayCalendar
                 key={`booking-${refreshKey}`}
-                userRole={userRole}
+                pageFillHeight
+                userRole={userRole === 'admin' ? 'admin' : userRole === 'manager' ? 'manager' : 'staff'}
                 onDateClick={handleDateClick}
                 onHolidayClick={(date) => {
-                  // Managers/admins can still tap to see who is off that day
                   if (isManagerOrAdmin) {
                     setManagingHolidaysDate(date)
                   }
                 }}
                 selectedStartDate={selectedStartDate}
                 selectedEndDate={selectedEndDate}
+                hideBackdatesListToggle={isManagerOrAdmin}
               />
             </div>
 
-            {/* Bottom bar with start/end and request controls */}
             <div className="fixed bottom-0 left-0 right-0 z-[70]">
-              <div className="relative bg-background/95 backdrop-blur-md border-t border-border/60 px-4 sm:px-6 pb-3 pt-2 space-y-2">
+              <div className="relative space-y-2 border-t border-border/60 bg-background/95 px-4 pb-3 pt-2 backdrop-blur-md sm:px-6">
                 {requestError && (
-                  <div className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 rounded-md px-3 py-2">
+                  <div className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-500">
                     {requestError}
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="border border-border/70 rounded-md bg-card/90 px-3 py-1.5">
+                  <div className="rounded-md border border-border/70 bg-card/90 px-3 py-1.5">
                     <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                       Start date
                     </div>
-                    <div className="text-xs font-medium mt-0.5">
-                      {formatDisplayDate(selectedStartDate)}
-                    </div>
+                    <div className="mt-0.5 text-xs font-medium">{formatDisplayDate(selectedStartDate)}</div>
                   </div>
 
-                  <div className="border border-border/70 rounded-md bg-card/90 px-3 py-1.5">
+                  <div className="rounded-md border border-border/70 bg-card/90 px-3 py-1.5">
                     <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                       End date
                     </div>
-                    <div className="text-xs font-medium mt-0.5">
-                      {formatDisplayDate(selectedEndDate)}
-                    </div>
+                    <div className="mt-0.5 text-xs font-medium">{formatDisplayDate(selectedEndDate)}</div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-[1.5fr_minmax(0,1fr)] gap-3 items-center">
+                <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1.5fr_minmax(0,1fr)]">
                   <div className="space-y-1">
                     <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                       Reason (optional)
@@ -499,13 +692,8 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
                       className="h-9 text-sm"
                     />
                   </div>
-                  <div className="flex gap-2 justify-end pt-1 sm:pt-0">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearSelection}
-                    >
+                  <div className="flex justify-end gap-2 pt-1 sm:pt-0">
+                    <Button type="button" variant="ghost" size="sm" onClick={handleClearSelection}>
                       Clear selection
                     </Button>
                     <Button
@@ -515,7 +703,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
                       onClick={handleSubmitRequest}
                       className="min-w-[120px]"
                     >
-                      {requestLoading ? 'Submitting...' : 'Submit request'}
+                      {requestLoading ? 'Submitting…' : 'Submit request'}
                     </Button>
                   </div>
                 </div>
@@ -524,6 +712,6 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
