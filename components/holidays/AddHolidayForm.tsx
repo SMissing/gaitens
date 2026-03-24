@@ -38,7 +38,11 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
         throw new Error('Failed to fetch staff')
       }
       const data = await response.json()
-      setStaff(staffListFromApiResponse(data))
+      const list = staffListFromApiResponse(data)
+      list.sort((a, b) =>
+        a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+      )
+      setStaff(list)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load staff')
     } finally {
@@ -132,7 +136,7 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
                     { value: '', label: 'Select a staff member...' },
                     ...staff.map((member) => ({
                       value: member.id,
-                      label: `${member.name} (${member.staffCode})${member.site ? ` - ${member.site}` : ''}`,
+                      label: member.name,
                     })),
                   ]}
                   value={selectedStaffId}
