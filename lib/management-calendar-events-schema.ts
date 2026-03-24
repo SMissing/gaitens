@@ -15,6 +15,7 @@ const recurrenceNoneSchema = z.object({
 
 export const recurrenceSchema = z.union([recurrenceWeeklySchema, recurrenceNoneSchema])
 
+/** Management calendar events are one calendar day per row; `end_date` is not used (always null). */
 export const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   eventType: z.enum(['management_meeting', 'pubwatch', 'disciplinary', 'custom']),
@@ -22,7 +23,6 @@ export const createEventSchema = z.object({
   site: z.string().optional().nullable(),
 
   startDate: ymdSchema,
-  endDate: ymdSchema.optional().nullable(),
   startTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
 
@@ -73,7 +73,7 @@ export function rowToClientEvent(row: ManagementCalendarEventRow) {
     description: row.description,
     site: row.site,
     startDate: row.start_date,
-    endDate: row.end_date,
+    endDate: null,
     startTime: trimTimeForInput(row.start_time) || null,
     endTime: trimTimeForInput(row.end_time) || null,
     visible: row.visible,
@@ -88,7 +88,7 @@ function baseDbFields(validated: z.infer<typeof createEventSchema>) {
     description: validated.description ?? null,
     site: validated.site ?? null,
     start_date: validated.startDate,
-    end_date: validated.endDate ?? null,
+    end_date: null,
     start_time: validated.startTime ?? null,
     end_time: validated.endTime ?? null,
     visible: validated.visible,

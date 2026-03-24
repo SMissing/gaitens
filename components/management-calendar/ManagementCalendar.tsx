@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Clock, Settings, X } from 'lucide-react'
-import { toYyyyMmDdLocal } from '@/lib/date-utils'
+import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import {
   MANAGEMENT_CAL_DOCK_ADD,
@@ -450,7 +450,6 @@ function AddEventModal({
 
   const [startDate, setStartDate] = useState(todayStr)
   const [startTime, setStartTime] = useState('')
-  const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
 
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none')
@@ -528,15 +527,9 @@ function AddEventModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End date (optional)</Label>
-              <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endTime">End time (optional)</Label>
-              <Input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="endTime">End time (optional)</Label>
+            <Input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
 
           <div className="space-y-2">
@@ -548,7 +541,13 @@ function AddEventModal({
                 { value: 'weekly', label: 'Repeat weekly' },
               ]}
               value={recurrenceType}
-              onChange={(v) => setRecurrenceType(v as RecurrenceType)}
+              onChange={(v) => {
+                const next = v as RecurrenceType
+                setRecurrenceType(next)
+                if (next === 'weekly' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+                  setRecurrenceWeekday(parseYyyyMmDdLocal(startDate).getDay())
+                }
+              }}
             />
           </div>
 
@@ -619,7 +618,6 @@ function AddEventModal({
                     description: description.trim() || null,
                     site: site.trim() || null,
                     startDate,
-                    endDate: endDate || null,
                     startTime: startTime || null,
                     endTime: endTime || null,
                     visible: true,
@@ -681,7 +679,6 @@ function EditManagementEventModal({
 
   const [startDate, setStartDate] = useState('')
   const [startTime, setStartTime] = useState('')
-  const [endDate, setEndDate] = useState('')
   const [endTime, setEndTime] = useState('')
 
   const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none')
@@ -722,7 +719,6 @@ function EditManagementEventModal({
           description: string | null
           site: string | null
           startDate: string
-          endDate: string | null
           startTime: string | null
           endTime: string | null
           visible: boolean
@@ -743,7 +739,6 @@ function EditManagementEventModal({
         setSite(ev.site ?? '')
         setStartDate(ev.startDate)
         setStartTime(ev.startTime ?? '')
-        setEndDate(ev.endDate ?? '')
         setEndTime(ev.endTime ?? '')
         if (ev.recurrence.recurrenceType === 'weekly') {
           setRecurrenceType('weekly')
@@ -776,7 +771,6 @@ function EditManagementEventModal({
     description: description.trim() || null,
     site: site.trim() || null,
     startDate,
-    endDate: endDate || null,
     startTime: startTime || null,
     endTime: endTime || null,
     visible: visibleFlag,
@@ -856,15 +850,9 @@ function EditManagementEventModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-endDate">End date (optional)</Label>
-                  <Input id="edit-endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-endTime">End time (optional)</Label>
-                  <Input id="edit-endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-endTime">End time (optional)</Label>
+                <Input id="edit-endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
               </div>
 
               <div className="space-y-2">
@@ -876,7 +864,13 @@ function EditManagementEventModal({
                     { value: 'weekly', label: 'Repeat weekly' },
                   ]}
                   value={recurrenceType}
-                  onChange={(v) => setRecurrenceType(v as RecurrenceType)}
+                  onChange={(v) => {
+                    const next = v as RecurrenceType
+                    setRecurrenceType(next)
+                    if (next === 'weekly' && /^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+                      setRecurrenceWeekday(parseYyyyMmDdLocal(startDate).getDay())
+                    }
+                  }}
                 />
               </div>
 

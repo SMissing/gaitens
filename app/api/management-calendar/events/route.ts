@@ -35,6 +35,13 @@ function clampDate(d: Date, min: Date, max: Date): Date {
   return d
 }
 
+function normalizedRecurrenceType(row: ManagementCalendarEventRow): 'none' | 'weekly' {
+  const raw = String(row.recurrence_type ?? 'none')
+    .trim()
+    .toLowerCase()
+  return raw === 'weekly' ? 'weekly' : 'none'
+}
+
 function expandOccurrencesForEvent(params: {
   event: ManagementCalendarEventRow
   rangeStart: Date
@@ -43,18 +50,16 @@ function expandOccurrencesForEvent(params: {
   const { event, rangeStart, rangeEnd } = params
 
   const eventStart = parseYyyyMmDdLocal(event.start_date)
-  const eventEnd = event.end_date ? parseYyyyMmDdLocal(event.end_date) : eventStart
-  const effectiveStart = clampDate(eventStart, rangeStart, rangeEnd)
+  const rangeStartStr = toYyyyMmDdLocal(rangeStart)
+  const rangeEndStr = toYyyyMmDdLocal(rangeEnd)
+  const recurrenceType = normalizedRecurrenceType(event)
 
-  if (event.recurrence_type === 'none') {
-    const effectiveEnd = clampDate(eventEnd, rangeStart, rangeEnd)
-    if (effectiveStart > effectiveEnd) return []
-
-    const occurrences: Occurrence[] = []
-    const current = new Date(effectiveStart)
-    while (current <= effectiveEnd) {
-      const date = toYyyyMmDdLocal(current)
-      occurrences.push({
+  if (recurrenceType === 'none') {
+    // One day only — ignore legacy `end_date` so mistaken long ranges cannot paint every calendar day.
+    const date = toYyyyMmDdLocal(eventStart)
+    if (date < rangeStartStr || date > rangeEndStr) return []
+    return [
+      {
         occurrenceId: `${event.id}:${date}`,
         eventId: event.id,
         title: event.title,
@@ -64,12 +69,11 @@ function expandOccurrencesForEvent(params: {
         date,
         startTime: event.start_time,
         endTime: event.end_time,
-      })
-      current.setDate(current.getDate() + 1)
-    }
-
-    return occurrences
+      },
+    ]
   }
+
+  const effectiveStart = clampDate(eventStart, rangeStart, rangeEnd)
 
   // Weekly recurrence MVP: expand occurrences matching recurrence_weekday
   const weekday = event.recurrence_weekday ?? eventStart.getDay()
@@ -195,8 +199,12 @@ export async function GET(request: NextRequest) {
       }),
     )
 
-    expanded.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
-    return NextResponse.json({ occurrences: expanded })
+    const rangeStartStr = startDate
+    const rangeEndStr = endDate
+    const inRange = expanded.filter((o) => o.date >= rangeStartStr && o.date <= rangeEndStr)
+
+    inRange.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+    return NextResponse.json({ occurrences: inRange })
   } catch (err) {
     console.error('Error in GET /api/management-calendar/events:', err)
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
