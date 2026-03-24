@@ -126,9 +126,7 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
-                  <CardTitle>
-                    {user?.name || 'Unknown User'} ({user?.staffCode || 'N/A'})
-                  </CardTitle>
+                  <CardTitle>{user?.name || 'Unknown User'}</CardTitle>
                   <CardDescription>
                     {user?.site || 'No site assigned'}
                   </CardDescription>

@@ -39,8 +39,7 @@ export async function GET(request: NextRequest) {
         updatedAt,
         users (
           id,
-          name,
-          "staffCode"
+          name
         )
       `)
       .eq('status', 'approved')

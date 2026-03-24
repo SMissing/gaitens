@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
         users (
           id,
           name,
-          "staffCode",
           site
         )
       `)

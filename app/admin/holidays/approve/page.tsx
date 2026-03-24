@@ -1,6 +1,5 @@
 import { requireAdmin } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
-import { formatDate } from '@/lib/date-utils'
 import { ApproveHolidaysClient } from '@/components/admin/ApproveHolidaysClient'
 import type { HolidayRequest } from '@/types/database'
 import type { User } from '@/types/database'
@@ -21,7 +20,6 @@ export default async function ApproveHolidaysPage() {
       users (
         id,
         name,
-        "staffCode",
         site
       )
     `)

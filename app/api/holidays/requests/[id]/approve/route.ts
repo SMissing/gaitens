@@ -93,7 +93,7 @@ export async function PUT(
       try {
         const { data: userData } = await supabase
           .from('users')
-          .select('name, staffCode')
+          .select('name')
           .eq('id', holidayRequest.userId)
           .single()
 
@@ -101,7 +101,7 @@ export async function PUT(
         const subject = `Holiday approved: ${staffName}`
         const text = [
           `Holiday request ID: ${holidayRequest.id}`,
-          `Staff: ${staffName}${userData?.staffCode ? ` (${userData.staffCode})` : ''}`,
+          `Staff: ${staffName}`,
           `Dates: ${holidayRequest.startDate} - ${holidayRequest.endDate}`,
           holidayRequest.reason ? `Reason: ${holidayRequest.reason}` : null,
         ]

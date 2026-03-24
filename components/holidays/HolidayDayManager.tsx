@@ -194,7 +194,7 @@ export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability,
                 >
                   <div className="flex-1">
                     <div className="font-medium text-foreground">
-                      {user?.name || 'Unknown User'} ({user?.staffCode || 'N/A'})
+                      {user?.name || 'Unknown User'}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">
                       {formatDate(holiday.startDate)} - {formatDate(holiday.endDate)}
