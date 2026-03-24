@@ -3,61 +3,18 @@ import { z } from 'zod'
 import { requireManager } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
-
-const ymdSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
-
-const recurrenceWeeklySchema = z.object({
-  recurrenceType: z.literal('weekly'),
-  recurrenceWeekday: z.number().int().min(0).max(6),
-  recurrenceInterval: z.number().int().min(1).optional().default(1),
-  recurrenceEndDate: ymdSchema.optional().nullable(),
-})
-
-const recurrenceNoneSchema = z.object({
-  recurrenceType: z.literal('none'),
-})
-
-const recurrenceSchema = z.union([recurrenceWeeklySchema, recurrenceNoneSchema])
-
-const createEventSchema = z.object({
-  title: z.string().min(1).max(200),
-  eventType: z.enum(['management_meeting', 'pubwatch', 'disciplinary', 'custom']),
-  description: z.string().max(2000).optional().nullable(),
-  site: z.string().optional().nullable(),
-
-  startDate: ymdSchema,
-  endDate: ymdSchema.optional().nullable(),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
-
-  visible: z.boolean().optional().default(true),
-  recurrence: recurrenceSchema,
-})
-
-type ManagementEventRow = {
-  id: string
-  title: string
-  event_type: 'management_meeting' | 'pubwatch' | 'disciplinary' | 'custom'
-  description: string | null
-  site: string | null
-  start_date: string
-  end_date: string | null
-  start_time: string | null
-  end_time: string | null
-
-  recurrence_type: 'none' | 'weekly'
-  recurrence_weekday: number | null
-  recurrence_interval: number
-  recurrence_end_date: string | null
-
-  visible: boolean
-}
+import {
+  createEventSchema,
+  ymdSchema,
+  type ManagementCalendarEventRow,
+  validatedBodyToInsertRow,
+} from '@/lib/management-calendar-events-schema'
 
 type Occurrence = {
   occurrenceId: string
   eventId: string
   title: string
-  eventType: ManagementEventRow['event_type']
+  eventType: ManagementCalendarEventRow['event_type']
   description: string | null
   site: string | null
   date: string // YYYY-MM-DD
@@ -79,7 +36,7 @@ function clampDate(d: Date, min: Date, max: Date): Date {
 }
 
 function expandOccurrencesForEvent(params: {
-  event: ManagementEventRow
+  event: ManagementCalendarEventRow
   rangeStart: Date
   rangeEnd: Date
 }): Occurrence[] {
@@ -152,7 +109,7 @@ function expandOccurrencesForEvent(params: {
 }
 
 function expandWeeklyFollowingOccurrences(params: {
-  event: ManagementEventRow
+  event: ManagementCalendarEventRow
   eventStart: Date
   weekday: number
   intervalWeeks: number
@@ -229,7 +186,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
     }
 
-    const rows = (events || []) as ManagementEventRow[]
+    const rows = (events || []) as ManagementCalendarEventRow[]
     const expanded = rows.flatMap((event) =>
       expandOccurrencesForEvent({
         event,
@@ -256,25 +213,7 @@ export async function POST(request: NextRequest) {
     const validated = createEventSchema.parse(body)
 
     const event = {
-      title: validated.title.trim(),
-      event_type: validated.eventType,
-      description: validated.description ?? null,
-      site: validated.site ?? null,
-      start_date: validated.startDate,
-      end_date: validated.endDate ?? null,
-      start_time: validated.startTime ?? null,
-      end_time: validated.endTime ?? null,
-
-      visible: validated.visible,
-
-      recurrence_type: validated.recurrence.recurrenceType,
-      recurrence_weekday:
-        validated.recurrence.recurrenceType === 'weekly' ? validated.recurrence.recurrenceWeekday : null,
-      recurrence_interval:
-        validated.recurrence.recurrenceType === 'weekly' ? validated.recurrence.recurrenceInterval : 1,
-      recurrence_end_date:
-        validated.recurrence.recurrenceType === 'weekly' ? validated.recurrence.recurrenceEndDate ?? null : null,
-
+      ...validatedBodyToInsertRow(validated),
       created_by: user.id,
     }
 

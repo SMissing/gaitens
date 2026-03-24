@@ -53,6 +53,8 @@ type HolidayCalendarContextValue = {
   isManagerOrAdmin: boolean
   isAdmin: boolean
   approvedHolidays: Record<string, ApprovedHolidayRequest[]>
+  /** Distinct people off per day (all roles — from off-counts API) */
+  offCountsByDate: Record<string, number>
   today: Date
   getDayStatus: (date: Date) => 'green' | 'yellow' | 'red'
 }
@@ -65,13 +67,41 @@ function useHolidayCalendarContext() {
   return ctx
 }
 
+const MAX_DOTS_IN_CELL = 8
+
+/** One entry per distinct person with approved time off on that day */
+function uniquePeopleOffForRequests(requests: ApprovedHolidayRequest[]): { key: string; name: string }[] {
+  const out: { key: string; name: string }[] = []
+  const seen = new Set<string>()
+  for (const req of requests) {
+    const userData = Array.isArray(req.users) ? req.users[0] : req.users
+    const user = userData as User | null
+    const key = user?.id ?? `req-${req.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ key, name: user?.name || 'Unknown' })
+  }
+  return out
+}
+
 function HolidayDayButton({ day, modifiers, className, children, ...buttonProps }: DayButtonProps) {
   const ctx = useHolidayCalendarContext()
   const ref = useRef<HTMLButtonElement>(null)
   const date = day.date
   const dateStr = toYyyyMmDdLocal(date)
   const dayHolidays = ctx.approvedHolidays[dateStr] || []
+  const offCountFromApi = ctx.offCountsByDate[dateStr] ?? 0
   const canOpenHolidayDetails = ctx.isManagerOrAdmin && dayHolidays.length > 0
+  const peopleOff = canOpenHolidayDetails ? uniquePeopleOffForRequests(dayHolidays) : []
+  const dotCount =
+    ctx.isManagerOrAdmin && peopleOff.length > 0 ? peopleOff.length : offCountFromApi
+  const showDots = dotCount > 0
+  const namesTitle =
+    ctx.isManagerOrAdmin && peopleOff.length > 0
+      ? peopleOff.map((p) => p.name).join(', ')
+      : offCountFromApi > 0
+        ? `${offCountFromApi} ${offCountFromApi === 1 ? 'person' : 'people'} off`
+        : ''
 
   useEffect(() => {
     if (modifiers.focused) ref.current?.focus()
@@ -83,28 +113,34 @@ function HolidayDayButton({ day, modifiers, className, children, ...buttonProps 
       type="button"
       className={cn(
         className,
+        '!flex h-full min-h-[3.75rem] w-full flex-col items-stretch justify-between gap-0 py-1 sm:min-h-[4.5rem]',
         canOpenHolidayDetails && 'hover:ring-1 hover:ring-spirits-magenta/50',
         ctx.isAdmin && ctx.getDayStatus(date) === 'red' && 'hover:ring-1 hover:ring-red-500/45'
       )}
+      title={namesTitle || undefined}
       {...buttonProps}
     >
-      {children}
-      {canOpenHolidayDetails && (
-        <div className="w-full">
-          <div className="text-[9px] leading-tight text-foreground/90 font-normal space-y-0.5">
-            {dayHolidays.slice(0, 2).map((req, idx) => {
-              const userData = Array.isArray(req.users) ? req.users[0] : req.users
-              const user = userData as User | null
-              return (
-                <div key={idx} className="truncate px-0.5" title={user?.name || 'Unknown'}>
-                  {user?.name || 'Unknown'}
-                </div>
-              )
-            })}
-            {dayHolidays.length > 2 && (
-              <div className="text-[8px] opacity-75 px-0.5">+{dayHolidays.length - 2} more</div>
-            )}
-          </div>
+      <div className="flex shrink-0 justify-center text-center leading-none">{children}</div>
+      {showDots && (
+        <div
+          className="flex min-h-[18px] shrink-0 flex-wrap content-end justify-center gap-x-1 gap-y-1 px-0.5 pb-0.5"
+          aria-label={`${dotCount} ${dotCount === 1 ? 'person' : 'people'} off`}
+        >
+          {Array.from(
+            { length: Math.min(dotCount, MAX_DOTS_IN_CELL) },
+            (_, i) => (
+              <span
+                key={i}
+                className="box-border h-2.5 w-2.5 shrink-0 rounded-full bg-spirits-magenta ring-2 ring-white/30 sm:h-3 sm:w-3"
+                aria-hidden
+              />
+            )
+          )}
+          {dotCount > MAX_DOTS_IN_CELL && (
+            <span className="self-center text-[10px] font-semibold leading-none text-foreground/90">
+              +{dotCount - MAX_DOTS_IN_CELL}
+            </span>
+          )}
         </div>
       )}
     </button>
@@ -125,6 +161,7 @@ export function HolidayCalendar({
   const [listMode, setListMode] = useState(false)
   const [availability, setAvailability] = useState<Record<string, 'green' | 'yellow' | 'red'>>({})
   const [approvedHolidays, setApprovedHolidays] = useState<Record<string, ApprovedHolidayRequest[]>>({})
+  const [offCountsByDate, setOffCountsByDate] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
 
   const isManagerOrAdmin = userRole === 'manager' || userRole === 'admin'
@@ -134,6 +171,7 @@ export function HolidayCalendar({
 
   useEffect(() => {
     setApprovedHolidays({})
+    setOffCountsByDate({})
     setAvailability({})
     fetchCalendarData()
   }, [currentMonth, isManagerOrAdmin])
@@ -154,10 +192,14 @@ export function HolidayCalendar({
       const startDate = toYyyyMmDdLocal(new Date(year, month, 1))
       const endDate = toYyyyMmDdLocal(new Date(year, month + 1, 0))
 
-      const fetchPromises = [
+      const fetchPromises: Promise<Response>[] = [
         fetch(`/api/holidays/calendar?startDate=${startDate}&endDate=${endDate}`, {
           cache: 'no-store',
         }),
+        fetch(
+          `/api/holidays/off-counts?startDate=${startDate}&endDate=${endDate}`,
+          { cache: 'no-store' }
+        ),
       ]
 
       if (isManagerOrAdmin) {
@@ -169,7 +211,9 @@ export function HolidayCalendar({
       }
 
       const responses = await Promise.all(fetchPromises)
-      const [availabilityRes, approvedRes] = responses
+      const availabilityRes = responses[0]
+      const offCountsRes = responses[1]
+      const approvedRes = isManagerOrAdmin ? responses[2] : null
 
       if (availabilityRes.ok) {
         const data = await availabilityRes.json()
@@ -178,6 +222,13 @@ export function HolidayCalendar({
           availabilityMap[day.date] = day.status
         })
         setAvailability(availabilityMap)
+      }
+
+      if (offCountsRes.ok) {
+        const payload = await offCountsRes.json()
+        setOffCountsByDate(payload.counts && typeof payload.counts === 'object' ? payload.counts : {})
+      } else {
+        setOffCountsByDate({})
       }
 
       if (isManagerOrAdmin && approvedRes && approvedRes.ok) {
@@ -244,27 +295,16 @@ export function HolidayCalendar({
 
   const holidayDateKeys = Object.keys(approvedHolidays).sort()
 
-  const getHolidayUsersLabelForRequests = (requests: ApprovedHolidayRequest[]): string => {
-    const allUsers = requests.flatMap((req) => {
-      const users = req.users
-      return Array.isArray(users) ? users : users ? [users] : []
-    })
-    const names = allUsers
-      .map((u) => u?.name)
-      .filter((n): n is string => Boolean(n))
-    const unique = Array.from(new Set(names))
-    return unique.length > 0 ? unique.join(', ') : 'Unknown'
-  }
-
   const ctxValue = useMemo<HolidayCalendarContextValue>(
     () => ({
       isManagerOrAdmin,
       isAdmin,
       approvedHolidays,
+      offCountsByDate,
       today,
       getDayStatus,
     }),
-    [isManagerOrAdmin, isAdmin, approvedHolidays, today, getDayStatus]
+    [isManagerOrAdmin, isAdmin, approvedHolidays, offCountsByDate, today, getDayStatus]
   )
 
   const modifiers = useMemo(
@@ -418,15 +458,18 @@ export function HolidayCalendar({
                 const dayHolidays = approvedHolidays[dateStr] || []
                 const dateObj = parseYyyyMmDdLocal(dateStr)
                 const isPast = dateObj < today
-                const usersLabel = getHolidayUsersLabelForRequests(dayHolidays)
+                const peopleOff = uniquePeopleOffForRequests(dayHolidays)
+                const namesTitle = peopleOff.map((p) => p.name).join(', ')
                 return (
                   <button
                     key={dateStr}
+                    type="button"
+                    title={namesTitle || undefined}
                     className="w-full rounded-xl border border-border/40 bg-black/15 p-3.5 text-left transition-colors hover:border-spirits-magenta/35 hover:bg-white/[0.03]"
                     onClick={() => onHolidayClick?.(dateObj)}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
+                      <div className="min-w-0 space-y-2">
                         <div className="text-base font-semibold tracking-tight text-foreground">
                           {dateObj.toLocaleDateString('en-GB', {
                             weekday: 'short',
@@ -434,13 +477,29 @@ export function HolidayCalendar({
                             month: 'long',
                           })}
                         </div>
-                        <div className="text-sm text-muted-foreground">{usersLabel}</div>
+                        <div
+                          className="flex flex-wrap items-center gap-1.5"
+                          aria-label={`${peopleOff.length} ${peopleOff.length === 1 ? 'person' : 'people'} off`}
+                        >
+                          {peopleOff.slice(0, MAX_DOTS_IN_CELL).map((p) => (
+                            <span
+                              key={p.key}
+                              className="box-border h-2.5 w-2.5 shrink-0 rounded-full bg-spirits-magenta ring-2 ring-white/30 sm:h-3 sm:w-3"
+                              aria-hidden
+                            />
+                          ))}
+                          {peopleOff.length > MAX_DOTS_IN_CELL && (
+                            <span className="text-xs text-muted-foreground">
+                              +{peopleOff.length - MAX_DOTS_IN_CELL}
+                            </span>
+                          )}
+                        </div>
                         {isPast && (
                           <div className="text-[11px] text-muted-foreground/90">Past day (view)</div>
                         )}
                       </div>
-                      <div className="rounded-lg border border-spirits-magenta/25 bg-spirits-magenta/10 px-2.5 py-1 text-xs font-semibold text-spirits-magenta">
-                        {dayHolidays.length} off
+                      <div className="shrink-0 rounded-lg border border-spirits-magenta/25 bg-spirits-magenta/10 px-2.5 py-1 text-xs font-semibold text-spirits-magenta">
+                        {peopleOff.length} off
                       </div>
                     </div>
                   </button>

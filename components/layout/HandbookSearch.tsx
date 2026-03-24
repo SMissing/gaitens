@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, X, BookOpen, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,8 @@ interface Book {
 
 interface HandbookSearchProps {
   books: Book[]
+  /** When set, called whenever the field is focused/blurred so the page can hide chrome (e.g. book grid). */
+  onSearchExpandedChange?: (expanded: boolean) => void
 }
 
 interface SearchResult {
@@ -28,10 +30,16 @@ interface SearchResult {
   matches: number // Number of matches in this section
 }
 
-export function HandbookSearch({ books }: HandbookSearchProps) {
+export function HandbookSearch({ books, onSearchExpandedChange }: HandbookSearchProps) {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [isFocused, setIsFocused] = useState(false)
+  const onExpandedRef = useRef(onSearchExpandedChange)
+  onExpandedRef.current = onSearchExpandedChange
+
+  useEffect(() => {
+    onExpandedRef.current?.(isFocused)
+  }, [isFocused])
 
   // Extract text content from React nodes for searching
   const extractText = (node: React.ReactNode): string => {
@@ -116,7 +124,7 @@ export function HandbookSearch({ books }: HandbookSearchProps) {
   }
 
   return (
-    <div className="relative w-full mb-6">
+    <div className={cn('relative w-full', isFocused ? 'z-40 mb-0' : 'mb-6')}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <Input
@@ -128,6 +136,13 @@ export function HandbookSearch({ books }: HandbookSearchProps) {
           onBlur={() => {
             // Delay to allow click events on results
             setTimeout(() => setIsFocused(false), 200)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              e.currentTarget.blur()
+              setSearchQuery('')
+              setIsFocused(false)
+            }
           }}
           className={cn(
             "pl-10 pr-10 h-12 text-base",
@@ -148,7 +163,7 @@ export function HandbookSearch({ books }: HandbookSearchProps) {
 
       {/* Search Results Dropdown */}
       {isFocused && searchQuery.trim().length >= 2 && (
-        <div className="absolute z-50 w-full mt-1 bg-[#1e1e1e] border border-border rounded-b-2xl shadow-lg max-h-96 overflow-y-auto">
+        <div className="absolute z-40 left-0 right-0 w-full mt-1 bg-[#1e1e1e] border border-border border-t-0 rounded-b-2xl shadow-lg max-h-[min(calc(100dvh-14rem-env(safe-area-inset-bottom,0px)),36rem)] overflow-y-auto">
           {searchResults.length > 0 ? (
             <div className="p-2">
               <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">

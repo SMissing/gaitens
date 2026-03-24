@@ -1,20 +1,24 @@
 import { requireManager } from '@/lib/auth'
+import { PageHeader } from '@/components/layout/PageHeader'
 import { ManagerStaffAchievements } from '@/components/achievements/ManagerStaffAchievements'
+import { Award } from 'lucide-react'
 
 export default async function ManagerAchievementsPage() {
   await requireManager()
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-32">
-        <div className="flex items-end justify-between gap-4 mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Staff Badges</h1>
-            <p className="text-sm text-muted-foreground">Which badges each staff member has completed.</p>
-          </div>
+      <PageHeader
+        title="Staff Badges"
+        icon={<Award className="h-6 w-6 text-spirits-yellow" />}
+        description="All accounts — use the dock to filter by venue, sort, or refresh"
+        showBack={true}
+        backHref="/dashboard"
+      />
+      <div className="p-4 sm:p-6 lg:p-8 pb-32">
+        <div className="max-w-5xl mx-auto">
+          <ManagerStaffAchievements />
         </div>
-
-        <ManagerStaffAchievements />
       </div>
     </div>
   )

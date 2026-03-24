@@ -22,6 +22,7 @@ import {
   Circle,
   X,
   Loader2,
+  RefreshCw,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 import {
@@ -36,6 +37,60 @@ import {
   type HolidaysDockSyncDetail,
   type HolidaysViewMode,
 } from '@/lib/holidays-dock-bridge'
+import {
+  STAFF_DOCK_ADD_ACCOUNT,
+  STAFF_DOCK_CLOSE_FORM,
+  STAFF_DOCK_STATE,
+  type StaffDockStateDetail,
+} from '@/lib/staff-dock-bridge'
+import {
+  BARRED_DOCK_ADD,
+  BARRED_DOCK_CLOSE_ADD,
+  BARRED_DOCK_REFRESH,
+  BARRED_DOCK_SET_VIEW,
+  BARRED_DOCK_STATE,
+  type BarredDockStateDetail,
+} from '@/lib/barred-dock-bridge'
+import {
+  TRAINING_DOCK_ADD,
+  TRAINING_DOCK_CLOSE_FORM,
+  TRAINING_DOCK_SUBMIT_FORM,
+  TRAINING_DOCK_REFRESH,
+  TRAINING_DOCK_STATE,
+  type TrainingDockStateDetail,
+} from '@/lib/training-dock-bridge'
+import {
+  NOTICES_POST_DOCK_CANCEL,
+  NOTICES_POST_DOCK_STATE,
+  NOTICES_POST_DOCK_SUBMIT,
+  type NoticesPostDockStateDetail,
+} from '@/lib/notices-post-dock-bridge'
+import {
+  MEETINGS_DOCK_ADD,
+  MEETINGS_DOCK_CLOSE_FORM,
+  MEETINGS_DOCK_REFRESH,
+  MEETINGS_DOCK_STATE,
+  MEETINGS_DOCK_SUBMIT_FORM,
+  type MeetingsDockStateDetail,
+} from '@/lib/meetings-dock-bridge'
+import {
+  MANAGEMENT_CAL_DOCK_ADD,
+  MANAGEMENT_CAL_DOCK_CLOSE_ADD,
+  MANAGEMENT_CAL_DOCK_CLOSE_DAY,
+  MANAGEMENT_CAL_DOCK_CLOSE_EDIT,
+  MANAGEMENT_CAL_DOCK_REFRESH,
+  MANAGEMENT_CAL_DOCK_STATE,
+  type ManagementCalDockStateDetail,
+} from '@/lib/management-calendar-dock-bridge'
+import {
+  STAFF_BADGES_DOCK_REFRESH,
+  STAFF_BADGES_DOCK_SET_FILTER,
+  STAFF_BADGES_DOCK_SET_SORT,
+  STAFF_BADGES_FILTER_OPTIONS,
+  STAFF_BADGES_SORT_OPTIONS,
+  type StaffBadgesSortOption,
+  type StaffBadgesVenueFilter,
+} from '@/lib/staff-badges-dock-bridge'
 
 interface DockButtonRowProps {
   user: User
@@ -65,14 +120,68 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const isDashboard = pathname === '/dashboard'
   const isHolidaysPage = pathname.startsWith('/holidays')
   const isIdeasPage = pathname.startsWith('/ideas')
+  const isManageStaffPage = pathname.startsWith('/manager/staff')
+  const isBarredPage = pathname.startsWith('/manager/barred')
+  const isMeetingsPage = pathname.startsWith('/manager/meetings')
+  const isManagementCalPage = pathname.startsWith('/manager/management-calendar')
+  const isManagerAchievementsPage = pathname.startsWith('/manager/achievements')
+  const isModuleMakerPage = pathname.startsWith('/manager/training')
+  const isNoticesPostPage =
+    pathname === '/manager/notices/post' ||
+    pathname.startsWith('/notices/edit/')
   const [showHolidaysDock, setShowHolidaysDock] = useState(isHolidaysPage)
   const [holidaysMenuOpen, setHolidaysMenuOpen] = useState<'view' | 'availability' | 'notes' | null>(null)
   const [holidaysSync, setHolidaysSync] = useState<HolidaysDockSyncDetail | null>(null)
   const [notesDraft, setNotesDraft] = useState('')
   const [showIdeasDock, setShowIdeasDock] = useState(isIdeasPage)
+  const [showStaffDock, setShowStaffDock] = useState(isManageStaffPage)
+  const [showBarredDock, setShowBarredDock] = useState(isBarredPage)
+  const [showModuleMakerDock, setShowModuleMakerDock] = useState(isModuleMakerPage)
+  const [showMeetingsDock, setShowMeetingsDock] = useState(isMeetingsPage)
+  const [showManagementCalDock, setShowManagementCalDock] = useState(isManagementCalPage)
+  const [managementCalDockMeta, setManagementCalDockMeta] =
+    useState<ManagementCalDockStateDetail>({
+      addModalOpen: false,
+      dayPanelOpen: false,
+      editModalOpen: false,
+      listLoading: true,
+      saving: false,
+    })
+  const [meetingsDockMeta, setMeetingsDockMeta] = useState<MeetingsDockStateDetail>({
+    formOpen: false,
+    listLoading: true,
+    saving: false,
+    formBlocking: false,
+  })
+  const [noticesPostMeta, setNoticesPostMeta] = useState<NoticesPostDockStateDetail>({
+    saving: false,
+    uploading: false,
+    editing: false,
+  })
+  const [barredMenuOpen, setBarredMenuOpen] = useState<'view' | null>(null)
+  const [barredMeta, setBarredMeta] = useState<BarredDockStateDetail>({
+    disclaimerAccepted: false,
+    addModalOpen: false,
+    activeView: 'active',
+    loading: false,
+  })
+  const [moduleMakerMeta, setModuleMakerMeta] = useState<TrainingDockStateDetail>({
+    formOpen: false,
+    listLoading: true,
+    saving: false,
+    editing: false,
+  })
+  const [staffDockMeta, setStaffDockMeta] = useState<StaffDockStateDetail>({
+    formOpen: false,
+    canAdd: true,
+  })
   const [ideasMenuOpen, setIdeasMenuOpen] = useState<'sort' | 'filter' | null>(null)
   const [selectedSort, setSelectedSort] = useState<SortOption>('recent')
   const [selectedFilter, setSelectedFilter] = useState<FilterOption>('All')
+  const [showStaffBadgesDock, setShowStaffBadgesDock] = useState(isManagerAchievementsPage)
+  const [staffBadgesMenuOpen, setStaffBadgesMenuOpen] = useState<'sort' | 'filter' | null>(null)
+  const [staffBadgesSort, setStaffBadgesSort] = useState<StaffBadgesSortOption>('role_then_name')
+  const [staffBadgesFilter, setStaffBadgesFilter] = useState<StaffBadgesVenueFilter>('All')
   const dockRowRef = useRef<HTMLDivElement | null>(null)
   const transition = {
     type: 'spring' as const,
@@ -96,6 +205,103 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       setShowIdeasDock(true)
     }
   }, [isIdeasPage])
+
+  useEffect(() => {
+    if (isManagerAchievementsPage) {
+      setShowStaffBadgesDock(true)
+    }
+  }, [isManagerAchievementsPage])
+
+  useEffect(() => {
+    if (isManageStaffPage) {
+      setShowStaffDock(true)
+    }
+  }, [isManageStaffPage])
+
+  useEffect(() => {
+    if (isBarredPage) {
+      setShowBarredDock(true)
+    }
+  }, [isBarredPage])
+
+  useEffect(() => {
+    if (isModuleMakerPage) {
+      setShowModuleMakerDock(true)
+    }
+  }, [isModuleMakerPage])
+
+  useEffect(() => {
+    if (isMeetingsPage) {
+      setShowMeetingsDock(true)
+    }
+  }, [isMeetingsPage])
+
+  useEffect(() => {
+    if (isManagementCalPage) {
+      setShowManagementCalDock(true)
+    }
+  }, [isManagementCalPage])
+
+  useEffect(() => {
+    const onManagementCalDockState = (e: Event) => {
+      const ce = e as CustomEvent<ManagementCalDockStateDetail>
+      if (ce.detail) setManagementCalDockMeta(ce.detail)
+    }
+    window.addEventListener(MANAGEMENT_CAL_DOCK_STATE, onManagementCalDockState)
+    return () =>
+      window.removeEventListener(
+        MANAGEMENT_CAL_DOCK_STATE,
+        onManagementCalDockState
+      )
+  }, [])
+
+  useEffect(() => {
+    const onMeetingsDockState = (e: Event) => {
+      const ce = e as CustomEvent<MeetingsDockStateDetail>
+      if (ce.detail) setMeetingsDockMeta(ce.detail)
+    }
+    window.addEventListener(MEETINGS_DOCK_STATE, onMeetingsDockState)
+    return () =>
+      window.removeEventListener(MEETINGS_DOCK_STATE, onMeetingsDockState)
+  }, [])
+
+  useEffect(() => {
+    const onNoticesPostDockState = (e: Event) => {
+      const ce = e as CustomEvent<NoticesPostDockStateDetail>
+      if (ce.detail) setNoticesPostMeta(ce.detail)
+    }
+    window.addEventListener(NOTICES_POST_DOCK_STATE, onNoticesPostDockState)
+    return () =>
+      window.removeEventListener(NOTICES_POST_DOCK_STATE, onNoticesPostDockState)
+  }, [])
+
+  useEffect(() => {
+    const onTrainingDockState = (e: Event) => {
+      const ce = e as CustomEvent<TrainingDockStateDetail>
+      if (ce.detail) setModuleMakerMeta(ce.detail)
+    }
+    window.addEventListener(TRAINING_DOCK_STATE, onTrainingDockState)
+    return () =>
+      window.removeEventListener(TRAINING_DOCK_STATE, onTrainingDockState)
+  }, [])
+
+  useEffect(() => {
+    const onBarredDockState = (e: Event) => {
+      const ce = e as CustomEvent<BarredDockStateDetail>
+      if (ce.detail) setBarredMeta(ce.detail)
+    }
+    window.addEventListener(BARRED_DOCK_STATE, onBarredDockState)
+    return () => window.removeEventListener(BARRED_DOCK_STATE, onBarredDockState)
+  }, [])
+
+  useEffect(() => {
+    const onStaffDockState = (e: Event) => {
+      const ce = e as CustomEvent<StaffDockStateDetail>
+      if (ce.detail) setStaffDockMeta(ce.detail)
+    }
+    window.addEventListener(STAFF_DOCK_STATE, onStaffDockState)
+    return () => window.removeEventListener(STAFF_DOCK_STATE, onStaffDockState)
+  }, [])
 
   useEffect(() => {
     const onSync = (e: Event) => {
@@ -143,11 +349,133 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   }, [isIdeasPage, showIdeasDock])
 
   useEffect(() => {
+    if (!isManagerAchievementsPage || showStaffBadgesDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowStaffBadgesDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isManagerAchievementsPage, showStaffBadgesDock])
+
+  useEffect(() => {
+    if (!isManagerAchievementsPage || !showStaffBadgesDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setStaffBadgesMenuOpen(null)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isManagerAchievementsPage, showStaffBadgesDock])
+
+  useEffect(() => {
     if (dockCategoryOpen) {
       setIdeasMenuOpen(null)
       setHolidaysMenuOpen(null)
+      setBarredMenuOpen(null)
+      setStaffBadgesMenuOpen(null)
     }
   }, [dockCategoryOpen])
+
+  useEffect(() => {
+    if (!isManageStaffPage || showStaffDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowStaffDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isManageStaffPage, showStaffDock])
+
+  useEffect(() => {
+    if (!isBarredPage || !barredMeta.disclaimerAccepted || showBarredDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowBarredDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isBarredPage, barredMeta.disclaimerAccepted, showBarredDock])
+
+  useEffect(() => {
+    if (!isBarredPage || !barredMeta.disclaimerAccepted || !showBarredDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setBarredMenuOpen(null)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isBarredPage, barredMeta.disclaimerAccepted, showBarredDock])
+
+  useEffect(() => {
+    if (!isModuleMakerPage || showModuleMakerDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowModuleMakerDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isModuleMakerPage, showModuleMakerDock])
+
+  useEffect(() => {
+    if (!isMeetingsPage || showMeetingsDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowMeetingsDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isMeetingsPage, showMeetingsDock])
+
+  useEffect(() => {
+    if (!isManagementCalPage || showManagementCalDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowManagementCalDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isManagementCalPage, showManagementCalDock])
 
   const holidaysPhase = holidaysSync?.phase ?? 'browse'
   const holidaysView = holidaysSync?.view ?? 'calendar'
@@ -221,6 +549,25 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const setIdeaFilter = (filter: FilterOption) => {
     setSelectedFilter(filter)
     window.dispatchEvent(new CustomEvent('ideas:set-filter', { detail: { filter } }))
+  }
+
+  const setStaffBadgesSortValue = (sort: StaffBadgesSortOption) => {
+    setStaffBadgesSort(sort)
+    window.dispatchEvent(
+      new CustomEvent(STAFF_BADGES_DOCK_SET_SORT, { detail: { sort } }),
+    )
+  }
+
+  const setStaffBadgesFilterValue = (filter: StaffBadgesVenueFilter) => {
+    setStaffBadgesFilter(filter)
+    window.dispatchEvent(
+      new CustomEvent(STAFF_BADGES_DOCK_SET_FILTER, { detail: { filter } }),
+    )
+  }
+
+  const triggerStaffBadgesRefresh = () => {
+    setStaffBadgesMenuOpen(null)
+    window.dispatchEvent(new CustomEvent(STAFF_BADGES_DOCK_REFRESH))
   }
 
   const mainDockRow = (
@@ -710,6 +1057,852 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
             ) : (
               <motion.div
                 key="main-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isManagerAchievementsPage) {
+    const staffBadgesPanelTitle =
+      staffBadgesMenuOpen === 'filter'
+        ? 'Filter by venue'
+        : staffBadgesMenuOpen === 'sort'
+          ? 'Sort accounts'
+          : null
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          {showStaffBadgesDock && (
+            <AnimatePresence initial={false}>
+              {staffBadgesMenuOpen && (
+                <motion.div
+                  key={staffBadgesMenuOpen}
+                  initial={{ opacity: 0, y: 10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: 10, height: 0 }}
+                  className="absolute bottom-full left-0 right-0 z-[1] mb-2 overflow-hidden"
+                >
+                  <div className="rounded-2xl border border-white/10 bg-[#171717] p-2 shadow-2xl">
+                    <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {staffBadgesPanelTitle}
+                    </p>
+                    <div className="grid gap-1">
+                      {staffBadgesMenuOpen === 'filter' &&
+                        STAFF_BADGES_FILTER_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setStaffBadgesFilterValue(option.value)
+                              setStaffBadgesMenuOpen(null)
+                            }}
+                            className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                              staffBadgesFilter === option.value
+                                ? 'bg-spirits-cyan/20 text-spirits-cyan'
+                                : 'text-foreground sm:hover:bg-accent'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      {staffBadgesMenuOpen === 'sort' &&
+                        STAFF_BADGES_SORT_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setStaffBadgesSortValue(option.value)
+                              setStaffBadgesMenuOpen(null)
+                            }}
+                            className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                              staffBadgesSort === option.value
+                                ? 'bg-spirits-cyan/20 text-spirits-cyan'
+                                : 'text-foreground sm:hover:bg-accent'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+
+          <AnimatePresence mode="wait" initial={false}>
+            {showStaffBadgesDock ? (
+              <motion.div
+                key="staff-badges-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="relative flex h-16 w-full items-center justify-between px-4 sm:h-20 sm:px-6"
+              >
+                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStaffBadgesMenuOpen(null)
+                      setShowStaffBadgesDock(false)
+                    }}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                    aria-label="Show main dock"
+                  >
+                    <ArrowLeft className="h-6 w-6 text-foreground transition-colors sm:h-7 sm:w-7" />
+                  </button>
+                </div>
+
+                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStaffBadgesMenuOpen((prev) => (prev === 'filter' ? null : 'filter'))
+                    }
+                    className="flex h-10 w-10 items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                    aria-label="Filter by venue"
+                  >
+                    <ListFilter
+                      className={`h-6 w-6 transition-colors sm:h-7 sm:w-7 ${
+                        staffBadgesMenuOpen === 'filter' ? 'text-spirits-cyan' : 'text-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setStaffBadgesMenuOpen((prev) => (prev === 'sort' ? null : 'sort'))
+                    }
+                    className="flex h-10 w-10 items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                    aria-label="Sort accounts"
+                  >
+                    <ArrowUpDown
+                      className={`h-6 w-6 transition-colors sm:h-7 sm:w-7 ${
+                        staffBadgesMenuOpen === 'sort' ? 'text-spirits-cyan' : 'text-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                  <button
+                    type="button"
+                    onClick={triggerStaffBadgesRefresh}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-spirits-yellow/15 p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                    aria-label="Refresh badge list"
+                  >
+                    <RefreshCw className="h-6 w-6 text-spirits-yellow transition-colors sm:h-7 sm:w-7" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="main-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isBarredPage) {
+    const setBarredView = (view: 'active' | 'past') => {
+      window.dispatchEvent(
+        new CustomEvent(BARRED_DOCK_SET_VIEW, { detail: { view } })
+      )
+      setBarredMenuOpen(null)
+    }
+
+    const showBarredDropup =
+      barredMeta.disclaimerAccepted &&
+      showBarredDock &&
+      !barredMeta.addModalOpen &&
+      barredMenuOpen === 'view'
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          {showBarredDropup && (
+            <AnimatePresence initial={false}>
+              <motion.div
+                key="barred-view-menu"
+                initial={{ opacity: 0, y: 10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: 10, height: 0 }}
+                className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden z-[1]"
+              >
+                <div className="rounded-2xl border border-white/10 bg-[#171717] p-2 shadow-2xl">
+                  <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    List view
+                  </p>
+                  <div className="grid gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setBarredView('active')}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                        barredMeta.activeView === 'active'
+                          ? 'bg-spirits-magenta/20 text-spirits-magenta'
+                          : 'text-foreground sm:hover:bg-accent'
+                      }`}
+                    >
+                      Barred list
+                      {barredMeta.activeView === 'active' ? (
+                        <Check className="h-4 w-4 shrink-0" />
+                      ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBarredView('past')}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                        barredMeta.activeView === 'past'
+                          ? 'bg-spirits-magenta/20 text-spirits-magenta'
+                          : 'text-foreground sm:hover:bg-accent'
+                      }`}
+                    >
+                      Past bars
+                      {barredMeta.activeView === 'past' ? (
+                        <Check className="h-4 w-4 shrink-0" />
+                      ) : null}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          )}
+
+          <AnimatePresence mode="wait" initial={false}>
+            {!barredMeta.disclaimerAccepted || !showBarredDock ? (
+              <motion.div
+                key="barred-root-main"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            ) : barredMeta.addModalOpen ? (
+              <motion.div
+                key="barred-add-close"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex w-full items-center px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex flex-col items-center justify-center h-full">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.dispatchEvent(new CustomEvent(BARRED_DOCK_CLOSE_ADD))
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Close add bar"
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="barred-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBarredMenuOpen(null)
+                      setShowBarredDock(false)
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Show main dock"
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBarredMenuOpen((p) => (p === 'view' ? null : 'view'))
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Choose barred list or past bars"
+                  >
+                    <LayoutGrid
+                      className={`h-6 w-6 sm:h-7 sm:w-7 transition-colors ${
+                        barredMenuOpen === 'view'
+                          ? 'text-spirits-magenta'
+                          : 'text-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    disabled={barredMeta.loading}
+                    onClick={() => {
+                      setBarredMenuOpen(null)
+                      window.dispatchEvent(new CustomEvent(BARRED_DOCK_REFRESH))
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label="Refresh barred list"
+                  >
+                    {barredMeta.loading ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
+                    ) : (
+                      <RefreshCw className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBarredMenuOpen(null)
+                      window.dispatchEvent(new CustomEvent(BARRED_DOCK_ADD))
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-magenta/15"
+                    aria-label="Add barred person"
+                  >
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-magenta transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isManagementCalPage) {
+    const refreshBusy =
+      managementCalDockMeta.listLoading || managementCalDockMeta.saving
+    const overlayOpen =
+      managementCalDockMeta.addModalOpen ||
+      managementCalDockMeta.dayPanelOpen ||
+      managementCalDockMeta.editModalOpen
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          <AnimatePresence mode="wait" initial={false}>
+            {!showManagementCalDock ? (
+              <motion.div
+                key="management-cal-main"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            ) : overlayOpen ? (
+              <motion.div
+                key="management-cal-overlay"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex w-full items-center px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex flex-col items-center justify-center h-full">
+                  <button
+                    type="button"
+                    disabled={managementCalDockMeta.saving}
+                    onClick={() => {
+                      if (managementCalDockMeta.editModalOpen) {
+                        window.dispatchEvent(
+                          new CustomEvent(MANAGEMENT_CAL_DOCK_CLOSE_EDIT)
+                        )
+                      } else if (managementCalDockMeta.addModalOpen) {
+                        window.dispatchEvent(
+                          new CustomEvent(MANAGEMENT_CAL_DOCK_CLOSE_ADD)
+                        )
+                      } else {
+                        window.dispatchEvent(
+                          new CustomEvent(MANAGEMENT_CAL_DOCK_CLOSE_DAY)
+                        )
+                      }
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label={
+                      managementCalDockMeta.editModalOpen
+                        ? 'Close edit event'
+                        : managementCalDockMeta.addModalOpen
+                          ? 'Close add event'
+                          : 'Close day details'
+                    }
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="management-cal-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowManagementCalDock(false)}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Show main dock"
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    disabled={refreshBusy}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(MANAGEMENT_CAL_DOCK_REFRESH)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label="Refresh calendar"
+                  >
+                    {managementCalDockMeta.listLoading ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
+                    ) : (
+                      <RefreshCw className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    disabled={refreshBusy}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(MANAGEMENT_CAL_DOCK_ADD)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-magenta/15 disabled:opacity-40"
+                    aria-label="Add management event"
+                  >
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-magenta transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isMeetingsPage) {
+    const refreshBusy =
+      meetingsDockMeta.listLoading || meetingsDockMeta.saving
+    const formSubmitBusy =
+      meetingsDockMeta.saving || meetingsDockMeta.formBlocking
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          <AnimatePresence mode="wait" initial={false}>
+            {!showMeetingsDock ? (
+              <motion.div
+                key="meetings-main"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            ) : meetingsDockMeta.formOpen ? (
+              <motion.div
+                key="meetings-form"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex w-full items-center justify-between px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex flex-col items-center justify-center h-full">
+                  <button
+                    type="button"
+                    disabled={meetingsDockMeta.saving}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(MEETINGS_DOCK_CLOSE_FORM)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label="Cancel — back to meetings list"
+                  >
+                    <X className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className="flex flex-col items-center justify-center h-full">
+                  <button
+                    type="button"
+                    disabled={formSubmitBusy}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(MEETINGS_DOCK_SUBMIT_FORM)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                    aria-label="Send meeting request"
+                  >
+                    {meetingsDockMeta.saving ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                    ) : (
+                      <Check
+                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors"
+                        strokeWidth={2.5}
+                      />
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="meetings-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowMeetingsDock(false)}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Show main dock"
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    disabled={refreshBusy}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(MEETINGS_DOCK_REFRESH)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label="Refresh meetings"
+                  >
+                    {meetingsDockMeta.listLoading ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
+                    ) : (
+                      <RefreshCw className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.dispatchEvent(new CustomEvent(MEETINGS_DOCK_ADD))
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-magenta/15"
+                    aria-label="Request new meeting"
+                  >
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-magenta transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isNoticesPostPage) {
+    const noticesPostBusy =
+      noticesPostMeta.saving || noticesPostMeta.uploading
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          <motion.div
+            key="notices-post-actions"
+            transition={dockSwitchTransition}
+            initial={{ opacity: 0, y: 10, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            className="flex w-full items-center justify-between px-4 sm:px-6 h-16 sm:h-20 relative"
+          >
+            <div className="flex flex-col items-center justify-center h-full">
+              <button
+                type="button"
+                disabled={noticesPostMeta.saving}
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent(NOTICES_POST_DOCK_CANCEL)
+                  )
+                }
+                className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                aria-label="Cancel — leave without posting"
+              >
+                <X className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center justify-center h-full">
+              <button
+                type="button"
+                disabled={noticesPostBusy}
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent(NOTICES_POST_DOCK_SUBMIT)
+                  )
+                }
+                className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                aria-label={
+                  noticesPostMeta.editing
+                    ? 'Save notice changes'
+                    : 'Post notice'
+                }
+              >
+                {noticesPostMeta.saving ? (
+                  <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                ) : (
+                  <Check
+                    className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors"
+                    strokeWidth={2.5}
+                  />
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isModuleMakerPage) {
+    const refreshBusy =
+      moduleMakerMeta.listLoading || moduleMakerMeta.saving
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          <AnimatePresence mode="wait" initial={false}>
+            {!showModuleMakerDock ? (
+              <motion.div
+                key="module-maker-main"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            ) : moduleMakerMeta.formOpen ? (
+              <motion.div
+                key="module-maker-form"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex w-full items-center justify-between px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex flex-col items-center justify-center h-full">
+                  <button
+                    type="button"
+                    disabled={moduleMakerMeta.saving}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(TRAINING_DOCK_CLOSE_FORM)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label="Cancel — discard changes"
+                  >
+                    <X className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className="flex flex-col items-center justify-center h-full">
+                  <button
+                    type="button"
+                    disabled={moduleMakerMeta.saving}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(TRAINING_DOCK_SUBMIT_FORM)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                    aria-label={
+                      moduleMakerMeta.editing
+                        ? 'Save module changes'
+                        : 'Publish new module'
+                    }
+                  >
+                    {moduleMakerMeta.saving ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                    ) : (
+                      <Check
+                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors"
+                        strokeWidth={2.5}
+                      />
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="module-maker-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowModuleMakerDock(false)}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Show main dock"
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    disabled={refreshBusy}
+                    onClick={() =>
+                      window.dispatchEvent(
+                        new CustomEvent(TRAINING_DOCK_REFRESH)
+                      )
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
+                    aria-label="Refresh modules"
+                  >
+                    {moduleMakerMeta.listLoading ? (
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
+                    ) : (
+                      <RefreshCw className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.dispatchEvent(new CustomEvent(TRAINING_DOCK_ADD))
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15"
+                    aria-label="New training module"
+                  >
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isManageStaffPage) {
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+          <AnimatePresence mode="wait" initial={false}>
+            {showStaffDock ? (
+              <motion.div
+                key="staff-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+              >
+                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (staffDockMeta.formOpen) {
+                        window.dispatchEvent(new CustomEvent(STAFF_DOCK_CLOSE_FORM))
+                      } else {
+                        setShowStaffDock(false)
+                      }
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label={
+                      staffDockMeta.formOpen ? 'Back to directory' : 'Show main dock'
+                    }
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                {staffDockMeta.canAdd && !staffDockMeta.formOpen && (
+                  <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        window.dispatchEvent(new CustomEvent(STAFF_DOCK_ADD_ACCOUNT))
+                      }
+                      className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15"
+                      aria-label="Add account"
+                    >
+                      <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors" />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="staff-main-dock"
                 transition={dockSwitchTransition}
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}

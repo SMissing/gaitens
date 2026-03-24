@@ -8,15 +8,15 @@ export default async function MeetingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader 
+      <PageHeader
         title="Meetings"
-        icon={<Calendar className="h-6 w-6 text-spirits-magenta" />}
-        description="Schedule and manage meetings with staff"
+        icon={<Calendar className="h-6 w-6 text-spirits-yellow" />}
+        description="Schedule and manage meetings — use the dock to add or refresh"
         showBack={true}
         backHref="/dashboard"
       />
       <div className="p-4 sm:p-6 lg:p-8 pb-32">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <MeetingsClient currentUserId={user.id} />
         </div>
       </div>

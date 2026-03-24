@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { User } from '@/types/database'
+import { staffListFromApiResponse } from '@/lib/staff-permissions'
 import { X, Loader2, Calendar } from 'lucide-react'
 import { toYyyyMmDdLocal } from '@/lib/date-utils'
 
@@ -37,7 +38,7 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
         throw new Error('Failed to fetch staff')
       }
       const data = await response.json()
-      setStaff(data)
+      setStaff(staffListFromApiResponse(data))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load staff')
     } finally {

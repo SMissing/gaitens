@@ -1,13 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import type { BarredPerson } from '@/types/database'
 import { BarredPersonForm } from './BarredPersonForm'
 import { BarredPersonModal } from './BarredPersonModal'
 import { BarredDisclaimerModal } from './BarredDisclaimerModal'
 import { Button } from '@/components/ui/button'
-import { Plus, RefreshCcw, X } from 'lucide-react'
+import { X } from 'lucide-react'
+import {
+  BARRED_DOCK_ADD,
+  BARRED_DOCK_CLOSE_ADD,
+  BARRED_DOCK_REFRESH,
+  BARRED_DOCK_SET_VIEW,
+  BARRED_DOCK_STATE,
+} from '@/lib/barred-dock-bridge'
 
 interface BarredListClientProps {
   initialPeople: BarredPerson[]
@@ -37,7 +44,7 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
 
   const visiblePeople = activeView === 'active' ? activeBars : pastBars
 
-  const fetchPeople = async () => {
+  const fetchPeople = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -50,13 +57,51 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(BARRED_DOCK_STATE, {
+        detail: {
+          disclaimerAccepted,
+          addModalOpen: showAddModal,
+          activeView,
+          loading,
+        },
+      })
+    )
+  }, [disclaimerAccepted, showAddModal, activeView, loading])
 
   useEffect(() => {
     if (!disclaimerAccepted) return
-    if (initialPeople.length === 0) fetchPeople()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disclaimerAccepted, initialPeople.length])
+
+    const onAdd = () => setShowAddModal(true)
+    const onRefresh = () => {
+      void fetchPeople()
+    }
+    const onCloseAdd = () => setShowAddModal(false)
+    const onSetView = (e: Event) => {
+      const v = (e as CustomEvent<{ view?: 'active' | 'past' }>).detail?.view
+      if (v === 'active' || v === 'past') setActiveView(v)
+    }
+
+    window.addEventListener(BARRED_DOCK_ADD, onAdd)
+    window.addEventListener(BARRED_DOCK_REFRESH, onRefresh)
+    window.addEventListener(BARRED_DOCK_CLOSE_ADD, onCloseAdd)
+    window.addEventListener(BARRED_DOCK_SET_VIEW, onSetView as EventListener)
+
+    return () => {
+      window.removeEventListener(BARRED_DOCK_ADD, onAdd)
+      window.removeEventListener(BARRED_DOCK_REFRESH, onRefresh)
+      window.removeEventListener(BARRED_DOCK_CLOSE_ADD, onCloseAdd)
+      window.removeEventListener(BARRED_DOCK_SET_VIEW, onSetView as EventListener)
+    }
+  }, [disclaimerAccepted, fetchPeople])
+
+  useEffect(() => {
+    if (!disclaimerAccepted) return
+    if (initialPeople.length === 0) void fetchPeople()
+  }, [disclaimerAccepted, initialPeople.length, fetchPeople])
 
   useEffect(() => {
     if (!showAddModal) return
@@ -123,51 +168,10 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-bold text-foreground">
-          {activeView === 'active' ? 'Barred List' : 'Past Bars'}
-        </h3>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => setShowAddModal(true)}
-            className="touch-manipulation"
-          >
-            <Plus className="h-4 w-4" />
-            ADD BAR
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchPeople()}
-            disabled={loading}
-            className="touch-manipulation"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant={activeView === 'active' ? 'default' : 'outline'}
-          onClick={() => setActiveView('active')}
-          className="touch-manipulation"
-        >
-          Barred List
-        </Button>
-        <Button
-          size="sm"
-          variant={activeView === 'past' ? 'default' : 'outline'}
-          onClick={() => setActiveView('past')}
-          className="touch-manipulation"
-        >
-          Past Bars
-        </Button>
-      </div>
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        {activeView === 'active' ? 'Current bars' : 'Past bars'}
+      </p>
 
       {error && (
         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-2xl">

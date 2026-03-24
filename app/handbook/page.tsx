@@ -1,7 +1,6 @@
 import { requireAuth } from '@/lib/auth'
 import { Page, PageContent } from '@/components/layout/Page'
 import { HandbookNavigation } from '@/components/layout/HandbookNavigation'
-import { HandbookSearch } from '@/components/layout/HandbookSearch'
 import { HighlightContent } from '@/components/layout/HighlightContent'
 import { CocktailGrid } from '@/components/handbook/CocktailGrid'
 import { HandbookNav } from '@/components/handbook/HandbookNav'
@@ -9,7 +8,10 @@ import { HandbookHeader } from '@/components/handbook/HandbookHeader'
 import { CompactBookSelector } from '@/components/handbook/CompactBookSelector'
 import { BackToTop } from '@/components/handbook/BackToTop'
 import { HandbookContentsList } from '@/components/handbook/HandbookContentsList'
-import { HandbookLanding } from '@/components/handbook/HandbookLanding'
+import {
+  HandbookLandingWithSearchOverlay,
+  HandbookBookViewWithSearchOverlay,
+} from '@/components/handbook/HandbookSearchArea'
 
 export default async function HandbookPage({
   searchParams,
@@ -2200,28 +2202,9 @@ export default async function HandbookPage({
       />
 
       {showLanding ? (
-          /* Landing Page - Book Selection */
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Search Bar - Centered */}
-          <div className="max-w-2xl mx-auto mb-12">
-            <HandbookSearch books={books} />
-          </div>
-
-          {/* Book Covers */}
-          <HandbookLanding books={books} />
-        </div>
+        <HandbookLandingWithSearchOverlay books={books} />
       ) : currentBook ? (
-        /* Book Content View */
-        <div className="w-full relative">
-          {/* Dark Background Box */}
-          <div className="fixed inset-0 bg-[#1e1e1e] -z-10" />
-          
-          {/* Search Bar */}
-          <div className="mb-6 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative z-10">
-            <HandbookSearch books={books} />
-          </div>
-
-          {/* Handbook Content */}
+        <HandbookBookViewWithSearchOverlay books={books}>
           {currentBook.sections.length > 0 ? (
             <>
               {showContents ? (
@@ -2289,7 +2272,7 @@ export default async function HandbookPage({
               </Page>
             </div>
           )}
-        </div>
+        </HandbookBookViewWithSearchOverlay>
       ) : null}
 
       {/* Back to Top Button */}

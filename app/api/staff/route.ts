@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireManager } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
-import type { User } from '@/types/database'
+import {
+  allowedCreateRoles,
+  canViewTargetStaffCode,
+  MASKED_STAFF_CODE,
+} from '@/lib/staff-permissions'
+import type { User, UserRole } from '@/types/database'
 
 // GET all staff members
 export async function GET(request: NextRequest) {
@@ -9,7 +14,7 @@ export async function GET(request: NextRequest) {
     // Allow both managers and admins to fetch staff
     const user = await requireAuth()
     const supabase = createServerClient()
-    
+
     // Check if user is manager or admin
     const { data: userData } = await supabase
       .from('users')
@@ -23,6 +28,8 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       )
     }
+
+    const viewerRole = userData.role as UserRole
     
     const { searchParams } = new URL(request.url)
     const active = searchParams.get('active')
@@ -61,7 +68,19 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(data as User[])
+    const rows = (data || []) as User[]
+    const sanitized = rows.map((row) => {
+      if (!canViewTargetStaffCode(viewerRole, row.role)) {
+        return { ...row, staffCode: MASKED_STAFF_CODE }
+      }
+      return row
+    })
+
+    return NextResponse.json({
+      staff: sanitized,
+      viewerRole,
+      allowedCreateRoles: allowedCreateRoles(viewerRole),
+    })
   } catch (error) {
     console.error('Error in GET /api/staff:', error)
     return NextResponse.json(
@@ -74,9 +93,9 @@ export async function GET(request: NextRequest) {
 // POST - Create new staff member
 export async function POST(request: NextRequest) {
   try {
-    await requireManager()
+    const currentUser = await requireManager()
     const supabase = createServerClient()
-    
+
     const body = await request.json()
     const { name, staffCode, role, site } = body
 
@@ -100,6 +119,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid role' },
         { status: 400 }
+      )
+    }
+
+    const permitted = allowedCreateRoles(currentUser.role)
+    if (!permitted.includes(role as UserRole)) {
+      return NextResponse.json(
+        {
+          error:
+            currentUser.role === 'manager'
+              ? 'Managers can only create staff accounts'
+              : 'You cannot create accounts with this role',
+        },
+        { status: 403 }
       )
     }
 

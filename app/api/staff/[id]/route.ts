@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireManager } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
-import type { User } from '@/types/database'
+import { canModifyTargetUser } from '@/lib/staff-permissions'
+import type { User, UserRole } from '@/types/database'
 
 // PUT - Update staff member
 export async function PUT(
@@ -9,9 +10,31 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireManager()
+    const currentUser = await requireManager()
     const supabase = createServerClient()
-    
+
+    const { data: targetRow, error: targetErr } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', params.id)
+      .single()
+
+    if (targetErr || !targetRow) {
+      return NextResponse.json(
+        { error: 'Staff member not found' },
+        { status: 404 }
+      )
+    }
+
+    const target = targetRow as User
+
+    if (!canModifyTargetUser(currentUser.role, target.role)) {
+      return NextResponse.json(
+        { error: 'You cannot modify accounts at this level' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const { name, staffCode, role, site, active } = body
 
@@ -34,7 +57,16 @@ export async function PUT(
           { status: 400 }
         )
       }
-      updates.role = role
+      if (
+        currentUser.role === 'manager' &&
+        (role as UserRole) !== 'staff'
+      ) {
+        return NextResponse.json(
+          { error: 'Managers cannot change role away from staff' },
+          { status: 403 }
+        )
+      }
+      updates.role = role as UserRole
     }
     if (site !== undefined) updates.site = site || null
     if (active !== undefined) updates.active = active
@@ -83,9 +115,34 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireManager()
+    const currentUser = await requireManager()
     const supabase = createServerClient()
-    
+
+    const { data: targetRow, error: targetErr } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', params.id)
+      .single()
+
+    if (targetErr || !targetRow) {
+      return NextResponse.json(
+        { error: 'Staff member not found' },
+        { status: 404 }
+      )
+    }
+
+    if (
+      !canModifyTargetUser(
+        currentUser.role,
+        (targetRow as { role: UserRole }).role
+      )
+    ) {
+      return NextResponse.json(
+        { error: 'You cannot deactivate accounts at this level' },
+        { status: 403 }
+      )
+    }
+
     const { data, error } = await supabase
       .from('users')
       .update({ active: false })

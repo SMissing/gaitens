@@ -1,13 +1,17 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Select } from '@/components/ui/select'
-import { CheckCircle, X } from 'lucide-react'
+import { staffListFromApiResponse } from '@/lib/staff-permissions'
+import { MEETINGS_DOCK_SUBMIT_FORM } from '@/lib/meetings-dock-bridge'
 
 interface User {
   id: string
@@ -18,32 +22,70 @@ interface User {
 
 interface MeetingRequestFormProps {
   onSuccess: () => void
+  onFormActivityChange: (state: { saving: boolean; blocking: boolean }) => void
 }
 
-export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
+function FormSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="border-t border-white/[0.08] pt-8 first:border-t-0 first:pt-0 scroll-mt-20">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-spirits-yellow/90">
+        {title}
+      </h2>
+      {hint ? (
+        <p className="text-sm text-muted-foreground mt-1.5 mb-5 leading-relaxed max-w-prose">
+          {hint}
+        </p>
+      ) : (
+        <div className="mb-5" />
+      )}
+      <div className="space-y-4">{children}</div>
+    </section>
+  )
+}
+
+export function MeetingRequestForm({
+  onSuccess,
+  onFormActivityChange,
+}: MeetingRequestFormProps) {
+  const formRef = useRef<HTMLFormElement>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [requestedFor, setRequestedFor] = useState('')
   const [suggestedDate, setSuggestedDate] = useState('')
   const [suggestedTime, setSuggestedTime] = useState('')
-  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>('medium')
+  const [severity, setSeverity] = useState<'low' | 'medium' | 'high' | 'critical'>(
+    'medium'
+  )
   const [ccUserIds, setCcUserIds] = useState<string[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [submitted, setSubmitted] = useState(false)
+
+  useLayoutEffect(() => {
+    onFormActivityChange({
+      saving: loading,
+      blocking: loadingUsers,
+    })
+  }, [loading, loadingUsers, onFormActivityChange])
 
   useEffect(() => {
-    // Fetch users (staff and managers)
     const fetchUsers = async () => {
       try {
         const response = await fetch('/api/staff?active=true')
         if (response.ok) {
           const data = await response.json()
-          // Filter to only staff and managers
-          const filteredUsers = (data || []).filter((u: User) => 
-            u.role === 'staff' || u.role === 'manager'
+          const list = staffListFromApiResponse(data)
+          const filteredUsers = list.filter(
+            (u: User) => u.role === 'staff' || u.role === 'manager'
           )
           setUsers(filteredUsers)
         }
@@ -54,7 +96,16 @@ export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
       }
     }
 
-    fetchUsers()
+    void fetchUsers()
+  }, [])
+
+  useEffect(() => {
+    const onSubmitDock = () => {
+      formRef.current?.requestSubmit()
+    }
+    window.addEventListener(MEETINGS_DOCK_SUBMIT_FORM, onSubmitDock)
+    return () =>
+      window.removeEventListener(MEETINGS_DOCK_SUBMIT_FORM, onSubmitDock)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,185 +152,179 @@ export function MeetingRequestForm({ onSuccess }: MeetingRequestFormProps) {
         throw new Error(data.error || 'Failed to create meeting request')
       }
 
-      setSubmitted(true)
-      setTimeout(() => {
-        setSubmitted(false)
-        setTitle('')
-        setDescription('')
-        setRequestedFor('')
-        setSuggestedDate('')
-        setSuggestedTime('')
-        setSeverity('medium')
-        setCcUserIds([])
-        onSuccess()
-      }, 1500)
+      onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create meeting request')
+      setError(
+        err instanceof Error ? err.message : 'Failed to create meeting request'
+      )
     } finally {
       setLoading(false)
     }
   }
 
-  if (submitted) {
-    return (
-      <Card className="bg-[#1e1e1e] rounded-2xl border border-border/50">
-        <CardContent className="p-8 text-center">
-          <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-foreground mb-2">
-            Meeting Request Sent Successfully
-          </h3>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
-    <Card className="bg-[#1e1e1e] rounded-2xl border border-border/50">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-foreground">
-          Request Meeting
-        </CardTitle>
-        <CardDescription className="text-muted-foreground">
-          Schedule a meeting with a staff member or manager
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="title">Meeting Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Performance Review, Training Discussion"
-              maxLength={200}
-              className="mt-1"
-              required
-            />
-          </div>
+    <div className="w-full pb-8">
+      {error && (
+        <div className="mb-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-          <div>
-            <Label htmlFor="requestedFor">Select Staff Member or Manager *</Label>
-            {loadingUsers ? (
-              <div className="mt-1 text-sm text-muted-foreground">Loading users...</div>
-            ) : (
-              <Select
-                id="requestedFor"
-                value={requestedFor}
-                onChange={(value) => setRequestedFor(value)}
-                options={users.map(u => ({
-                  value: u.id,
-                  label: `${u.name} (${u.staffCode})${u.role === 'manager' ? ' - Manager' : ''}`
-                }))}
-                placeholder="Select a staff member..."
-                className="mt-1"
-                required
-              />
-            )}
-          </div>
+      <form ref={formRef} onSubmit={handleSubmit} className="max-w-2xl">
+        <header className="mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            Request a meeting
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-2 leading-relaxed max-w-prose">
+            Choose who it’s with and when you’d like it. Cancel or send from the
+            dock below.
+          </p>
+        </header>
 
-          <div>
-            <Label htmlFor="suggestedDate">Suggested Date *</Label>
-            <Input
-              id="suggestedDate"
-              type="date"
-              value={suggestedDate}
-              onChange={(e) => setSuggestedDate(e.target.value)}
-              className="mt-1"
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="suggestedTime">Suggested Time (Optional)</Label>
-            <Input
-              id="suggestedTime"
-              type="time"
-              value={suggestedTime}
-              onChange={(e) => setSuggestedTime(e.target.value)}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="severity">Severity (optional)</Label>
-            <Select
-              id="severity"
-              value={severity}
-              onChange={(v) => setSeverity(v as any)}
-              options={[
-                { value: 'low', label: 'Low' },
-                { value: 'medium', label: 'Medium' },
-                { value: 'high', label: 'High' },
-                { value: 'critical', label: 'Critical' },
-              ]}
-              className="mt-1"
-            />
-          </div>
-
-          <div>
-            <Label>CC additional staff (optional)</Label>
-            {loadingUsers ? (
-              <div className="mt-1 text-sm text-muted-foreground">Loading users...</div>
-            ) : (
-              <div className="mt-1 space-y-2 max-h-40 overflow-y-auto p-2 rounded-lg border border-border/50 bg-card/30">
-                {users
-                  .filter((u) => u.id !== requestedFor)
-                  .map((u) => (
-                    <label key={u.id} className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <input
-                        type="checkbox"
-                        checked={ccUserIds.includes(u.id)}
-                        onChange={() => {
-                          setCcUserIds((prev) => {
-                            if (prev.includes(u.id)) return prev.filter((id) => id !== u.id)
-                            return [...prev, u.id]
-                          })
-                        }}
-                      />
-                      <span>
-                        {u.name} ({u.staffCode}){u.role === 'manager' ? ' - Manager' : ''}
-                      </span>
-                    </label>
-                  ))}
-                {users.filter((u) => u.id !== requestedFor).length === 0 && (
-                  <div className="text-xs text-muted-foreground">No eligible CC users.</div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div>
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is this meeting about?"
-              rows={4}
-              maxLength={2000}
-              className="mt-1 resize-none"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              {description.length}/2000 characters
-            </p>
-          </div>
-
-          {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            disabled={loading || loadingUsers}
-            className="w-full"
+        <div className="space-y-10">
+          <FormSection
+            title="Basics"
+            hint="Title and who the meeting is for. They’ll get the request to confirm or suggest another time."
           >
-            {loading ? 'Sending Request...' : 'Send Meeting Request'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <div className="space-y-2">
+              <Label htmlFor="title">Meeting title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Performance check-in, training follow-up"
+                maxLength={200}
+                required
+                className="bg-background/80 border-border/50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="requestedFor">With</Label>
+              {loadingUsers ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  Loading staff…
+                </p>
+              ) : (
+                <Select
+                  id="requestedFor"
+                  value={requestedFor}
+                  onChange={(value) => setRequestedFor(value)}
+                  options={users.map((u) => ({
+                    value: u.id,
+                    label: `${u.name} (${u.staffCode})${u.role === 'manager' ? ' — Manager' : ''}`,
+                  }))}
+                  placeholder="Select a person…"
+                  required
+                />
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Notes (optional)</Label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="What should this meeting cover?"
+                rows={4}
+                maxLength={2000}
+                className="w-full min-h-[120px] rounded-xl border border-border/50 bg-background/80 px-3 py-3 text-sm leading-relaxed resize-y"
+              />
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {description.length}/2000
+              </p>
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Timing"
+            hint="Suggested date is required; time is optional if you’re flexible."
+          >
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="suggestedDate">Suggested date</Label>
+              <Input
+                id="suggestedDate"
+                type="date"
+                value={suggestedDate}
+                onChange={(e) => setSuggestedDate(e.target.value)}
+                required
+                className="bg-background/80 border-border/50"
+              />
+            </div>
+            <div className="space-y-2 max-w-xs">
+              <Label htmlFor="suggestedTime">Suggested time (optional)</Label>
+              <Input
+                id="suggestedTime"
+                type="time"
+                value={suggestedTime}
+                onChange={(e) => setSuggestedTime(e.target.value)}
+                className="bg-background/80 border-border/50"
+              />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Priority & CC"
+            hint="Severity helps others see urgency. CC adds people who should stay informed."
+          >
+            <div className="space-y-2">
+              <Label htmlFor="severity">Severity</Label>
+              <Select
+                id="severity"
+                value={severity}
+                onChange={(v) => setSeverity(v as typeof severity)}
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' },
+                  { value: 'critical', label: 'Critical' },
+                ]}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>CC (optional)</Label>
+              {loadingUsers ? (
+                <p className="text-sm text-muted-foreground py-2">Loading…</p>
+              ) : (
+                <div className="max-h-44 space-y-2 overflow-y-auto rounded-xl border border-border/50 bg-white/[0.03] p-3">
+                  {users
+                    .filter((u) => u.id !== requestedFor)
+                    .map((u) => (
+                      <label
+                        key={u.id}
+                        className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={ccUserIds.includes(u.id)}
+                          onChange={() => {
+                            setCcUserIds((prev) => {
+                              if (prev.includes(u.id))
+                                return prev.filter((id) => id !== u.id)
+                              return [...prev, u.id]
+                            })
+                          }}
+                          className="h-4 w-4 shrink-0 rounded border-input accent-spirits-yellow"
+                        />
+                        <span>
+                          {u.name} ({u.staffCode})
+                          {u.role === 'manager' ? ' — Manager' : ''}
+                        </span>
+                      </label>
+                    ))}
+                  {users.filter((u) => u.id !== requestedFor).length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      No one else to CC.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </FormSection>
+        </div>
+      </form>
+    </div>
   )
 }

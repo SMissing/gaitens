@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from 'react'
 import type { DayButtonProps } from 'react-day-picker'
 import { Button } from '@/components/ui/button'
@@ -15,9 +16,17 @@ import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { Calendar as CalendarIcon, Clock, Plus, X } from 'lucide-react'
+import { Clock, Settings, X } from 'lucide-react'
 import { toYyyyMmDdLocal } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+import {
+  MANAGEMENT_CAL_DOCK_ADD,
+  MANAGEMENT_CAL_DOCK_CLOSE_ADD,
+  MANAGEMENT_CAL_DOCK_CLOSE_DAY,
+  MANAGEMENT_CAL_DOCK_CLOSE_EDIT,
+  MANAGEMENT_CAL_DOCK_REFRESH,
+  MANAGEMENT_CAL_DOCK_STATE,
+} from '@/lib/management-calendar-dock-bridge'
 
 type ManagementEventType = 'management_meeting' | 'pubwatch' | 'disciplinary' | 'custom'
 type RecurrenceType = 'none' | 'weekly'
@@ -55,6 +64,22 @@ function getEventBadgeClass(eventType: ManagementEventType): string {
   }
 }
 
+function getEventDotClass(eventType: ManagementEventType): string {
+  switch (eventType) {
+    case 'management_meeting':
+      return 'bg-spirits-magenta shadow-sm shadow-black/25'
+    case 'pubwatch':
+      return 'bg-spirits-cyan shadow-sm shadow-black/25'
+    case 'disciplinary':
+      return 'bg-red-500 shadow-sm shadow-black/25'
+    case 'custom':
+    default:
+      return 'bg-yellow-400 shadow-sm shadow-black/25'
+  }
+}
+
+const MAX_EVENT_DOTS_IN_CELL = 8
+
 function formatTime(time: string | null): string | null {
   if (!time) return null
   const [hh, mm] = time.split(':')
@@ -77,41 +102,75 @@ function useManagementCalendarContext() {
   return ctx
 }
 
-function ManagementDayButton({ day, modifiers, className, children, ...buttonProps }: DayButtonProps) {
+/** Pink inner glow on days with events — inset shadow stays inside the cell. */
+const MANAGEMENT_DAY_EVENT_GLOW: CSSProperties = {
+  boxShadow:
+    'inset 0 0 18px 2px rgba(255, 0, 255, 0.42), inset 0 0 36px 6px rgba(255, 0, 255, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+}
+
+function ManagementDayButton({
+  day,
+  modifiers,
+  className,
+  children,
+  style,
+  ...buttonProps
+}: DayButtonProps) {
   const ctx = useManagementCalendarContext()
   const ref = useRef<HTMLButtonElement>(null)
   const dateStr = toYyyyMmDdLocal(day.date)
   const dayEvents = ctx.occurrencesByDate[dateStr] || []
+  const hasEvents = dayEvents.length > 0
+  const titlesSummary =
+    hasEvents
+      ? dayEvents.map((ev) => ev.title).join(' · ')
+      : undefined
+
+  const mergedStyle: CSSProperties | undefined = hasEvents
+    ? { ...(style as CSSProperties | undefined), ...MANAGEMENT_DAY_EVENT_GLOW }
+    : (style as CSSProperties | undefined)
 
   useEffect(() => {
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
 
   return (
-    <button ref={ref} type="button" className={className} {...buttonProps}>
-      <div className="flex w-full items-start justify-between gap-1">
-        <div className="text-xs font-semibold text-foreground">{children}</div>
-        {dayEvents.length > 0 && (
-          <div className="text-[10px] text-muted-foreground">{dayEvents.length}</div>
-        )}
+    <button
+      ref={ref}
+      type="button"
+      className={cn(
+        className,
+        '!flex h-full min-h-[3.75rem] w-full flex-col items-stretch justify-between gap-0 py-1 sm:min-h-[4.5rem]',
+        hasEvents &&
+          'border-spirits-magenta/70 bg-spirits-magenta/[0.14] transition-[box-shadow,background-color,border-color] duration-200 hover:border-spirits-magenta hover:bg-spirits-magenta/[0.2]'
+      )}
+      style={mergedStyle}
+      title={titlesSummary}
+      {...buttonProps}
+    >
+      <div className="flex w-full shrink-0 justify-center text-center">
+        <div className="text-xs font-semibold text-foreground leading-none">{children}</div>
       </div>
 
-      {dayEvents.length > 0 && (
-        <div className="mt-1 w-full space-y-1">
-          {dayEvents.slice(0, 2).map((ev) => (
-            <div
+      {hasEvents && (
+        <div
+          className="flex min-h-[18px] shrink-0 flex-wrap content-end justify-center gap-x-1 gap-y-1 px-0.5 pb-0.5"
+          aria-label={`${dayEvents.length} ${dayEvents.length === 1 ? 'event' : 'events'}`}
+        >
+          {dayEvents.slice(0, MAX_EVENT_DOTS_IN_CELL).map((ev) => (
+            <span
               key={`${dateStr}-${ev.occurrenceId}`}
               className={cn(
-                'truncate rounded-lg border px-2 py-0.5 text-[10px] leading-tight',
-                getEventBadgeClass(ev.eventType)
+                'box-border h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white/25 sm:h-3 sm:w-3',
+                getEventDotClass(ev.eventType)
               )}
-              title={ev.title}
-            >
-              {ev.title}
-            </div>
+              aria-hidden
+            />
           ))}
-          {dayEvents.length > 2 && (
-            <div className="text-[9px] text-muted-foreground">+{dayEvents.length - 2} more</div>
+          {dayEvents.length > MAX_EVENT_DOTS_IN_CELL && (
+            <span className="self-center text-[10px] font-semibold leading-none text-foreground/90">
+              +{dayEvents.length - MAX_EVENT_DOTS_IN_CELL}
+            </span>
           )}
         </div>
       )}
@@ -119,7 +178,7 @@ function ManagementDayButton({ day, modifiers, className, children, ...buttonPro
   )
 }
 
-export function ManagementCalendar() {
+export function ManagementCalendar({ isAdmin = false }: { isAdmin?: boolean } = {}) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [loading, setLoading] = useState(true)
   const [occurrences, setOccurrences] = useState<Occurrence[]>([])
@@ -127,6 +186,9 @@ export function ManagementCalendar() {
 
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
+  const [addSubmitting, setAddSubmitting] = useState(false)
+  const [editingEventId, setEditingEventId] = useState<string | null>(null)
+  const [editSubmitting, setEditSubmitting] = useState(false)
 
   const startDate = useMemo(() => {
     return toYyyyMmDdLocal(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1))
@@ -188,7 +250,6 @@ export function ManagementCalendar() {
 
   const modifiers = useMemo(
     () => ({
-      hasEvents: (d: Date) => (occurrencesByDate[toYyyyMmDdLocal(d)] || []).length > 0,
       noEvents: (d: Date) => (occurrencesByDate[toYyyyMmDdLocal(d)] || []).length === 0,
     }),
     [occurrencesByDate]
@@ -196,39 +257,62 @@ export function ManagementCalendar() {
 
   const modifiersClassNames = useMemo(
     () => ({
-      hasEvents:
-        '[&_button]:rounded-2xl [&_button]:border [&_button]:border-spirits-magenta/35 [&_button]:bg-spirits-magenta/[0.08] [&_button]:hover:border-spirits-magenta/50 [&_button]:hover:bg-spirits-magenta/[0.12]',
       noEvents:
         '[&_button]:rounded-2xl [&_button]:border [&_button]:border-border/30 [&_button]:bg-black/10 [&_button]:hover:border-border/45 [&_button]:hover:bg-white/[0.04]',
     }),
     []
   )
 
-  const refresh = async () => {
+  const refresh = () => {
     setRefreshKey((k) => k + 1)
   }
 
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(MANAGEMENT_CAL_DOCK_STATE, {
+        detail: {
+          addModalOpen: showAddModal,
+          dayPanelOpen: selectedDate != null,
+          editModalOpen: editingEventId != null,
+          listLoading: loading,
+          saving: addSubmitting || editSubmitting,
+        },
+      })
+    )
+  }, [showAddModal, selectedDate, editingEventId, loading, addSubmitting, editSubmitting])
+
+  useEffect(() => {
+    const onAdd = () => {
+      setSelectedDate(null)
+      setShowAddModal(true)
+    }
+    const onRefresh = () => refresh()
+    const onCloseAdd = () => setShowAddModal(false)
+    const onCloseDay = () => {
+      setSelectedDate(null)
+      setEditingEventId(null)
+    }
+    const onCloseEdit = () => setEditingEventId(null)
+
+    window.addEventListener(MANAGEMENT_CAL_DOCK_ADD, onAdd)
+    window.addEventListener(MANAGEMENT_CAL_DOCK_REFRESH, onRefresh)
+    window.addEventListener(MANAGEMENT_CAL_DOCK_CLOSE_ADD, onCloseAdd)
+    window.addEventListener(MANAGEMENT_CAL_DOCK_CLOSE_DAY, onCloseDay)
+    window.addEventListener(MANAGEMENT_CAL_DOCK_CLOSE_EDIT, onCloseEdit)
+
+    return () => {
+      window.removeEventListener(MANAGEMENT_CAL_DOCK_ADD, onAdd)
+      window.removeEventListener(MANAGEMENT_CAL_DOCK_REFRESH, onRefresh)
+      window.removeEventListener(MANAGEMENT_CAL_DOCK_CLOSE_ADD, onCloseAdd)
+      window.removeEventListener(MANAGEMENT_CAL_DOCK_CLOSE_DAY, onCloseDay)
+      window.removeEventListener(MANAGEMENT_CAL_DOCK_CLOSE_EDIT, onCloseEdit)
+    }
+  }, [])
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <CalendarIcon className="h-6 w-6 shrink-0 text-spirits-magenta" />
-          <h2 className="text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            Management calendar
-          </h2>
-        </div>
-
-        <Button
-          className="w-full rounded-xl sm:w-auto"
-          onClick={() => setShowAddModal(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add event
-        </Button>
-      </div>
-
-      <Card className="rounded-2xl border border-border/50 bg-[#1e1e1e] p-5 sm:p-6">
-        <CardContent className="relative min-h-[320px] p-0">
+    <div className="space-y-4">
+      <Card className="overflow-visible rounded-2xl border border-border/50 bg-[#1e1e1e] p-5 sm:p-6">
+        <CardContent className="relative min-h-[320px] overflow-visible p-0">
           <ManagementCalendarContext.Provider value={managementCtx}>
             <Calendar
               month={currentMonth}
@@ -245,6 +329,7 @@ export function ManagementCalendar() {
               className={cn('border-0 p-0', loading && 'opacity-40')}
               classNames={{
                 root: 'w-full',
+                month_grid: '[&_td.rdp-day]:overflow-visible',
                 caption_label: 'text-lg font-semibold tracking-tight sm:text-xl',
                 today:
                   '[&_button]:ring-1 [&_button]:ring-spirits-magenta/80 [&_button]:ring-offset-1 [&_button]:ring-offset-background',
@@ -282,20 +367,34 @@ export function ManagementCalendar() {
               {(occurrencesByDate[toYyyyMmDdLocal(selectedDate)] || []).map((ev) => (
                 <div key={ev.occurrenceId} className="rounded-xl border border-border/40 bg-black/20 p-3.5">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1">
                       <div className="font-semibold text-foreground">{ev.title}</div>
                       <div className="text-xs text-muted-foreground">{eventTypeLabel[ev.eventType]}</div>
                       {ev.description && <div className="text-sm text-muted-foreground whitespace-pre-wrap">{ev.description}</div>}
                       {ev.site && <div className="text-xs text-muted-foreground">Site: {ev.site}</div>}
                     </div>
-                    <div className={`rounded-lg border px-2 py-1 text-xs ${getEventBadgeClass(ev.eventType)}`}>
-                      {formatTime(ev.startTime) ? (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatTime(ev.startTime)}
-                        </div>
-                      ) : (
-                        'No time'
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className={`rounded-lg border px-2 py-1 text-xs ${getEventBadgeClass(ev.eventType)}`}>
+                        {formatTime(ev.startTime) ? (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatTime(ev.startTime)}
+                          </div>
+                        ) : (
+                          'No time'
+                        )}
+                      </div>
+                      {isAdmin && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
+                          aria-label="Edit or delete event"
+                          onClick={() => setEditingEventId(ev.eventId)}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -310,9 +409,22 @@ export function ManagementCalendar() {
       {showAddModal && (
         <AddEventModal
           onClose={() => setShowAddModal(false)}
+          onSubmittingChange={setAddSubmitting}
           onCreated={async () => {
             setShowAddModal(false)
-            await refresh()
+            refresh()
+          }}
+        />
+      )}
+
+      {editingEventId && (
+        <EditManagementEventModal
+          eventId={editingEventId}
+          onClose={() => setEditingEventId(null)}
+          onSubmittingChange={setEditSubmitting}
+          onSaved={async () => {
+            setEditingEventId(null)
+            refresh()
           }}
         />
       )}
@@ -323,9 +435,11 @@ export function ManagementCalendar() {
 function AddEventModal({
   onClose,
   onCreated,
+  onSubmittingChange,
 }: {
   onClose: () => void
   onCreated: () => void | Promise<void>
+  onSubmittingChange?: (submitting: boolean) => void
 }) {
   const [title, setTitle] = useState('')
   const [eventType, setEventType] = useState<ManagementEventType>('management_meeting')
@@ -487,6 +601,7 @@ function AddEventModal({
               onClick={async () => {
                 try {
                   setSubmitting(true)
+                  onSubmittingChange?.(true)
                   setError(null)
 
                   if (!title.trim()) {
@@ -498,7 +613,7 @@ function AddEventModal({
                     return
                   }
 
-                  const payload: any = {
+                  const payload: Record<string, unknown> = {
                     title: title.trim(),
                     eventType,
                     description: description.trim() || null,
@@ -534,6 +649,7 @@ function AddEventModal({
                   setError(e instanceof Error ? e.message : 'Failed to create event')
                 } finally {
                   setSubmitting(false)
+                  onSubmittingChange?.(false)
                 }
               }}
               disabled={submitting}
@@ -541,6 +657,350 @@ function AddEventModal({
               {submitting ? 'Creating...' : 'Create event'}
             </Button>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditManagementEventModal({
+  eventId,
+  onClose,
+  onSaved,
+  onSubmittingChange,
+}: {
+  eventId: string
+  onClose: () => void
+  onSaved: () => void | Promise<void>
+  onSubmittingChange?: (submitting: boolean) => void
+}) {
+  const [title, setTitle] = useState('')
+  const [eventType, setEventType] = useState<ManagementEventType>('management_meeting')
+  const [description, setDescription] = useState('')
+  const [site, setSite] = useState('')
+
+  const [startDate, setStartDate] = useState('')
+  const [startTime, setStartTime] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [endTime, setEndTime] = useState('')
+
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>('none')
+  const [recurrenceWeekday, setRecurrenceWeekday] = useState(3)
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1)
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState('')
+
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [visibleFlag, setVisibleFlag] = useState(true)
+
+  const weekdayOptions = [
+    { value: 0, label: 'Sun' },
+    { value: 1, label: 'Mon' },
+    { value: 2, label: 'Tue' },
+    { value: 3, label: 'Wed' },
+    { value: 4, label: 'Thu' },
+    { value: 5, label: 'Fri' },
+    { value: 6, label: 'Sat' },
+  ]
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoadState('loading')
+      setLoadError(null)
+      try {
+        const res = await fetch(`/api/management-calendar/events/${eventId}`, { cache: 'no-store' })
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load event')
+        }
+        const ev = data.event as {
+          title: string
+          eventType: ManagementEventType
+          description: string | null
+          site: string | null
+          startDate: string
+          endDate: string | null
+          startTime: string | null
+          endTime: string | null
+          visible: boolean
+          recurrence:
+            | { recurrenceType: 'none' }
+            | {
+                recurrenceType: 'weekly'
+                recurrenceWeekday: number
+                recurrenceInterval: number
+                recurrenceEndDate: string | null
+              }
+        }
+        if (cancelled) return
+        setVisibleFlag(ev.visible)
+        setTitle(ev.title)
+        setEventType(ev.eventType)
+        setDescription(ev.description ?? '')
+        setSite(ev.site ?? '')
+        setStartDate(ev.startDate)
+        setStartTime(ev.startTime ?? '')
+        setEndDate(ev.endDate ?? '')
+        setEndTime(ev.endTime ?? '')
+        if (ev.recurrence.recurrenceType === 'weekly') {
+          setRecurrenceType('weekly')
+          setRecurrenceWeekday(ev.recurrence.recurrenceWeekday)
+          setRecurrenceInterval(Math.max(1, ev.recurrence.recurrenceInterval || 1))
+          setRecurrenceEndDate(ev.recurrence.recurrenceEndDate ?? '')
+        } else {
+          setRecurrenceType('none')
+          setRecurrenceWeekday(3)
+          setRecurrenceInterval(1)
+          setRecurrenceEndDate('')
+        }
+        setLoadState('ready')
+      } catch (e) {
+        if (!cancelled) {
+          setLoadState('error')
+          setLoadError(e instanceof Error ? e.message : 'Failed to load event')
+        }
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [eventId])
+
+  const buildPayload = () => ({
+    title: title.trim(),
+    eventType,
+    description: description.trim() || null,
+    site: site.trim() || null,
+    startDate,
+    endDate: endDate || null,
+    startTime: startTime || null,
+    endTime: endTime || null,
+    visible: visibleFlag,
+    recurrence:
+      recurrenceType === 'weekly'
+        ? {
+            recurrenceType: 'weekly' as const,
+            recurrenceWeekday,
+            recurrenceInterval: Math.max(1, recurrenceInterval || 1),
+            recurrenceEndDate: recurrenceEndDate || null,
+          }
+        : { recurrenceType: 'none' as const },
+  })
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center px-4" onClick={onClose}>
+      <div
+        className="bg-[#1e1e1e] rounded-2xl border border-border/50 max-w-2xl w-full overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <div className="space-y-1">
+            <div className="text-lg font-bold text-foreground">Edit management event</div>
+            <div className="text-xs text-muted-foreground">Update details or delete the event</div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="p-4 space-y-4 overflow-y-auto max-h-[70vh]">
+          {loadState === 'loading' && (
+            <div className="text-sm text-muted-foreground py-8 text-center">Loading event…</div>
+          )}
+          {loadState === 'error' && (
+            <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded p-2">{loadError}</div>
+          )}
+          {loadState === 'ready' && (
+            <>
+              {error && <div className="text-sm text-red-500 bg-red-500/10 border border-red-500/20 rounded p-2">{error}</div>}
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Title *</Label>
+                <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-type">Event type *</Label>
+                  <Select
+                    id="edit-type"
+                    options={[
+                      { value: 'management_meeting', label: 'Management meeting' },
+                      { value: 'pubwatch', label: 'Pubwatch' },
+                      { value: 'disciplinary', label: 'Disciplinary' },
+                      { value: 'custom', label: 'Custom' },
+                    ]}
+                    value={eventType}
+                    onChange={(v) => setEventType(v as ManagementEventType)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-site">Site (optional)</Label>
+                  <Input id="edit-site" value={site} onChange={(e) => setSite(e.target.value)} placeholder="e.g., Spirits" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-startDate">Start date *</Label>
+                  <Input id="edit-startDate" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-startTime">Start time (optional)</Label>
+                  <Input id="edit-startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-endDate">End date (optional)</Label>
+                  <Input id="edit-endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-endTime">End time (optional)</Label>
+                  <Input id="edit-endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-recurrenceType">Recurrence</Label>
+                <Select
+                  id="edit-recurrenceType"
+                  options={[
+                    { value: 'none', label: 'No recurrence' },
+                    { value: 'weekly', label: 'Repeat weekly' },
+                  ]}
+                  value={recurrenceType}
+                  onChange={(v) => setRecurrenceType(v as RecurrenceType)}
+                />
+              </div>
+
+              {recurrenceType === 'weekly' && (
+                <div className="space-y-4 border-t border-border/50 pt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-weekday">Repeat on *</Label>
+                      <Select
+                        id="edit-weekday"
+                        options={weekdayOptions.map((o) => ({ value: String(o.value), label: o.label }))}
+                        value={String(recurrenceWeekday)}
+                        onChange={(v) => setRecurrenceWeekday(Number(v))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-interval">Interval in weeks *</Label>
+                      <Input
+                        id="edit-interval"
+                        type="number"
+                        min={1}
+                        value={recurrenceInterval}
+                        onChange={(e) => setRecurrenceInterval(Number(e.target.value || 1))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-recurEnd">Repeat until (optional)</Label>
+                    <Input
+                      id="edit-recurEnd"
+                      type="date"
+                      value={recurrenceEndDate}
+                      onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description (optional)</Label>
+                <Input
+                  id="edit-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Extra details"
+                />
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between sm:items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  disabled={submitting}
+                  onClick={async () => {
+                    if (!window.confirm('Delete this event? This cannot be undone.')) return
+                    try {
+                      setSubmitting(true)
+                      onSubmittingChange?.(true)
+                      setError(null)
+                      const res = await fetch(`/api/management-calendar/events/${eventId}`, { method: 'DELETE' })
+                      const data = await res.json()
+                      if (!res.ok) {
+                        throw new Error(data.error || 'Failed to delete event')
+                      }
+                      await onSaved()
+                    } catch (e) {
+                      setError(e instanceof Error ? e.message : 'Failed to delete event')
+                    } finally {
+                      setSubmitting(false)
+                      onSubmittingChange?.(false)
+                    }
+                  }}
+                >
+                  Delete event
+                </Button>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={onClose} type="button" disabled={submitting}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      try {
+                        setSubmitting(true)
+                        onSubmittingChange?.(true)
+                        setError(null)
+
+                        if (!title.trim()) {
+                          setError('Title is required')
+                          return
+                        }
+                        if (!startDate) {
+                          setError('Start date is required')
+                          return
+                        }
+
+                        const payload = buildPayload()
+                        const res = await fetch(`/api/management-calendar/events/${eventId}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(payload),
+                        })
+                        const data = await res.json()
+                        if (!res.ok) {
+                          throw new Error(data.error || 'Failed to update event')
+                        }
+
+                        await onSaved()
+                      } catch (e) {
+                        setError(e instanceof Error ? e.message : 'Failed to update event')
+                      } finally {
+                        setSubmitting(false)
+                        onSubmittingChange?.(false)
+                      }
+                    }}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Saving…' : 'Save changes'}
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

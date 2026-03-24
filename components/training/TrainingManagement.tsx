@@ -1,54 +1,182 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { Loader2, Plus, Edit2, Trash2, Save, X } from 'lucide-react'
+import {
+  Loader2,
+  Plus,
+  Edit2,
+  Trash2,
+  ChevronDown,
+} from 'lucide-react'
 import type { TrainingCourse } from '@/types/database'
+import { staffListFromApiResponse } from '@/lib/staff-permissions'
+import {
+  TRAINING_DOCK_ADD,
+  TRAINING_DOCK_CLOSE_FORM,
+  TRAINING_DOCK_SUBMIT_FORM,
+  TRAINING_DOCK_REFRESH,
+  TRAINING_DOCK_STATE,
+} from '@/lib/training-dock-bridge'
+
+const VENUE_ALL_KEY = '__all_venues__'
+const CATEGORY_GENERAL_KEY = '__general__'
+
+function venueDisplayKey(site: string | null | undefined): string {
+  const s = site?.trim()
+  return s ? s : VENUE_ALL_KEY
+}
+
+function venueHeading(siteKey: string): string {
+  return siteKey === VENUE_ALL_KEY ? 'All venues' : siteKey
+}
+
+function categoryHeading(categoryKey: string): string {
+  return categoryKey === CATEGORY_GENERAL_KEY
+    ? 'General'
+    : categoryKey
+}
+
+/** Gaitens Leisure Group mark — used for “All venues” and unknown site names */
+const GAITENS_GROUP_LOGO = '/logos/gaitens-logo-white.png'
+
+/**
+ * Venue logo for dropdown header (paths match `BusinessSelection` / ideas).
+ * Custom or unmatched site names fall back to the group logo.
+ */
+function logoSrcForVenueKey(venueKey: string): string {
+  if (venueKey === VENUE_ALL_KEY) return GAITENS_GROUP_LOGO
+  const n = venueKey.toLowerCase()
+  if (n.includes('garrison')) return '/logos/garrison-logo-white.png'
+  if (n.includes('spirit')) return '/logos/spirits-logo.png'
+  if (n.includes('bassment')) return '/logos/bassment-logo.png'
+  return GAITENS_GROUP_LOGO
+}
+
+/** Venue dropdown shell (yellow — learning / module maker) */
+const VENUE_DETAILS_SHELL =
+  'border-spirits-yellow/40 bg-spirits-yellow/[0.1]'
+const VENUE_DETAILS_INNER =
+  'border-t border-white/10 bg-[#161616] px-2 pb-3 pt-3 sm:px-3'
+
+function FormSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="border-t border-white/[0.08] pt-8 first:border-t-0 first:pt-0 scroll-mt-20">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-spirits-yellow/90">
+        {title}
+      </h2>
+      {hint ? (
+        <p className="text-sm text-muted-foreground mt-1.5 mb-5 leading-relaxed max-w-prose">
+          {hint}
+        </p>
+      ) : (
+        <div className="mb-5" />
+      )}
+      <div className="space-y-4">{children}</div>
+    </section>
+  )
+}
+
+const emptyForm = () => ({
+  title: '',
+  description: '',
+  videoUrl: '',
+  content: '',
+  site: '',
+  requiredScope: 'none' as 'none' | 'site' | 'all',
+  category: '',
+  moduleType: 'video' as 'video' | 'text' | 'guide',
+  duration: '',
+  quizQuestions: [] as Array<{
+    question: string
+    options: string[]
+    correctAnswer: number
+  }>,
+})
 
 export function TrainingManagement() {
-  const [courses, setCourses] = useState<Array<TrainingCourse & { users?: { name: string } }>>([])
+  const formRef = useRef<HTMLFormElement>(null)
+  const [courses, setCourses] = useState<
+    Array<TrainingCourse & { users?: { name: string } }>
+  >([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingCourse, setEditingCourse] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [sites, setSites] = useState<string[]>([])
+  const [saveError, setSaveError] = useState<string | null>(null)
 
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    videoUrl: '',
-    content: '',
-    site: '',
-    requiredScope: 'none' as 'none' | 'site' | 'all',
-    category: '',
-    moduleType: 'video' as 'video' | 'text' | 'guide',
-    duration: '',
-    quizQuestions: [] as Array<{ question: string; options: string[]; correctAnswer: number }>,
-  })
+  const [formData, setFormData] = useState(emptyForm)
 
-  useEffect(() => {
-    fetchCourses()
-    fetchSites()
-  }, [])
+  /** Venue → category → courses (sorted). */
+  const modulesByVenueAndCategory = useMemo(() => {
+    const outer = new Map<string, Map<string, TrainingCourse[]>>()
 
-  const fetchSites = async () => {
+    for (const c of courses) {
+      const vKey = venueDisplayKey(c.site)
+      const cKey =
+        c.category?.trim() ? c.category.trim() : CATEGORY_GENERAL_KEY
+      if (!outer.has(vKey)) outer.set(vKey, new Map())
+      const inner = outer.get(vKey)!
+      if (!inner.has(cKey)) inner.set(cKey, [])
+      inner.get(cKey)!.push(c)
+    }
+
+    for (const inner of outer.values()) {
+      for (const list of inner.values()) {
+        list.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }))
+      }
+    }
+
+    return outer
+  }, [courses])
+
+  const orderedVenueKeys = useMemo(() => {
+    const keys = Array.from(modulesByVenueAndCategory.keys())
+    keys.sort((a, b) => {
+      if (a === VENUE_ALL_KEY) return -1
+      if (b === VENUE_ALL_KEY) return 1
+      return a.localeCompare(b, undefined, { sensitivity: 'base' })
+    })
+    return keys
+  }, [modulesByVenueAndCategory])
+
+  const fetchSites = useCallback(async () => {
     try {
       const response = await fetch('/api/staff?active=true')
       if (response.ok) {
-        const staff = await response.json()
-        const uniqueSites = Array.from(new Set(staff.map((s: any) => s.site).filter(Boolean)))
+        const data = await response.json()
+        const staff = staffListFromApiResponse(data)
+        const uniqueSites = Array.from(
+          new Set(staff.map((s: { site?: string | null }) => s.site).filter(Boolean))
+        )
         setSites(uniqueSites as string[])
       }
     } catch (error) {
       console.error('Error fetching sites:', error)
     }
-  }
+  }, [])
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/training?all=true')
@@ -61,23 +189,82 @@ export function TrainingManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void fetchCourses()
+    void fetchSites()
+  }, [fetchCourses, fetchSites])
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(TRAINING_DOCK_STATE, {
+        detail: {
+          formOpen: showForm,
+          listLoading: loading,
+          saving,
+          editing: editingCourse != null,
+        },
+      })
+    )
+  }, [showForm, loading, saving, editingCourse])
+
+  const closeForm = useCallback(() => {
+    setShowForm(false)
+    setEditingCourse(null)
+    setSaveError(null)
+    setFormData(emptyForm())
+  }, [])
+
+  useEffect(() => {
+    const onAdd = () => {
+      setSaveError(null)
+      setEditingCourse(null)
+      setFormData(emptyForm())
+      setShowForm(true)
+    }
+    const onClose = () => closeForm()
+    const onRefresh = () => {
+      void fetchCourses()
+      void fetchSites()
+    }
+
+    const onSubmitFromDock = () => {
+      formRef.current?.requestSubmit()
+    }
+
+    window.addEventListener(TRAINING_DOCK_ADD, onAdd)
+    window.addEventListener(TRAINING_DOCK_CLOSE_FORM, onClose)
+    window.addEventListener(TRAINING_DOCK_SUBMIT_FORM, onSubmitFromDock)
+    window.addEventListener(TRAINING_DOCK_REFRESH, onRefresh)
+
+    return () => {
+      window.removeEventListener(TRAINING_DOCK_ADD, onAdd)
+      window.removeEventListener(TRAINING_DOCK_CLOSE_FORM, onClose)
+      window.removeEventListener(TRAINING_DOCK_SUBMIT_FORM, onSubmitFromDock)
+      window.removeEventListener(TRAINING_DOCK_REFRESH, onRefresh)
+    }
+  }, [closeForm, fetchCourses, fetchSites])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
+    setSaveError(null)
 
     try {
-      const url = editingCourse ? `/api/training/${editingCourse}` : '/api/training'
+      const url = editingCourse
+        ? `/api/training/${editingCourse}`
+        : '/api/training'
       const method = editingCourse ? 'PUT' : 'POST'
 
       const payload = {
         ...formData,
-        duration: formData.duration ? parseInt(formData.duration) : null,
+        duration: formData.duration ? parseInt(formData.duration, 10) : null,
         site: formData.site || null,
         category: formData.category || null,
         requiredScope: formData.requiredScope,
-        quizQuestions: formData.quizQuestions.length > 0 ? formData.quizQuestions : [],
+        quizQuestions:
+          formData.quizQuestions.length > 0 ? formData.quizQuestions : [],
       }
 
       const response = await fetch(url, {
@@ -90,38 +277,25 @@ export function TrainingManagement() {
         throw new Error('Failed to save training module')
       }
 
-      // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        videoUrl: '',
-        content: '',
-        site: '',
-        requiredScope: 'none',
-        category: '',
-        moduleType: 'video',
-        duration: '',
-        quizQuestions: [],
-      })
-      setShowForm(false)
-      setEditingCourse(null)
-      fetchCourses()
+      closeForm()
+      await fetchCourses()
     } catch (error) {
       console.error('Error saving course:', error)
-      alert('Failed to save training module')
+      setSaveError('Could not save this module. Try again.')
     } finally {
       setSaving(false)
     }
   }
 
   const handleEdit = (course: TrainingCourse) => {
+    setSaveError(null)
     setFormData({
       title: course.title,
       description: course.description || '',
       videoUrl: course.videoUrl || '',
       content: course.content || '',
       site: course.site || '',
-      requiredScope: (course as any).requiredScope || 'none',
+      requiredScope: course.requiredScope ?? 'none',
       category: course.category || '',
       moduleType: course.moduleType,
       duration: course.duration?.toString() || '',
@@ -132,7 +306,7 @@ export function TrainingManagement() {
   }
 
   const handleDelete = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this training module?')) return
+    if (!confirm('Delete this training module?')) return
 
     try {
       const response = await fetch(`/api/training/${courseId}`, {
@@ -140,7 +314,7 @@ export function TrainingManagement() {
       })
 
       if (response.ok) {
-        fetchCourses()
+        void fetchCourses()
       }
     } catch (error) {
       console.error('Error deleting course:', error)
@@ -157,7 +331,7 @@ export function TrainingManagement() {
     })
   }
 
-  const updateQuizQuestion = (index: number, field: string, value: any) => {
+  const updateQuizQuestion = (index: number, field: string, value: unknown) => {
     const updated = [...formData.quizQuestions]
     updated[index] = { ...updated[index], [field]: value }
     setFormData({ ...formData, quizQuestions: updated })
@@ -170,280 +344,421 @@ export function TrainingManagement() {
     })
   }
 
-  if (loading) {
+  if (loading && courses.length === 0 && !showForm) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <Card className="border-border/40 bg-[#1e1e1e]/80">
+        <CardContent className="flex items-center justify-center gap-3 py-16 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin shrink-0" />
+          <span>Loading modules…</span>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (showForm) {
+    return (
+      <div className="w-full pb-8">
+        {saveError && (
+          <div className="mb-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {saveError}
+          </div>
+        )}
+
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="max-w-2xl"
+        >
+          <header className="mb-10">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+              {editingCourse ? 'Edit training module' : 'New training module'}
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-2 leading-relaxed max-w-prose">
+              {editingCourse
+                ? 'Change what staff see, where this module applies, and any quiz. Use the dock below to cancel or save.'
+                : 'Give it a name, say who it’s for, then add content. Cancel or publish from the dock below.'}
+            </p>
+          </header>
+
+          <div className="space-y-10">
+            <FormSection
+              title="Basics"
+              hint="What staff see in the list, and whether this is mainly video, reading, or a guide."
+            >
+              <div className="space-y-2">
+                <Label htmlFor="title">Module title</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  required
+                  placeholder="e.g. Opening checklist"
+                  className="bg-background/80 border-border/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description">Short description</Label>
+                <Input
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="One line summary (optional)"
+                  className="bg-background/80 border-border/50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="moduleType">Format</Label>
+                <Select
+                  id="moduleType"
+                  options={[
+                    { value: 'video', label: 'Video — link + notes below' },
+                    { value: 'text', label: 'Text — reading in the app' },
+                    { value: 'guide', label: 'Guide — structured content' },
+                  ]}
+                  value={formData.moduleType}
+                  onChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      moduleType: value as 'video' | 'text' | 'guide',
+                    })
+                  }
+                  placeholder="Choose format"
+                />
+              </div>
+            </FormSection>
+
+            <FormSection
+              title="Who it applies to"
+              hint="Pick a single venue or leave All sites. Mandatory controls whether completion is required."
+            >
+              <div className="space-y-2">
+                <Label htmlFor="site">Venue</Label>
+                <Select
+                  id="site"
+                  options={[
+                    { value: '', label: 'All sites (everyone)' },
+                    ...sites.map((site) => ({ value: site, label: site })),
+                  ]}
+                  value={formData.site}
+                  onChange={(value) => {
+                    setFormData({ ...formData, site: value, category: '' })
+                  }}
+                  placeholder="All sites"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="requiredScope">Mandatory completion</Label>
+                <Select
+                  id="requiredScope"
+                  options={[
+                    { value: 'none', label: 'Optional — not tracked as required' },
+                    {
+                      value: 'site',
+                      label: 'Required — only for staff on the venue above',
+                    },
+                    {
+                      value: 'all',
+                      label: 'Required — everyone (even if venue is “all sites”)',
+                    },
+                  ]}
+                  value={formData.requiredScope}
+                  onChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      requiredScope: value as 'none' | 'site' | 'all',
+                    })
+                  }
+                  placeholder="Choose"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="category">Section label (optional)</Label>
+                <Input
+                  id="category"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  placeholder="Groups modules in Module Maker, e.g. Bar, Kitchen"
+                  className="bg-background/80 border-border/50"
+                />
+              </div>
+            </FormSection>
+
+            <FormSection
+              title="Content"
+              hint={
+                formData.moduleType === 'video'
+                  ? 'Paste a YouTube or direct video link, then add notes or HTML below if you want.'
+                  : 'Use the box below for the main training text. HTML is allowed.'
+              }
+            >
+              {formData.moduleType === 'video' && (
+                <div className="space-y-2">
+                  <Label htmlFor="videoUrl">Video link</Label>
+                  <Input
+                    id="videoUrl"
+                    value={formData.videoUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, videoUrl: e.target.value })
+                    }
+                    placeholder="https://…"
+                    className="bg-background/80 border-border/50"
+                  />
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="content">Main content</Label>
+                <textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) =>
+                    setFormData({ ...formData, content: e.target.value })
+                  }
+                  className="w-full min-h-[200px] rounded-xl border border-border/50 bg-background/80 px-3 py-3 text-sm leading-relaxed"
+                  placeholder="Instructions, policy text, embeds, or HTML…"
+                />
+              </div>
+              <div className="space-y-2 max-w-xs">
+                <Label htmlFor="duration">Estimated time (minutes)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min={0}
+                  value={formData.duration}
+                  onChange={(e) =>
+                    setFormData({ ...formData, duration: e.target.value })
+                  }
+                  placeholder="e.g. 5"
+                  className="bg-background/80 border-border/50"
+                />
+              </div>
+            </FormSection>
+
+            <FormSection
+              title="Knowledge check (optional)"
+              hint="Multiple choice. Use the dot to mark the correct answer. Skip this if you don’t need a quiz."
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">
+                  {formData.quizQuestions.length === 0
+                    ? 'No questions yet.'
+                    : `${formData.quizQuestions.length} question${formData.quizQuestions.length === 1 ? '' : 's'}`}
+                </p>
+                <Button
+                  type="button"
+                  onClick={addQuizQuestion}
+                  variant="outline"
+                  size="sm"
+                  className="border-border/50"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add question
+                </Button>
+              </div>
+              <div className="space-y-4 pt-2">
+                {formData.quizQuestions.map((q, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border-l-2 border-spirits-yellow/50 bg-white/[0.03] pl-4 pr-3 py-4 space-y-3"
+                  >
+                    <div className="flex justify-between items-center gap-2">
+                      <span className="text-sm font-medium text-foreground">
+                        Question {idx + 1}
+                      </span>
+                      <Button
+                        type="button"
+                        onClick={() => removeQuizQuestion(idx)}
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-muted-foreground"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Input
+                      placeholder="Type the question"
+                      value={q.question}
+                      onChange={(e) =>
+                        updateQuizQuestion(idx, 'question', e.target.value)
+                      }
+                      className="bg-background/80 border-border/50"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Answers — select the correct one
+                    </p>
+                    {q.options.map((opt, optIdx) => (
+                      <div key={optIdx} className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name={`correct-${idx}`}
+                          checked={q.correctAnswer === optIdx}
+                          onChange={() =>
+                            updateQuizQuestion(idx, 'correctAnswer', optIdx)
+                          }
+                          className="h-4 w-4 shrink-0 accent-spirits-yellow"
+                        />
+                        <Input
+                          placeholder={`Answer ${optIdx + 1}`}
+                          value={opt}
+                          onChange={(e) => {
+                            const newOptions = [...q.options]
+                            newOptions[optIdx] = e.target.value
+                            updateQuizQuestion(idx, 'options', newOptions)
+                          }}
+                          className="bg-background/80 border-border/50"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </FormSection>
+          </div>
+        </form>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Training Modules</h2>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Module
-        </Button>
-      </div>
+    <div className="space-y-4">
+      {courses.length === 0 ? (
+            <Card className="border-border/40">
+              <CardContent className="py-12 text-center text-muted-foreground text-sm">
+                No modules yet. Use the dock to add one.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {orderedVenueKeys.map((venueKey) => {
+                const byCategory = modulesByVenueAndCategory.get(venueKey)!
+                const categoryKeys = Array.from(byCategory.keys()).sort(
+                  (a, b) => {
+                    if (a === CATEGORY_GENERAL_KEY) return 1
+                    if (b === CATEGORY_GENERAL_KEY) return -1
+                    return a.localeCompare(b, undefined, { sensitivity: 'base' })
+                  }
+                )
+                const moduleCount = Array.from(byCategory.values()).reduce(
+                  (n, list) => n + list.length,
+                  0
+                )
 
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingCourse ? 'Edit' : 'Create'} Training Module</CardTitle>
-            <CardDescription>
-              {editingCourse ? 'Update the training module details' : 'Create a new training module for staff'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title *</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="moduleType">Module Type *</Label>
-                  <Select
-                    id="moduleType"
-                    options={[
-                      { value: 'video', label: 'Video' },
-                      { value: 'text', label: 'Text' },
-                      { value: 'guide', label: 'Guide' },
-                    ]}
-                    value={formData.moduleType}
-                    onChange={(value) => setFormData({ ...formData, moduleType: value as any })}
-                    placeholder="Select type"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="site">Site (optional, leave empty for all sites)</Label>
-                  <Select
-                    id="site"
-                    options={[
-                      { value: '', label: 'All Sites' },
-                      ...sites.map(site => ({ value: site, label: site })),
-                    ]}
-                    value={formData.site}
-                    onChange={(value) => {
-                      setFormData({ ...formData, site: value, category: '' }) // Clear category when site changes
-                    }}
-                    placeholder="All Sites"
-                  />
-
-                  <div className="mt-4">
-                    <Label htmlFor="requiredScope">Mandatory</Label>
-                    <Select
-                      id="requiredScope"
-                      options={[
-                        { value: 'none', label: 'Not required' },
-                        { value: 'site', label: 'Required for matching site only' },
-                        { value: 'all', label: 'Required for all sites' },
-                      ]}
-                      value={formData.requiredScope}
-                      onChange={(value) => setFormData({ ...formData, requiredScope: value as any })}
-                      placeholder="Required scope"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="category">
-                  Category (Optional - e.g., Golf, Bar, Kitchen)
-                </Label>
-                <Input
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="Enter category name"
-                />
-              </div>
-
-              {formData.moduleType === 'video' && (
-                <div>
-                  <Label htmlFor="videoUrl">Video URL (YouTube or direct link)</Label>
-                  <Input
-                    id="videoUrl"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    placeholder="https://youtube.com/watch?v=..."
-                  />
-                </div>
-              )}
-
-              <div>
-                <Label htmlFor="content">Content (HTML supported)</Label>
-                <textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full min-h-[200px] rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="Enter training content..."
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="duration">Duration (minutes)</Label>
-                <Input
-                  id="duration"
-                  type="number"
-                  value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                  placeholder="e.g., 5"
-                />
-              </div>
-
-              {/* Quiz Questions */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <Label>Quiz Questions (Optional)</Label>
-                  <Button type="button" onClick={addQuizQuestion} variant="outline" size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Question
-                  </Button>
-                </div>
-                {formData.quizQuestions.map((q, idx) => (
-                  <Card key={idx} className="mb-4">
-                    <CardContent className="pt-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-medium">Question {idx + 1}</h4>
-                        <Button
-                          type="button"
-                          onClick={() => removeQuizQuestion(idx)}
-                          variant="ghost"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <Input
-                        placeholder="Question text"
-                        value={q.question}
-                        onChange={(e) => updateQuizQuestion(idx, 'question', e.target.value)}
-                      />
-                      {q.options.map((opt, optIdx) => (
-                        <div key={optIdx} className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            name={`correct-${idx}`}
-                            checked={q.correctAnswer === optIdx}
-                            onChange={() => updateQuizQuestion(idx, 'correctAnswer', optIdx)}
-                            className="h-4 w-4"
-                          />
-                          <Input
-                            placeholder={`Option ${optIdx + 1}`}
-                            value={opt}
-                            onChange={(e) => {
-                              const newOptions = [...q.options]
-                              newOptions[optIdx] = e.target.value
-                              updateQuizQuestion(idx, 'options', newOptions)
-                            }}
+                return (
+                  <details
+                    key={venueKey}
+                    className={`group rounded-2xl border-2 overflow-hidden ${VENUE_DETAILS_SHELL}`}
+                  >
+                    <summary
+                      className={`flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 sm:px-5 sm:py-4 ${VENUE_DETAILS_SHELL} [-webkit-tap-highlight-color:transparent] [&::-webkit-details-marker]:hidden`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg bg-black/25 p-1">
+                          <img
+                            src={logoSrcForVenueKey(venueKey)}
+                            alt=""
+                            className="max-h-full max-w-full object-contain"
+                            loading="lazy"
                           />
                         </div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        <div className="min-w-0 text-left">
+                          <h2 className="text-base sm:text-lg font-semibold text-foreground">
+                            {venueHeading(venueKey)}
+                          </h2>
+                          <p className="text-xs text-muted-foreground truncate tabular-nums">
+                            {venueKey === VENUE_ALL_KEY
+                              ? 'Every site'
+                              : 'This venue only'}
+                            {' · '}
+                            {moduleCount}{' '}
+                            {moduleCount === 1 ? 'module' : 'modules'}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronDown className="h-5 w-5 shrink-0 text-spirits-yellow/90 transition-transform group-open:rotate-180" />
+                    </summary>
+                    <div className={VENUE_DETAILS_INNER}>
+                      <div className="space-y-8">
+                        {categoryKeys.map((categoryKey, catIdx) => {
+                          const list = byCategory.get(categoryKey)!
+                          return (
+                            <div key={`${venueKey}-${categoryKey}`}>
+                              {catIdx > 0 ? (
+                                <div
+                                  className="mb-6 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="h-px flex-1 bg-border/40" />
+                                <h3 className="text-sm font-semibold text-spirits-yellow shrink-0 px-1">
+                                  {categoryHeading(categoryKey)}
+                                </h3>
+                                <div className="h-px flex-1 bg-border/40" />
+                              </div>
+                              <div className="space-y-2">
+                                {list.map((course) => (
+                                  <div
+                                    key={course.id}
+                                    className="flex min-h-11 items-center gap-3 rounded-xl border border-white/[0.08] bg-[#1e1e1e] px-3 py-2.5 sm:px-4"
+                                  >
+                                    <div className="min-w-0 flex-1">
+                                      <p className="font-medium text-sm text-foreground truncate">
+                                        {course.title}
+                                      </p>
+                                      <p className="text-[11px] sm:text-xs text-muted-foreground truncate mt-0.5">
+                                        {course.moduleType}
+                                        {course.duration != null
+                                          ? ` · ${course.duration} min`
+                                          : ''}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-0.5 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEdit(course)}
+                                        className="rounded-lg p-2 text-muted-foreground active:bg-white/[0.08] active:text-foreground touch-manipulation"
+                                        aria-label={`Edit ${course.title}`}
+                                      >
+                                        <Edit2
+                                          className="h-4 w-4"
+                                          strokeWidth={1.75}
+                                        />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDelete(course.id)}
+                                        className="rounded-lg p-2 text-muted-foreground active:bg-red-500/15 active:text-red-400 touch-manipulation"
+                                        aria-label={`Delete ${course.title}`}
+                                      >
+                                        <Trash2
+                                          className="h-4 w-4"
+                                          strokeWidth={1.75}
+                                        />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </details>
+                )
+              })}
+            </div>
+          )}
 
-              <div className="flex gap-3">
-                <Button type="submit" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      {editingCourse ? 'Update' : 'Create'} Module
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowForm(false)
-                    setEditingCourse(null)
-                    setFormData({
-                      title: '',
-                      description: '',
-                      videoUrl: '',
-                      content: '',
-                      site: '',
-                      requiredScope: 'none',
-                      category: '',
-                      moduleType: 'video',
-                      duration: '',
-                      quizQuestions: [],
-                    })
-                  }}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="grid gap-4">
-        {courses.map((course) => (
-          <Card key={course.id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{course.title}</CardTitle>
-                  <CardDescription>
-                    {course.site || 'All Sites'} • {course.moduleType} • {course.duration ? `${course.duration} min` : 'N/A'}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(course)}
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(course.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            {course.description && (
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{course.description}</p>
-              </CardContent>
-            )}
-          </Card>
-        ))}
-      </div>
+      <p className="text-center text-xs text-muted-foreground pt-1">
+        {courses.length}{' '}
+        {courses.length === 1 ? 'module' : 'modules'}
+      </p>
     </div>
   )
 }

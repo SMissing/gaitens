@@ -514,6 +514,15 @@
   }
 }
 
+/* Handbook route: Roboto for readability (loaded in @import Google Fonts above) */
+.handbook-font {
+  font-family: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+}
+
+.handbook-font :where(button, input, textarea, select) {
+  font-family: inherit;
+}
+
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar {
   width: 10px;

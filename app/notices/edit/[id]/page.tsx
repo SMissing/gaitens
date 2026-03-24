@@ -26,15 +26,15 @@ export default async function EditNoticePage({
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader 
+      <PageHeader
         title="Edit Notice"
-        icon={<FileText className="h-6 w-6 text-spirits-cyan" />}
-        description="Update notice details"
+        icon={<FileText className="h-6 w-6 text-spirits-yellow" />}
+        description="Update what staff see — cancel or save from the dock"
         showBack={true}
         backHref="/notices"
       />
       <div className="p-4 sm:p-6 lg:p-8 pb-32">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <PostNoticeForm notice={notice} />
         </div>
       </div>

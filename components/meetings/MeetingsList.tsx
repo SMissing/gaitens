@@ -31,18 +31,27 @@ interface Meeting {
 
 interface MeetingsListProps {
   currentUserId: string
+  onLoadingChange?: (loading: boolean) => void
 }
 
-export function MeetingsList({ currentUserId }: MeetingsListProps) {
+export function MeetingsList({
+  currentUserId,
+  onLoadingChange,
+}: MeetingsListProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchMeetings()
+    void fetchMeetings()
   }, [])
 
+  useEffect(() => {
+    onLoadingChange?.(loading)
+  }, [loading, onLoadingChange])
+
   const fetchMeetings = async () => {
+    setLoading(true)
     try {
       const response = await fetch('/api/meetings')
       if (response.ok) {
@@ -108,7 +117,7 @@ export function MeetingsList({ currentUserId }: MeetingsListProps) {
           return (
             <Card
               key={meeting.id}
-              className="bg-[#1e1e1e] rounded-xl border border-border/50 cursor-pointer hover:border-spirits-magenta/50 transition-all"
+              className="bg-[#1e1e1e] rounded-xl border border-white/[0.08] cursor-pointer hover:border-spirits-yellow/35 transition-colors"
               onClick={() => setSelectedMeeting(meeting)}
             >
               <CardContent className="p-4">
@@ -146,12 +155,12 @@ export function MeetingsList({ currentUserId }: MeetingsListProps) {
                   </div>
 
                   {isPending ? (
-                    <p className="text-xs text-spirits-magenta mt-2">
-                      Click to view
+                    <p className="text-xs text-spirits-yellow/90 mt-2">
+                      Tap to open
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Click to view details
+                      Tap for details
                     </p>
                   )}
                 </div>

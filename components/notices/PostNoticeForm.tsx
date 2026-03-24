@@ -1,26 +1,66 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  type ReactNode,
+} from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Page } from '@/components/layout/Page'
-import { ArrowLeft, Save, FileText, X, Image as ImageIcon } from 'lucide-react'
-import Link from 'next/link'
+import { Image as ImageIcon, X } from 'lucide-react'
 import Image from 'next/image'
 import type { Notice } from '@/types/database'
+import {
+  NOTICES_POST_DOCK_CANCEL,
+  NOTICES_POST_DOCK_STATE,
+  NOTICES_POST_DOCK_SUBMIT,
+} from '@/lib/notices-post-dock-bridge'
 
 interface PostNoticeFormProps {
   notice?: Notice
 }
 
+function FormSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string
+  hint?: string
+  children: ReactNode
+}) {
+  return (
+    <section className="border-t border-white/[0.08] pt-8 first:border-t-0 first:pt-0 scroll-mt-20">
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-spirits-yellow/90">
+        {title}
+      </h2>
+      {hint ? (
+        <p className="text-sm text-muted-foreground mt-1.5 mb-5 leading-relaxed max-w-prose">
+          {hint}
+        </p>
+      ) : (
+        <div className="mb-5" />
+      )}
+      <div className="space-y-4">{children}</div>
+    </section>
+  )
+}
+
 export function PostNoticeForm({ notice }: PostNoticeFormProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const formRef = useRef<HTMLFormElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isEditing = !!notice
-  
-  // Format datetime-local value from ISO string
+
+  const cancelHref = pathname?.startsWith('/notices/edit')
+    ? '/notices'
+    : '/dashboard'
+
   const formatDateTimeLocal = (isoString: string | null) => {
     if (!isoString) return ''
     const date = new Date(isoString)
@@ -39,23 +79,52 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
     pinned: notice?.pinned || false,
   })
   const [imageUrl, setImageUrl] = useState<string | null>(
-    notice?.attachments && notice.attachments.length > 0 ? notice.attachments[0] : null
+    notice?.attachments && notice.attachments.length > 0
+      ? notice.attachments[0]
+      : null
   )
   const [uploadingImage, setUploadingImage] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useLayoutEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent(NOTICES_POST_DOCK_STATE, {
+        detail: {
+          saving: loading,
+          uploading: uploadingImage,
+          editing: isEditing,
+        },
+      })
+    )
+  }, [loading, uploadingImage, isEditing])
+
+  useEffect(() => {
+    const onSubmitDock = () => {
+      formRef.current?.requestSubmit()
+    }
+    const onCancelDock = () => {
+      router.push(cancelHref)
+    }
+
+    window.addEventListener(NOTICES_POST_DOCK_SUBMIT, onSubmitDock)
+    window.addEventListener(NOTICES_POST_DOCK_CANCEL, onCancelDock)
+
+    return () => {
+      window.removeEventListener(NOTICES_POST_DOCK_SUBMIT, onSubmitDock)
+      window.removeEventListener(NOTICES_POST_DOCK_CANCEL, onCancelDock)
+    }
+  }, [router, cancelHref])
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Please select an image file')
       return
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError('Image must be less than 5MB')
       return
@@ -65,12 +134,12 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      const uploadBody = new FormData()
+      uploadBody.append('file', file)
 
       const response = await fetch('/api/notices/upload', {
         method: 'POST',
-        body: formData,
+        body: uploadBody,
       })
 
       if (!response.ok) {
@@ -102,7 +171,7 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
     try {
       const url = isEditing ? `/api/notices/${notice.id}` : '/api/notices'
       const method = isEditing ? 'PATCH' : 'POST'
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -115,10 +184,12 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || `Failed to ${isEditing ? 'update' : 'create'} notice`)
+        throw new Error(
+          data.error ||
+            `Failed to ${isEditing ? 'update' : 'create'} notice`
+        )
       }
 
-      // Redirect to notices page
       router.push('/notices')
       router.refresh()
     } catch (err) {
@@ -129,51 +200,70 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
   }
 
   return (
-    <Page>
-      <div className="space-y-6">
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              type="text"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              required
-              placeholder="Enter notice title"
-              className="text-lg"
-            />
-          </div>
+    <div className="w-full pb-8">
+      {error && (
+        <div className="mb-6 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-          {/* Content */}
-          <div className="space-y-2">
-            <Label htmlFor="content">Content *</Label>
-            <textarea
-              id="content"
-              value={formData.content}
-              onChange={(e) =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              required
-              placeholder="Enter notice content..."
-              rows={8}
-              className="flex w-full rounded-xl border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm resize-y min-h-[200px]"
-            />
-          </div>
+      <form ref={formRef} onSubmit={handleSubmit} className="max-w-2xl">
+        <header className="mb-10">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            {isEditing ? 'Edit notice' : 'Post a notice'}
+          </h1>
+          <p className="text-muted-foreground text-sm sm:text-base mt-2 leading-relaxed max-w-prose">
+            {isEditing
+              ? 'Update what staff see on the board. Cancel or save from the dock below.'
+              : 'Write what staff need to know. Add an image or expiry if you want — then use the dock to post or cancel.'}
+          </p>
+        </header>
 
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="image">Image (Optional)</Label>
+        <div className="space-y-10">
+          <FormSection
+            title="Message"
+            hint="Title and body show on the notice board for all staff."
+          >
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                type="text"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                required
+                placeholder="Short headline"
+                className="bg-background/80 border-border/50 text-base sm:text-sm"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="content">Content</Label>
+              <textarea
+                id="content"
+                value={formData.content}
+                onChange={(e) =>
+                  setFormData({ ...formData, content: e.target.value })
+                }
+                required
+                placeholder="Full message…"
+                rows={10}
+                className="w-full min-h-[220px] rounded-xl border border-border/50 bg-background/80 px-3 py-3 text-sm leading-relaxed"
+              />
+            </div>
+          </FormSection>
+
+          <FormSection
+            title="Image"
+            hint="Optional. Shown with the notice. Max 5MB — JPG, PNG, or GIF."
+          >
             {imageUrl ? (
-              <div className="relative rounded-xl border border-input overflow-hidden">
-                <div className="relative w-full h-64 bg-muted">
+              <div className="relative overflow-hidden rounded-xl border border-border/50">
+                <div className="relative h-56 w-full bg-muted sm:h-64">
                   <Image
                     src={imageUrl}
-                    alt="Notice preview"
+                    alt="Notice attachment preview"
                     fill
                     className="object-contain"
                   />
@@ -183,13 +273,13 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
                   variant="destructive"
                   size="sm"
                   onClick={handleRemoveImage}
-                  className="absolute top-2 right-2"
+                  className="absolute right-2 top-2"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -204,75 +294,51 @@ export function PostNoticeForm({ notice }: PostNoticeFormProps) {
                   variant="outline"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingImage}
-                  className="flex items-center gap-2"
+                  className="border-border/50"
                 >
-                  <ImageIcon className="h-4 w-4" />
-                  {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                  <ImageIcon className="mr-2 h-4 w-4" />
+                  {uploadingImage ? 'Uploading…' : 'Choose image'}
                 </Button>
-                <p className="text-xs text-muted-foreground">
-                  Max 5MB. JPG, PNG, GIF
-                </p>
               </div>
             )}
-          </div>
+          </FormSection>
 
-          {/* Expiration Date */}
-          <div className="space-y-2">
-            <Label htmlFor="expiresAt">Expiration Date (Optional)</Label>
-            <Input
-              id="expiresAt"
-              type="datetime-local"
-              value={formData.expiresAt}
-              onChange={(e) =>
-                setFormData({ ...formData, expiresAt: e.target.value })
-              }
-            />
-            <p className="text-xs text-muted-foreground">
-              Leave empty for notices that don't expire
-            </p>
-          </div>
-
-          {/* Pinned */}
-          <div className="flex items-center space-x-3">
-            <input
-              type="checkbox"
-              id="pinned"
-              checked={formData.pinned}
-              onChange={(e) =>
-                setFormData({ ...formData, pinned: e.target.checked })
-              }
-              className="h-4 w-4 rounded border-input bg-background text-primary focus:ring-2 focus:ring-ring"
-            />
-            <Label htmlFor="pinned" className="cursor-pointer">
-              Pin this notice (will appear at the top)
-            </Label>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-xl">
-              {error}
+          <FormSection
+            title="Visibility"
+            hint="Pinned notices stay at the top. Expiry hides the notice after that time."
+          >
+            <div className="space-y-2 max-w-md">
+              <Label htmlFor="expiresAt">Expires (optional)</Label>
+              <Input
+                id="expiresAt"
+                type="datetime-local"
+                value={formData.expiresAt}
+                onChange={(e) =>
+                  setFormData({ ...formData, expiresAt: e.target.value })
+                }
+                className="bg-background/80 border-border/50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty if the notice should not auto-hide
+              </p>
             </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-border/50">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1 sm:flex-none"
-            >
-              <Save className="h-4 w-4" />
-              {loading ? (isEditing ? 'Updating...' : 'Posting...') : (isEditing ? 'Update Notice' : 'Post Notice')}
-            </Button>
-            <Link href="/dashboard">
-              <Button type="button" variant="outline" disabled={loading}>
-                Cancel
-              </Button>
-            </Link>
-          </div>
-        </form>
-      </div>
-    </Page>
+            <div className="flex items-start gap-3 pt-1">
+              <input
+                type="checkbox"
+                id="pinned"
+                checked={formData.pinned}
+                onChange={(e) =>
+                  setFormData({ ...formData, pinned: e.target.checked })
+                }
+                className="mt-1 h-4 w-4 shrink-0 rounded border-input bg-background accent-spirits-yellow"
+              />
+              <Label htmlFor="pinned" className="cursor-pointer leading-snug">
+                Pin to top of the board
+              </Label>
+            </div>
+          </FormSection>
+        </div>
+      </form>
+    </div>
   )
 }

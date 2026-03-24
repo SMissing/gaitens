@@ -7,8 +7,12 @@ import { Award } from 'lucide-react'
 interface AchievementBadgeProps {
   achievement: Achievement
   userAchievement?: UserAchievement
-  size?: 'sm' | 'md' | 'lg'
+  size?: '2xs' | 'xs' | 'sm' | 'md' | 'lg'
   showProgress?: boolean
+  /** When false, only the circular badge (no title under) — for compact strips */
+  showLabel?: boolean
+  /** When false, hide completed checkmark (and completion ring) — e.g. manager staff list */
+  showCompletionMark?: boolean
   onClick?: () => void
 }
 
@@ -17,6 +21,8 @@ export function AchievementBadge({
   userAchievement, 
   size = 'md',
   showProgress = true,
+  showLabel = true,
+  showCompletionMark = true,
   onClick
 }: AchievementBadgeProps) {
   const isUnlocked = !!userAchievement
@@ -34,16 +40,26 @@ export function AchievementBadge({
       : 'Common'
 
   const sizeClasses = {
+    '2xs': 'w-8 h-8',
+    xs: 'w-12 h-12',
     sm: 'w-16 h-16',
     md: 'w-24 h-24',
     lg: 'w-32 h-32',
   }
 
   const iconSizes = {
+    '2xs': 'h-3 w-3',
+    xs: 'h-5 w-5',
     sm: 'h-8 w-8',
     md: 'h-12 w-12',
     lg: 'h-16 w-16',
   }
+
+  const is2xs = size === '2xs'
+  const isXs = size === 'xs'
+  const imgPad = is2xs ? 'p-0.5' : isXs ? 'p-1' : 'p-2'
+
+  const ringClass = is2xs ? 'ring-1 ring-offset-0' : isXs ? 'ring-2 ring-offset-1' : 'ring-4 ring-offset-2'
 
   // Rarity-based styling
   const getRarityStyles = () => {
@@ -66,7 +82,10 @@ export function AchievementBadge({
             : 'bg-gradient-to-br from-gray-400/20 to-gray-500/20',
           glow: isCompleted ? 'shadow-lg shadow-gray-400/50' : '',
           pulse: '',
-          completionRing: isCompleted ? 'ring-4 ring-gray-400/70 ring-offset-2 ring-offset-background' : '',
+          completionRing:
+            isCompleted && showCompletionMark
+              ? cn('ring-gray-400/70 ring-offset-background', ringClass)
+              : '',
         }
       case 'Rare':
         return {
@@ -76,7 +95,10 @@ export function AchievementBadge({
             : 'bg-gradient-to-br from-blue-500/20 to-blue-600/20',
           glow: isCompleted ? 'shadow-2xl shadow-blue-500/70' : 'shadow-lg shadow-blue-500/50',
           pulse: '',
-          completionRing: isCompleted ? 'ring-4 ring-blue-500/70 ring-offset-2 ring-offset-background' : '',
+          completionRing:
+            isCompleted && showCompletionMark
+              ? cn('ring-blue-500/70 ring-offset-background', ringClass)
+              : '',
         }
       case 'Epic':
         return {
@@ -86,7 +108,10 @@ export function AchievementBadge({
             : 'bg-gradient-to-br from-purple-500/20 to-pink-500/20',
           glow: isCompleted ? 'shadow-2xl shadow-purple-500/80' : 'shadow-xl shadow-purple-500/50',
           pulse: '',
-          completionRing: isCompleted ? 'ring-4 ring-purple-500/80 ring-offset-2 ring-offset-background' : '',
+          completionRing:
+            isCompleted && showCompletionMark
+              ? cn('ring-purple-500/80 ring-offset-background', ringClass)
+              : '',
         }
       case 'Legendary':
         return {
@@ -96,7 +121,10 @@ export function AchievementBadge({
             : 'bg-gradient-to-br from-yellow-400/30 via-orange-500/20 to-red-500/20',
           glow: isCompleted ? 'shadow-2xl shadow-yellow-400/90' : 'shadow-2xl shadow-yellow-500/60',
           pulse: '',
-          completionRing: isCompleted ? 'ring-4 ring-yellow-400/90 ring-offset-2 ring-offset-background' : '',
+          completionRing:
+            isCompleted && showCompletionMark
+              ? cn('ring-yellow-400/90 ring-offset-background', ringClass)
+              : '',
         }
       default:
         return {
@@ -106,7 +134,10 @@ export function AchievementBadge({
             : 'bg-gradient-to-br from-spirits-cyan/20 to-spirits-magenta/20',
           glow: isCompleted ? 'shadow-lg shadow-spirits-cyan/50' : '',
           pulse: '',
-          completionRing: isCompleted ? 'ring-4 ring-spirits-yellow/50 ring-offset-2 ring-offset-background' : '',
+          completionRing:
+            isCompleted && showCompletionMark
+              ? cn('ring-spirits-yellow/50 ring-offset-background', ringClass)
+              : '',
         }
     }
   }
@@ -114,11 +145,12 @@ export function AchievementBadge({
   const rarityStyles = getRarityStyles()
 
   return (
-    <div className="relative flex flex-col items-center gap-2">
+    <div className={cn('relative flex flex-col items-center', showLabel ? 'gap-2' : 'gap-0')}>
       {/* Badge Container */}
       <div 
         className={cn(
-          'relative rounded-full border-4 transition-all',
+          'relative rounded-full transition-all',
+          is2xs || isXs ? 'border-2' : 'border-4',
           sizeClasses[size],
           rarityStyles.border,
           rarityStyles.bg,
@@ -184,7 +216,7 @@ export function AchievementBadge({
               <img
                 src={achievement.imageUrl}
                 alt={achievement.name}
-                className="w-full h-full object-contain p-2"
+                className={cn('h-full w-full object-contain', imgPad)}
                 onError={(e) => {
                   console.error('Failed to load badge image:', achievement.imageUrl, 'for achievement:', achievement.name)
                   // Hide the broken image and show fallback
@@ -213,16 +245,22 @@ export function AchievementBadge({
         </div>
 
         {/* Completion Checkmark - Colored by rarity */}
-        {isCompleted && (
+        {isCompleted && showCompletionMark && (
           <div className={cn(
-            'absolute -bottom-1 -right-1 rounded-full p-1 border-2 border-background',
+            'absolute rounded-full border-2 border-background',
+            isXs ? '-bottom-0.5 -right-0.5 p-0.5' : '-bottom-1 -right-1 p-1',
             rarity === 'Common' && 'bg-gray-400',
             rarity === 'Rare' && 'bg-blue-500',
             rarity === 'Epic' && 'bg-purple-500',
             rarity === 'Legendary' && 'bg-yellow-500',
             !['Common', 'Rare', 'Epic', 'Legendary'].includes(rarity) && 'bg-spirits-yellow'
           )}>
-            <svg className="h-4 w-4 text-background" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg
+              className={cn('text-background', isXs ? 'h-3 w-3' : 'h-4 w-4')}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -230,20 +268,21 @@ export function AchievementBadge({
       </div>
 
       {/* Badge Name */}
-      <div className="text-center max-w-[120px]">
-        <p className={cn(
-          'text-xs font-semibold truncate',
-          isUnlocked ? 'text-foreground' : 'text-muted-foreground'
-        )}>
-          {achievement.name}
-        </p>
-        {/* Progress text - Only show if in progress (not completed) */}
-        {achievement.requiresProgress && showProgress && isUnlocked && !isCompleted && (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {progress}/{achievement.requiredCount}
+      {showLabel && (
+        <div className="max-w-[120px] text-center">
+          <p className={cn(
+            'text-xs font-semibold truncate',
+            isUnlocked ? 'text-foreground' : 'text-muted-foreground'
+          )}>
+            {achievement.name}
           </p>
-        )}
-      </div>
+          {achievement.requiresProgress && showProgress && isUnlocked && !isCompleted && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {progress}/{achievement.requiredCount}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }
