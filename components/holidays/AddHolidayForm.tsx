@@ -11,24 +11,34 @@ import { staffListFromApiResponse } from '@/lib/staff-permissions'
 import { X, Loader2, Calendar } from 'lucide-react'
 import { toYyyyMmDdLocal } from '@/lib/date-utils'
 
+export type AddHolidayFormMode = 'admin' | 'request'
+
 interface AddHolidayFormProps {
   onSuccess: () => void
   onClose: () => void
+  /** `request`: current user only, POST /api/holidays/requests (staff/manager). */
+  mode?: AddHolidayFormMode
 }
 
-export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
+export function AddHolidayForm({
+  onSuccess,
+  onClose,
+  mode = 'admin',
+}: AddHolidayFormProps) {
+  const isRequest = mode === 'request'
   const [staff, setStaff] = useState<User[]>([])
   const [selectedStaffId, setSelectedStaffId] = useState<string>('')
   const [startDate, setStartDate] = useState<string>('')
   const [endDate, setEndDate] = useState<string>('')
   const [reason, setReason] = useState<string>('')
   const [loading, setLoading] = useState(false)
-  const [fetchingStaff, setFetchingStaff] = useState(true)
+  const [fetchingStaff, setFetchingStaff] = useState(!isRequest)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (isRequest) return
     fetchStaff()
-  }, [])
+  }, [isRequest])
 
   const fetchStaff = async () => {
     try {
@@ -56,7 +66,7 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
     setError(null)
 
     try {
-      if (!selectedStaffId) {
+      if (!isRequest && !selectedStaffId) {
         throw new Error('Please select a staff member')
       }
 
@@ -71,23 +81,33 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
         throw new Error('End date must be after start date')
       }
 
-      const response = await fetch('/api/holidays/add', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: selectedStaffId,
-          startDate,
-          endDate,
-          reason: reason || null,
-        }),
-      })
+      const response = await fetch(
+        isRequest ? '/api/holidays/requests' : '/api/holidays/add',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(
+            isRequest
+              ? { startDate, endDate, reason: reason || null }
+              : {
+                  userId: selectedStaffId,
+                  startDate,
+                  endDate,
+                  reason: reason || null,
+                }
+          ),
+        }
+      )
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to add holiday')
+        throw new Error(
+          data.error ||
+            (isRequest ? 'Failed to submit holiday request' : 'Failed to add holiday')
+        )
       }
 
       // Reset form
@@ -95,11 +115,17 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
       setStartDate('')
       setEndDate('')
       setReason('')
-      
+
       // Trigger success callback
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add holiday')
+      setError(
+        err instanceof Error
+          ? err.message
+          : isRequest
+            ? 'Failed to submit holiday request'
+            : 'Failed to add holiday'
+      )
     } finally {
       setLoading(false)
     }
@@ -113,8 +139,12 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
       <CardHeader>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle>Add Holiday</CardTitle>
-            <CardDescription>Directly log a holiday for a staff member</CardDescription>
+            <CardTitle>{isRequest ? 'Request holiday' : 'Add Holiday'}</CardTitle>
+            <CardDescription>
+              {isRequest
+                ? 'Choose your dates and submit for approval'
+                : 'Directly log a holiday for a staff member'}
+            </CardDescription>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             <X className="h-4 w-4" />
@@ -123,31 +153,32 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Staff Member Selection */}
-          <div>
-            <Label htmlFor="staff">Staff Member *</Label>
-            {fetchingStaff ? (
-              <div className="mt-2 text-sm text-muted-foreground">Loading staff...</div>
-            ) : (
-              <div className="mt-2">
-                <Select
-                  id="staff"
-                  options={[
-                    { value: '', label: 'Select a staff member...' },
-                    ...staff.map((member) => ({
-                      value: member.id,
-                      label: member.name,
-                    })),
-                  ]}
-                  value={selectedStaffId}
-                  onChange={(value) => setSelectedStaffId(value)}
-                  placeholder="Select a staff member..."
-                  required
-                  disabled={loading}
-                />
-              </div>
-            )}
-          </div>
+          {!isRequest && (
+            <div>
+              <Label htmlFor="staff">Staff Member *</Label>
+              {fetchingStaff ? (
+                <div className="mt-2 text-sm text-muted-foreground">Loading staff...</div>
+              ) : (
+                <div className="mt-2">
+                  <Select
+                    id="staff"
+                    options={[
+                      { value: '', label: 'Select a staff member...' },
+                      ...staff.map((member) => ({
+                        value: member.id,
+                        label: member.name,
+                      })),
+                    ]}
+                    value={selectedStaffId}
+                    onChange={(value) => setSelectedStaffId(value)}
+                    placeholder="Select a staff member..."
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Start Date */}
           <div>
@@ -196,16 +227,20 @@ export function AddHolidayForm({ onSuccess, onClose }: AddHolidayFormProps) {
             </div>
           )}
 
-          <Button type="submit" disabled={loading || fetchingStaff} className="w-full">
+          <Button
+            type="submit"
+            disabled={loading || (!isRequest && fetchingStaff)}
+            className="w-full"
+          >
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Adding Holiday...
+                {isRequest ? 'Submitting request...' : 'Adding Holiday...'}
               </>
             ) : (
               <>
                 <Calendar className="h-4 w-4 mr-2" />
-                Add Holiday
+                {isRequest ? 'Request holiday' : 'Add Holiday'}
               </>
             )}
           </Button>

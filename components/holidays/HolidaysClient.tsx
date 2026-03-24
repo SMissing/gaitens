@@ -4,9 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { HolidayCalendar } from './HolidayCalendar'
 import { HolidayDayManager } from './HolidayDayManager'
 import { AddHolidayForm } from './AddHolidayForm'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { X } from 'lucide-react'
 import type { HolidayRequest, User, UserRole } from '@/types/database'
 import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 import {
@@ -36,8 +33,6 @@ function startOfDay(d: Date): Date {
 
 export function HolidaysClient({ userRole }: HolidaysClientProps) {
   const [pageView, setPageView] = useState<HolidaysViewMode>('calendar')
-  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null)
-  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null)
   const [editingDate, setEditingDate] = useState<Date | null>(null)
   const [dayEditStatus, setDayEditStatus] = useState<'green' | 'yellow' | 'red'>('green')
   const [dayEditNotes, setDayEditNotes] = useState('')
@@ -46,12 +41,8 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
   const [dayEditError, setDayEditError] = useState<string | null>(null)
   const [managingHolidaysDate, setManagingHolidaysDate] = useState<Date | null>(null)
   const [showAddHoliday, setShowAddHoliday] = useState(false)
+  const [showRequestHoliday, setShowRequestHoliday] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-
-  const [bookingMode, setBookingMode] = useState(false)
-  const [requestReason, setRequestReason] = useState('')
-  const [requestLoading, setRequestLoading] = useState(false)
-  const [requestError, setRequestError] = useState<string | null>(null)
 
   const [myRequests, setMyRequests] = useState<HolidayRequest[]>([])
   const [requestsLoading, setRequestsLoading] = useState(false)
@@ -114,11 +105,7 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
       if (userRole === 'admin') {
         setShowAddHoliday(true)
       } else {
-        setBookingMode(true)
-        setSelectedStartDate(null)
-        setSelectedEndDate(null)
-        setRequestReason('')
-        setRequestError(null)
+        setShowRequestHoliday(true)
       }
     }
     const onCancel = () => {
@@ -312,41 +299,9 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
   }
 
   const handleDateClick = (date: Date) => {
-    if (isAdmin && !bookingMode) {
-      setEditingDate(date)
-      setManagingHolidaysDate(null)
-      setSelectedStartDate(null)
-      setSelectedEndDate(null)
-      return
-    }
-
-    if (selectedStartDate && date.toDateString() === selectedStartDate.toDateString()) {
-      setSelectedStartDate(null)
-      setSelectedEndDate(null)
-      return
-    }
-
-    if (!selectedStartDate) {
-      setSelectedStartDate(date)
-      setSelectedEndDate(date)
-    } else if (!selectedEndDate || date < selectedStartDate) {
-      setSelectedStartDate(date)
-      setSelectedEndDate(date)
-    } else {
-      setSelectedEndDate(date)
-    }
-  }
-
-  const handleRequestSuccess = () => {
-    setSelectedStartDate(null)
-    setSelectedEndDate(null)
-    setRequestReason('')
-    setRefreshKey((prev) => prev + 1)
-  }
-
-  const handleClearSelection = () => {
-    setSelectedStartDate(null)
-    setSelectedEndDate(null)
+    if (!isAdmin) return
+    setEditingDate(date)
+    setManagingHolidaysDate(null)
   }
 
   const formatDate = (dateStr: string) => {
@@ -356,52 +311,6 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
       month: 'short',
       year: 'numeric',
     })
-  }
-
-  const formatDisplayDate = (date: Date | null) => {
-    if (!date) return 'Select a date'
-    return date.toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
-  const canSubmitRequest = !!selectedStartDate && !!selectedEndDate && !requestLoading
-
-  const handleSubmitRequest = async () => {
-    if (!selectedStartDate || !selectedEndDate) {
-      setRequestError('Please select a start and end date')
-      return
-    }
-
-    try {
-      setRequestLoading(true)
-      setRequestError(null)
-      const response = await fetch('/api/holidays/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          startDate: toYyyyMmDdLocal(selectedStartDate),
-          endDate: toYyyyMmDdLocal(selectedEndDate),
-          reason: requestReason || null,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit request')
-      }
-
-      handleRequestSuccess()
-      setBookingMode(false)
-    } catch (err) {
-      setRequestError(err instanceof Error ? err.message : 'Failed to submit request')
-    } finally {
-      setRequestLoading(false)
-    }
   }
 
   const teamUserLabel = (req: ApprovedTeamHoliday) => {
@@ -479,16 +388,12 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
             key={refreshKey}
             pageFillHeight
             userRole={userRole === 'admin' ? 'admin' : userRole === 'manager' ? 'manager' : 'staff'}
-            onDateClick={isAdmin && !bookingMode ? handleDateClick : bookingMode ? handleDateClick : undefined}
+            onDateClick={isAdmin ? handleDateClick : undefined}
             onHolidayClick={(date) => {
               if (!isManagerOrAdmin) return
               setManagingHolidaysDate(date)
               setEditingDate(null)
-              setSelectedStartDate(null)
-              setSelectedEndDate(null)
             }}
-            selectedStartDate={selectedStartDate}
-            selectedEndDate={selectedEndDate}
             hideBackdatesListToggle={isManagerOrAdmin}
             forcedListMode={false}
           />
@@ -587,6 +492,24 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
         </div>
       )}
 
+      {showRequestHoliday && (
+        <div
+          className="fixed inset-0 z-[58] flex items-center justify-center bg-black/80 px-4 py-8"
+          onClick={() => setShowRequestHoliday(false)}
+        >
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <AddHolidayForm
+              mode="request"
+              onSuccess={() => {
+                setShowRequestHoliday(false)
+                setTimeout(() => setRefreshKey((k) => k + 1), 300)
+              }}
+              onClose={() => setShowRequestHoliday(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {managingHolidaysDate && (
         <div
           className="fixed inset-0 z-[58] flex items-center justify-center bg-black/80 px-4 py-8"
@@ -615,103 +538,6 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
         </div>
       )}
 
-      {bookingMode && (
-        <div className="fixed inset-0 z-[60] bg-background/95 backdrop-blur-sm">
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b border-border/60 px-4 pb-1 pt-3 sm:px-6">
-              <div>
-                <h2 className="text-sm font-semibold">Book time off</h2>
-                <p className="text-[11px] text-muted-foreground">
-                  Tap on the calendar to choose your start and end dates.
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => {
-                  setBookingMode(false)
-                  setRequestError(null)
-                }}
-                aria-label="Close booking view"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-3 pb-28 sm:px-6">
-              <HolidayCalendar
-                key={`booking-${refreshKey}`}
-                pageFillHeight
-                userRole={userRole === 'admin' ? 'admin' : userRole === 'manager' ? 'manager' : 'staff'}
-                onDateClick={handleDateClick}
-                onHolidayClick={(date) => {
-                  if (isManagerOrAdmin) {
-                    setManagingHolidaysDate(date)
-                  }
-                }}
-                selectedStartDate={selectedStartDate}
-                selectedEndDate={selectedEndDate}
-                hideBackdatesListToggle={isManagerOrAdmin}
-              />
-            </div>
-
-            <div className="fixed bottom-0 left-0 right-0 z-[70]">
-              <div className="relative space-y-2 border-t border-border/60 bg-background/95 px-4 pb-3 pt-2 backdrop-blur-md sm:px-6">
-                {requestError && (
-                  <div className="rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-500">
-                    {requestError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-md border border-border/70 bg-card/90 px-3 py-1.5">
-                    <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Start date
-                    </div>
-                    <div className="mt-0.5 text-xs font-medium">{formatDisplayDate(selectedStartDate)}</div>
-                  </div>
-
-                  <div className="rounded-md border border-border/70 bg-card/90 px-3 py-1.5">
-                    <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      End date
-                    </div>
-                    <div className="mt-0.5 text-xs font-medium">{formatDisplayDate(selectedEndDate)}</div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1.5fr_minmax(0,1fr)]">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Reason (optional)
-                    </label>
-                    <Input
-                      value={requestReason}
-                      onChange={(e) => setRequestReason(e.target.value)}
-                      placeholder="e.g., Family holiday, Personal time"
-                      className="h-9 text-sm"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2 pt-1 sm:pt-0">
-                    <Button type="button" variant="ghost" size="sm" onClick={handleClearSelection}>
-                      Clear selection
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      disabled={!canSubmitRequest}
-                      onClick={handleSubmitRequest}
-                      className="min-w-[120px]"
-                    >
-                      {requestLoading ? 'Submitting…' : 'Submit request'}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }

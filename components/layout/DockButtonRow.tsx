@@ -194,6 +194,12 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     duration: 0.38,
   }
 
+  /** Equal-width columns; controls stay inside the dock at any viewport width */
+  const DOCK_ROW =
+    'flex w-full min-w-0 items-stretch px-1.5 sm:px-3 h-16 sm:h-20 relative'
+  const DOCK_ACTION_SLOT =
+    'flex min-w-0 flex-1 basis-0 flex-col items-center justify-center relative'
+
   useEffect(() => {
     if (isHolidaysPage) {
       setShowHolidaysDock(true)
@@ -571,9 +577,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   }
 
   const mainDockRow = (
-    <div className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative">
+    <div className={DOCK_ROW}>
       {/* Dashboard Button - Far Left */}
-      <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+      <div className={DOCK_ACTION_SLOT}>
         <button
           onClick={handleDashboardClick}
           className={`h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 ${
@@ -590,7 +596,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </div>
 
       {/* Time Off */}
-      <DockItem itemId="timeoff" className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+      <DockItem itemId="timeoff" className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <Calendar className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -600,7 +606,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </DockItem>
 
       {/* Learning */}
-      <DockItem itemId="learning" className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+      <DockItem itemId="learning" className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <GraduationCap className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -610,7 +616,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </DockItem>
 
       {/* Community */}
-      <DockItem itemId="community" className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+      <DockItem itemId="community" className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <MessageSquare className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -620,7 +626,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </DockItem>
 
       {/* Feedback */}
-      <DockItem itemId="feedback" className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+      <DockItem itemId="feedback" className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <Lightbulb className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -631,7 +637,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
       {/* Manager Tools */}
       {(user.role === 'manager' || user.role === 'admin') && (
-        <DockItem itemId="manager" className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+        <DockItem itemId="manager" className={DOCK_ACTION_SLOT}>
           <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
             <Briefcase className={`${iconSize} text-spirits-magenta transition-colors`} />
           </DockIcon>
@@ -643,7 +649,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
       {/* Admin Tools */}
       {user.role === 'admin' && (
-        <DockItem itemId="admin" className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+        <DockItem itemId="admin" className={DOCK_ACTION_SLOT}>
           <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
             <Shield className={`${iconSize} text-garrison-orange transition-colors`} />
           </DockIcon>
@@ -690,7 +696,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           {showHolidaysDropup && (
             <AnimatePresence initial={false}>
               <motion.div
@@ -789,14 +795,14 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="relative flex min-h-16 flex-col justify-center gap-1 px-2 py-1 sm:min-h-20 sm:px-4"
+                className="relative flex min-h-16 min-w-0 flex-col justify-center gap-1 px-1.5 py-1 sm:min-h-20 sm:px-3"
               >
                 {holidaysSync?.dayEdit?.error ? (
                   <p className="px-1 text-center text-[11px] leading-tight text-red-400">
                     {holidaysSync.dayEdit.error}
                   </p>
                 ) : null}
-                <div className="grid w-full grid-cols-4 items-center gap-0 px-0 sm:px-1">
+                <div className="grid w-full min-w-0 grid-cols-4 items-center gap-0 px-0">
                   <button
                     type="button"
                     onClick={() => {
@@ -865,9 +871,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => {
@@ -882,7 +888,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => setHolidaysMenuOpen((p) => (p === 'view' ? null : 'view'))}
@@ -897,7 +903,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => {
@@ -933,7 +939,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           {showIdeasDock && (
             <AnimatePresence initial={false}>
               {ideasMenuOpen && (
@@ -998,9 +1004,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     onClick={() => {
                       setIdeasMenuOpen(null)
@@ -1013,7 +1019,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     onClick={() => setIdeasMenuOpen((prev) => (prev === 'filter' ? null : 'filter'))}
                     className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
@@ -1027,7 +1033,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     onClick={() => setIdeasMenuOpen((prev) => (prev === 'sort' ? null : 'sort'))}
                     className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
@@ -1041,7 +1047,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     onClick={() => {
                       setIdeasMenuOpen(null)
@@ -1081,7 +1087,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           {showStaffBadgesDock && (
             <AnimatePresence initial={false}>
               {staffBadgesMenuOpen && (
@@ -1148,9 +1154,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="relative flex h-16 w-full items-center justify-between px-4 sm:h-20 sm:px-6"
+                className={DOCK_ROW}
               >
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1164,7 +1170,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() =>
@@ -1181,7 +1187,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() =>
@@ -1198,7 +1204,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="relative flex h-full flex-shrink-0 flex-col items-center justify-center">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={triggerStaffBadgesRefresh}
@@ -1242,7 +1248,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           {showBarredDropup && (
             <AnimatePresence initial={false}>
               <motion.div
@@ -1309,9 +1315,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex w-full items-center px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() =>
@@ -1331,9 +1337,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1347,7 +1353,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() =>
@@ -1366,7 +1372,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={barredMeta.loading}
@@ -1385,7 +1391,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1416,7 +1422,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           <AnimatePresence mode="wait" initial={false}>
             {!showManagementCalDock ? (
               <motion.div
@@ -1435,9 +1441,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex w-full items-center px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={managementCalDockMeta.saving}
@@ -1476,9 +1482,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => setShowManagementCalDock(false)}
@@ -1489,7 +1495,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={refreshBusy}
@@ -1509,7 +1515,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={refreshBusy}
@@ -1540,7 +1546,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           <AnimatePresence mode="wait" initial={false}>
             {!showMeetingsDock ? (
               <motion.div
@@ -1559,9 +1565,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex w-full items-center justify-between px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={meetingsDockMeta.saving}
@@ -1577,7 +1583,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={formSubmitBusy}
@@ -1607,9 +1613,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => setShowMeetingsDock(false)}
@@ -1620,7 +1626,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={refreshBusy}
@@ -1640,7 +1646,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() =>
@@ -1666,15 +1672,15 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           <motion.div
             key="notices-post-actions"
             transition={dockSwitchTransition}
             initial={{ opacity: 0, y: 10, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="flex w-full items-center justify-between px-4 sm:px-6 h-16 sm:h-20 relative"
+            className={DOCK_ROW}
           >
-            <div className="flex flex-col items-center justify-center h-full">
+            <div className={DOCK_ACTION_SLOT}>
               <button
                 type="button"
                 disabled={noticesPostMeta.saving}
@@ -1690,7 +1696,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
               </button>
             </div>
 
-            <div className="flex flex-col items-center justify-center h-full">
+            <div className={DOCK_ACTION_SLOT}>
               <button
                 type="button"
                 disabled={noticesPostBusy}
@@ -1728,7 +1734,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           <AnimatePresence mode="wait" initial={false}>
             {!showModuleMakerDock ? (
               <motion.div
@@ -1747,9 +1753,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex w-full items-center justify-between px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={moduleMakerMeta.saving}
@@ -1765,7 +1771,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex flex-col items-center justify-center h-full">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={moduleMakerMeta.saving}
@@ -1799,9 +1805,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => setShowModuleMakerDock(false)}
@@ -1812,7 +1818,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={refreshBusy}
@@ -1832,7 +1838,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   </button>
                 </div>
 
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() =>
@@ -1855,7 +1861,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   if (isManageStaffPage) {
     return (
       <MotionConfig transition={transition}>
-        <div ref={dockRowRef} className="relative w-full min-h-16 sm:min-h-20">
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           <AnimatePresence mode="wait" initial={false}>
             {showStaffDock ? (
               <motion.div
@@ -1864,9 +1870,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                className="flex items-center justify-between w-full px-4 sm:px-6 h-16 sm:h-20 relative"
+                className={DOCK_ROW}
               >
-                <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     onClick={() => {
@@ -1886,7 +1892,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 </div>
 
                 {staffDockMeta.canAdd && !staffDockMeta.formOpen && (
-                  <div className="flex-shrink-0 flex flex-col items-center h-full justify-center relative">
+                  <div className={DOCK_ACTION_SLOT}>
                     <button
                       type="button"
                       onClick={() =>
@@ -1917,5 +1923,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     )
   }
 
-  return <div ref={dockRowRef}>{mainDockRow}</div>
+  return (
+    <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
+      {mainDockRow}
+    </div>
+  )
 }
