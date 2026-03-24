@@ -33,9 +33,12 @@ export function BarredPersonForm({ onCreated }: BarredPersonFormProps) {
       { value: 'weeks', label: 'Weeks' },
       { value: 'months', label: 'Months' },
       { value: 'years', label: 'Years' },
+      { value: 'life', label: 'Life' },
     ],
     []
   )
+
+  const isLifeBar = barDurationUnit === 'life'
 
   useEffect(() => {
     return () => {
@@ -84,7 +87,10 @@ export function BarredPersonForm({ onCreated }: BarredPersonFormProps) {
       setError('Reason is required.')
       return
     }
-    if (!Number.isFinite(barDurationValue) || barDurationValue <= 0) {
+    if (
+      !isLifeBar &&
+      (!Number.isFinite(barDurationValue) || barDurationValue <= 0)
+    ) {
       setError('Length must be a positive number.')
       return
     }
@@ -95,7 +101,7 @@ export function BarredPersonForm({ onCreated }: BarredPersonFormProps) {
       formData.append('file', selectedFile)
       if (name.trim()) formData.append('name', name.trim())
       formData.append('reason', reason.trim())
-      formData.append('barDurationValue', String(barDurationValue))
+      formData.append('barDurationValue', isLifeBar ? '1' : String(barDurationValue))
       formData.append('barDurationUnit', barDurationUnit)
 
       const response = await fetch('/api/barred/upload', {
@@ -208,9 +214,10 @@ export function BarredPersonForm({ onCreated }: BarredPersonFormProps) {
                   min={1}
                   value={barDurationValue}
                   onChange={(e) => setBarDurationValue(Number(e.target.value))}
-                  disabled={submitting}
+                  disabled={submitting || isLifeBar}
+                  aria-label={isLifeBar ? 'Bar length (not used for life bar)' : 'Bar length'}
                 />
-                <div className="w-full sm:w-36">
+                <div className="w-full sm:w-40">
                   <Select
                     options={unitOptions}
                     value={barDurationUnit}
@@ -220,6 +227,11 @@ export function BarredPersonForm({ onCreated }: BarredPersonFormProps) {
                   />
                 </div>
               </div>
+              {isLifeBar && (
+                <p className="text-xs text-muted-foreground">
+                  Permanent life bar — length does not apply.
+                </p>
+              )}
             </div>
           </div>
 

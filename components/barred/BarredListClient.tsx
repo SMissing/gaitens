@@ -222,7 +222,10 @@ export function BarredListClient({ initialPeople }: BarredListClientProps) {
                     {person.name || 'Unnamed'}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
-                    Length: {person.barDurationValue} {person.barDurationUnit}
+                    Length:{' '}
+                    {person.barDurationUnit === 'life'
+                      ? 'Life (permanent)'
+                      : `${person.barDurationValue} ${person.barDurationUnit}`}
                   </div>
                 </div>
               </div>

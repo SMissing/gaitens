@@ -16,7 +16,7 @@ export interface User {
   barredDisclaimerLastAcceptedAt?: string | null
 }
 
-export type BarDurationUnit = 'days' | 'weeks' | 'months' | 'years'
+export type BarDurationUnit = 'days' | 'weeks' | 'months' | 'years' | 'life'
 
 export interface BarredPerson {
   id: string

@@ -3,11 +3,14 @@ import { requireManager } from '@/lib/auth'
 import { createAdminClient, createServerClient } from '@/lib/db'
 import { z } from 'zod'
 
+/** Far-future end date for permanent (life) bars — keeps them in the active list. */
+const LIFE_BAR_END = new Date('9999-12-31T23:59:59.999Z')
+
 const uploadFieldSchema = z.object({
   name: z.string().trim().optional(),
   reason: z.string().trim().min(1, 'Reason is required'),
   barDurationValue: z.coerce.number().int().min(1, 'Length must be >= 1'),
-  barDurationUnit: z.enum(['days', 'weeks', 'months', 'years']),
+  barDurationUnit: z.enum(['days', 'weeks', 'months', 'years', 'life']),
 })
 
 function addDuration(from: Date, value: number, unit: 'days' | 'weeks' | 'months' | 'years'): Date {
@@ -66,6 +69,7 @@ export async function POST(request: NextRequest) {
       | 'weeks'
       | 'months'
       | 'years'
+      | 'life'
 
     const validated = uploadFieldSchema.parse({
       name,
@@ -101,7 +105,13 @@ export async function POST(request: NextRequest) {
     const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName)
     const imageUrl = urlData.publicUrl
 
-    const endDate = addDuration(new Date(), validated.barDurationValue, validated.barDurationUnit)
+    const endDate =
+      validated.barDurationUnit === 'life'
+        ? LIFE_BAR_END
+        : addDuration(new Date(), validated.barDurationValue, validated.barDurationUnit)
+
+    const durationValueForDb =
+      validated.barDurationUnit === 'life' ? 1 : validated.barDurationValue
 
     // NOTE: This expects a `barred_people` table with the columns used below.
     const { data: inserted, error: dbError } = await supabase
@@ -111,7 +121,7 @@ export async function POST(request: NextRequest) {
         imageUrl,
         imagePath: fileName,
         reason: validated.reason,
-        barDurationValue: validated.barDurationValue,
+        barDurationValue: durationValueForDb,
         barDurationUnit: validated.barDurationUnit,
         barEndDate: endDate.toISOString(),
         createdBy: user.id,

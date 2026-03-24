@@ -18,6 +18,8 @@ function unitLabel(unit: BarDurationUnit): string {
       return 'month'
     case 'years':
       return 'year'
+    case 'life':
+      return 'life'
     default:
       return unit
   }
@@ -28,6 +30,10 @@ function ceilDiv(a: number, b: number) {
 }
 
 function getRemainingText(person: BarredPerson): { text: string; ended: boolean } {
+  if (person.barDurationUnit === 'life') {
+    return { text: 'Permanent life bar', ended: false }
+  }
+
   const end = new Date(person.barEndDate)
   const diffMs = end.getTime() - Date.now()
   if (!Number.isFinite(diffMs) || diffMs <= 0) {
@@ -155,11 +161,19 @@ export function BarredPersonModal({ person, onClose }: BarredPersonModalProps) {
                 Bar Length
               </div>
               <div className="text-foreground">
-                {person.barDurationValue} {unitLabel(person.barDurationUnit)}
-                {person.barDurationValue === 1 ? '' : 's'}
+                {person.barDurationUnit === 'life' ? (
+                  'Life (permanent)'
+                ) : (
+                  <>
+                    {person.barDurationValue} {unitLabel(person.barDurationUnit)}
+                    {person.barDurationValue === 1 ? '' : 's'}
+                  </>
+                )}
               </div>
               <div className="text-sm text-muted-foreground">
-                Ends: {formatDate(person.barEndDate)}
+                {person.barDurationUnit === 'life'
+                  ? 'No end date'
+                  : `Ends: ${formatDate(person.barEndDate)}`}
               </div>
             </div>
           </div>
