@@ -203,3 +203,12 @@ For escape rooms admin
 test
 
 
+
+
+
+Managment holiday appearing on the management holiday section
+
+
+Seciton on house rules
+Uniform Policy
+Contract Stuff

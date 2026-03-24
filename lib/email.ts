@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer'
 
+/** Default recipient when EMAIL_CHELSEA_ADDRESS / CHELSEA_EMAIL are unset. Override via env for staging. */
+const DEFAULT_CHELSEA_EMAIL = 'chelsea@thegaitens.co.uk'
+
 type SendEmailParams = {
   to: string
   subject: string
@@ -50,11 +53,8 @@ export async function sendSmtpEmail(params: SendEmailParams) {
 }
 
 export async function sendEmailToChelsea(subject: string, text: string) {
-  const to = getEnv('EMAIL_CHELSEA_ADDRESS') || getEnv('CHELSEA_EMAIL')
-  if (!to) {
-    console.warn('[email] Chelsea email not configured; skipping.')
-    return
-  }
+  const to =
+    getEnv('EMAIL_CHELSEA_ADDRESS') || getEnv('CHELSEA_EMAIL') || DEFAULT_CHELSEA_EMAIL
 
   try {
     await sendSmtpEmail({ to, subject, text })
