@@ -63,7 +63,10 @@ export function BrickBreakerScore({
       </span>
       {showCombo && snapshot.combo > 0 && snapshot.state === 'playing' && (
         <span className="text-muted-foreground text-xs tabular-nums">
-          ×{snapshot.combo + 1}
+          ×
+          {snapshot.garrisonDoubleActive
+            ? (snapshot.combo + 1) * 2
+            : snapshot.combo + 1}
         </span>
       )}
     </div>
@@ -453,7 +456,8 @@ export function BrickBreakerMultiplierBand() {
     return null
   }
 
-  const mult = Math.max(1, snapshot.combo + 1)
+  const baseComboMult = Math.max(1, snapshot.combo + 1)
+  const mult = snapshot.garrisonDoubleActive ? baseComboMult * 2 : baseComboMult
   const tier = tierIndexForMult(mult)
   const style = MULT_TIER_STYLES[tier]
 

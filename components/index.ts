@@ -30,6 +30,7 @@ export type {
   GameState,
   GameSnapshot,
   GameEndResult,
+  VenuePowerUp,
 
   // Geometry
   Vector2D,

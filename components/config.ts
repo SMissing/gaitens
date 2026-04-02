@@ -84,6 +84,10 @@ export const GAME_CONSTANTS = {
   RESPAWN_DELAY: 1000,
   /** Time before ball auto-launches (ms) */
   AUTO_LAUNCH_DELAY: 3000,
+  /** Garrison / Bassment venue power-up duration */
+  POWER_UP_DURATION_MS: 10_000,
+  /** Spirits venue: simultaneous balls */
+  SPIRITS_BALL_COUNT: 5,
 } as const
 
 /** Keyboard bindings */

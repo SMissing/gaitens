@@ -11,7 +11,7 @@ import type {
   Paddle,
   Level,
   CanvasDimensions,
-  BrickType,
+  VenuePowerUp,
 } from './types'
 import { DEFAULT_CONFIG, GAME_CONSTANTS } from './config'
 import { DEFAULT_LEVELS, getBrickHealth } from './levels'
@@ -113,6 +113,15 @@ function createBricksFromLevel(
   return bricks
 }
 
+const VENUES: VenuePowerUp[] = ['garrison', 'spirits', 'bassment']
+
+function assignRandomVenuePowerBrick(bricks: Brick[]): void {
+  const candidates = bricks.filter((b) => b.type !== 'indestructible')
+  if (candidates.length === 0) return
+  const pick = candidates[Math.floor(Math.random() * candidates.length)]!
+  pick.powerUpVenue = VENUES[Math.floor(Math.random() * VENUES.length)]
+}
+
 /**
  * Create paddle
  */
@@ -170,18 +179,36 @@ function createBall(
 /**
  * Launch ball from paddle with random angle
  */
-function launchBallFromPaddle(ball: Ball): Ball {
-  // Random angle between -45 and -135 degrees (upward arc)
-  const angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 2)
-
-  return {
-    ...ball,
-    velocity: {
-      x: Math.cos(angle) * ball.speed,
-      y: Math.sin(angle) * ball.speed,
-    },
-    isLaunched: true,
+function createSpiritsMultiball(
+  config: BrickBreakerConfig,
+  dimensions: CanvasDimensions,
+  paddle: Paddle,
+  levelIndex: number,
+  levelSpeedMultiplier?: number
+): Ball[] {
+  const base = createBall(config, dimensions, paddle, levelIndex)
+  if (levelSpeedMultiplier) {
+    base.speed *= levelSpeedMultiplier
   }
+  const cx = paddle.bounds.x + paddle.bounds.width / 2
+  const cy = paddle.bounds.y - base.radius - 2
+  const n = GAME_CONSTANTS.SPIRITS_BALL_COUNT
+  const balls: Ball[] = []
+  for (let i = 0; i < n; i++) {
+    const angle = -Math.PI / 2 + ((i / (n - 1 || 1)) - 0.5) * (Math.PI * 0.72)
+    balls.push({
+      position: { x: cx, y: cy },
+      velocity: {
+        x: Math.cos(angle) * base.speed,
+        y: Math.sin(angle) * base.speed,
+      },
+      radius: base.radius,
+      speed: base.speed,
+      trail: [],
+      isLaunched: true,
+    })
+  }
+  return balls
 }
 
 /**
@@ -216,9 +243,18 @@ export function useBrickBreaker(
 
   const bricksRef = React.useRef<Brick[]>([])
   const paddleRef = React.useRef<Paddle>(createPaddle(config, canvasDimensions))
-  const ballRef = React.useRef<Ball>(
-    createBall(config, canvasDimensions, paddleRef.current, levelIndexRef.current)
-  )
+  const ballsRef = React.useRef<Ball[]>([
+    createBall(
+      config,
+      canvasDimensions,
+      paddleRef.current,
+      levelIndexRef.current
+    ),
+  ])
+
+  const garrisonExpiresRef = React.useRef(0)
+  const bassmentExpiresRef = React.useRef(0)
+  const spiritsMultiballRef = React.useRef(false)
 
   const animationFrameRef = React.useRef<number>(0)
   const lastFrameTimeRef = React.useRef<number>(0)
@@ -255,18 +291,22 @@ export function useBrickBreaker(
       if (!level) return
 
       const newBricks = createBricksFromLevel(level, config, canvasDimensions)
+      assignRandomVenuePowerBrick(newBricks)
       const newPaddle = createPaddle(config, canvasDimensions)
-      const newBall = createBall(config, canvasDimensions, newPaddle, levelIndex)
+      let newBall = createBall(config, canvasDimensions, newPaddle, levelIndex)
 
-      // Apply level speed multiplier
       if (level.speedMultiplier) {
         newBall.speed *= level.speedMultiplier
       }
 
       bricksRef.current = newBricks
       paddleRef.current = newPaddle
-      ballRef.current = newBall
+      ballsRef.current = [newBall]
       comboRef.current = 0
+
+      garrisonExpiresRef.current = 0
+      bassmentExpiresRef.current = 0
+      spiritsMultiballRef.current = false
 
       totalBricksRef.current = newBricks.filter(
         (b) => b.type !== 'indestructible'
@@ -302,37 +342,82 @@ export function useBrickBreaker(
       const dt = Math.min(deltaTime, 50) / GAME_CONSTANTS.FRAME_TIME
 
       const paddle = paddleRef.current
-      const ball = ballRef.current
       const bricks = bricksRef.current
+
+      // Bassment: double paddle width (time-limited)
+      const basePaddleW = canvasDimensions.width * config.sizing.paddleWidth
+      const wide =
+        Date.now() < bassmentExpiresRef.current ? basePaddleW * 2 : basePaddleW
+      paddle.bounds.width = wide
 
       // ========== UPDATE PADDLE ==========
       let newPaddleX = paddle.bounds.x
 
-      // Keyboard control
       if (paddleDirectionRef.current === 'left') {
         newPaddleX -= paddle.speed * dt
       } else if (paddleDirectionRef.current === 'right') {
         newPaddleX += paddle.speed * dt
       }
 
-      // Mouse/touch control (smooth follow)
       if (paddle.targetX !== null) {
         const targetX = paddle.targetX - paddle.bounds.width / 2
         const diff = targetX - newPaddleX
         newPaddleX += diff * 0.2 * dt
       }
 
-      // Clamp to bounds
-      newPaddleX = clamp(newPaddleX, 0, canvasDimensions.width - paddle.bounds.width)
+      newPaddleX = clamp(
+        newPaddleX,
+        0,
+        canvasDimensions.width - paddle.bounds.width
+      )
       paddle.bounds.x = newPaddleX
 
-      // ========== UPDATE BALL ==========
-      if (!ball.isLaunched) {
-        // Ball follows paddle
-        ball.position.x = paddle.bounds.x + paddle.bounds.width / 2
-        ball.position.y = paddle.bounds.y - ball.radius - 2
-      } else {
-        // Update trail
+      for (const b of ballsRef.current) {
+        if (!b.isLaunched) {
+          b.position.x = paddle.bounds.x + paddle.bounds.width / 2
+          b.position.y = paddle.bounds.y - b.radius - 2
+        }
+      }
+
+      const playfieldTopY = canvasDimensions.height * config.layout.topPadding
+
+      const loseLifeAndRespawn = () => {
+        spiritsMultiballRef.current = false
+        livesRef.current -= 1
+
+        if (livesRef.current <= 0) {
+          gameStateRef.current = 'lost'
+          onStateChange?.('lost')
+          onGameEnd?.({
+            won: false,
+            score: scoreRef.current,
+            highScore: Math.max(scoreRef.current, highScoreRef.current),
+            level: levelIndexRef.current + 1,
+            totalLevels: levels.length,
+            bricksDestroyed: destroyedBricksRef.current,
+            totalBricks: totalBricksRef.current,
+          })
+          return
+        }
+
+        let nb = createBall(
+          config,
+          canvasDimensions,
+          paddle,
+          levelIndexRef.current
+        )
+        const lev = levels[levelIndexRef.current]
+        if (lev?.speedMultiplier) {
+          nb.speed *= lev.speedMultiplier
+        }
+        ballsRef.current = [nb]
+        comboRef.current = 0
+      }
+
+      for (let bi = ballsRef.current.length - 1; bi >= 0; bi--) {
+        const ball = ballsRef.current[bi]
+        if (!ball.isLaunched) continue
+
         if (config.effects.showTrail) {
           ball.trail.push({ ...ball.position })
           if (ball.trail.length > config.effects.trailLength) {
@@ -340,13 +425,11 @@ export function useBrickBreaker(
           }
         }
 
-        // Move ball
         let newX = ball.position.x + ball.velocity.x * dt
         let newY = ball.position.y + ball.velocity.y * dt
         let newVelX = ball.velocity.x
         let newVelY = ball.velocity.y
 
-        // Wall collisions
         if (newX - ball.radius < 0) {
           newX = ball.radius
           newVelX = Math.abs(newVelX)
@@ -355,7 +438,6 @@ export function useBrickBreaker(
           newVelX = -Math.abs(newVelX)
         }
 
-        const playfieldTopY = canvasDimensions.height * config.layout.topPadding
         if (newY - ball.radius < playfieldTopY) {
           newY = playfieldTopY + ball.radius
           newVelY = Math.abs(newVelY)
@@ -366,44 +448,18 @@ export function useBrickBreaker(
         ball.velocity.x = newVelX
         ball.velocity.y = newVelY
 
-        // Check if ball fell below screen
         if (newY - ball.radius > canvasDimensions.height) {
-          livesRef.current--
+          ballsRef.current.splice(bi, 1)
 
-          if (livesRef.current <= 0) {
-            // Game over
-            gameStateRef.current = 'lost'
-            onStateChange?.('lost')
-            onGameEnd?.({
-              won: false,
-              score: scoreRef.current,
-              highScore: Math.max(scoreRef.current, highScoreRef.current),
-              level: levelIndexRef.current + 1,
-              totalLevels: levels.length,
-              bricksDestroyed: destroyedBricksRef.current,
-              totalBricks: totalBricksRef.current,
-            })
-          } else {
-            // Reset ball
-            const newBall = createBall(
-              config,
-              canvasDimensions,
-              paddle,
-              levelIndexRef.current
-            )
-            if (levels[levelIndexRef.current]?.speedMultiplier) {
-              newBall.speed *= levels[levelIndexRef.current].speedMultiplier!
-            }
-            ballRef.current = newBall
-            comboRef.current = 0
+          if (ballsRef.current.length === 0) {
+            loseLifeAndRespawn()
+            forceRender()
+            animationFrameRef.current = requestAnimationFrame(gameLoop)
+            return
           }
-
-          forceRender()
-          animationFrameRef.current = requestAnimationFrame(gameLoop)
-          return
+          continue
         }
 
-        // ========== PADDLE COLLISION ==========
         const paddleCollision = detectCollision(
           ball.position,
           ball.radius,
@@ -420,12 +476,10 @@ export function useBrickBreaker(
           )
           ball.position = resolved.position
           ball.velocity = resolved.velocity
-          comboRef.current = 0 // Reset combo on paddle hit
+          comboRef.current = 0
         }
 
-        // ========== BRICK COLLISIONS ==========
         let hitBrick = false
-
         for (const brick of bricks) {
           if (brick.destroyed || hitBrick) continue
 
@@ -439,12 +493,15 @@ export function useBrickBreaker(
           if (collision.collided) {
             hitBrick = true
 
-            // Resolve collision
-            const resolved = resolveBallBrickCollision(ball, brick, collision, config)
+            const resolved = resolveBallBrickCollision(
+              ball,
+              brick,
+              collision,
+              config
+            )
             ball.position = resolved.position
             ball.velocity = resolved.velocity
 
-            // Damage brick
             if (brick.type !== 'indestructible') {
               brick.health--
 
@@ -453,7 +510,6 @@ export function useBrickBreaker(
                 brick.destroyedAt = Date.now()
                 destroyedBricksRef.current++
 
-                // Update combo
                 const now = Date.now()
                 if (now - lastHitTimeRef.current < config.scoring.comboTimeout) {
                   comboRef.current = Math.min(
@@ -465,12 +521,14 @@ export function useBrickBreaker(
                 }
                 lastHitTimeRef.current = now
 
-                // Calculate score with combo
-                const multiplier = 1 + comboRef.current * config.scoring.comboMultiplier
-                const points = Math.floor(brick.points * multiplier)
+                const multiplier =
+                  1 + comboRef.current * config.scoring.comboMultiplier
+                let points = Math.floor(brick.points * multiplier)
+                if (Date.now() < garrisonExpiresRef.current) {
+                  points *= 2
+                }
                 scoreRef.current += points
 
-                // Update high score
                 if (scoreRef.current > highScoreRef.current) {
                   highScoreRef.current = scoreRef.current
                   if (config.storage.persistHighScore) {
@@ -482,45 +540,64 @@ export function useBrickBreaker(
                 }
 
                 onScoreChange?.(scoreRef.current, comboRef.current)
+
+                const pu = brick.powerUpVenue
+                if (pu === 'garrison') {
+                  garrisonExpiresRef.current =
+                    Date.now() + GAME_CONSTANTS.POWER_UP_DURATION_MS
+                } else if (pu === 'bassment') {
+                  bassmentExpiresRef.current =
+                    Date.now() + GAME_CONSTANTS.POWER_UP_DURATION_MS
+                } else if (pu === 'spirits') {
+                  spiritsMultiballRef.current = true
+                  const lev = levels[levelIndexRef.current]
+                  ballsRef.current = createSpiritsMultiball(
+                    config,
+                    canvasDimensions,
+                    paddle,
+                    levelIndexRef.current,
+                    lev?.speedMultiplier
+                  )
+                  forceRender()
+                  animationFrameRef.current = requestAnimationFrame(gameLoop)
+                  return
+                }
               }
             }
 
-            break // Only handle one collision per frame
+            break
           }
         }
+      }
 
-        // ========== CHECK WIN CONDITION ==========
-        const remainingBricks = bricks.filter(
-          (b) => !b.destroyed && b.type !== 'indestructible'
-        )
+      const remainingBricks = bricks.filter(
+        (b) => !b.destroyed && b.type !== 'indestructible'
+      )
 
-        if (remainingBricks.length === 0) {
-          // Level complete!
-          scoreRef.current += config.scoring.levelBonus
-          onScoreChange?.(scoreRef.current, comboRef.current)
+      if (remainingBricks.length === 0) {
+        spiritsMultiballRef.current = false
+        scoreRef.current += config.scoring.levelBonus
+        onScoreChange?.(scoreRef.current, comboRef.current)
 
-          if (levelIndexRef.current >= levels.length - 1) {
-            // Game won!
-            gameStateRef.current = 'won'
-            onStateChange?.('won')
-            onGameEnd?.({
-              won: true,
-              score: scoreRef.current,
-              highScore: Math.max(scoreRef.current, highScoreRef.current),
-              level: levelIndexRef.current + 1,
-              totalLevels: levels.length,
-              bricksDestroyed: destroyedBricksRef.current,
-              totalBricks: totalBricksRef.current,
-            })
-          } else {
-            // Next level
-            gameStateRef.current = 'levelComplete'
-            onStateChange?.('levelComplete')
-          }
-
-          forceRender()
-          return
+        if (levelIndexRef.current >= levels.length - 1) {
+          gameStateRef.current = 'won'
+          onStateChange?.('won')
+          onGameEnd?.({
+            won: true,
+            score: scoreRef.current,
+            highScore: Math.max(scoreRef.current, highScoreRef.current),
+            level: levelIndexRef.current + 1,
+            totalLevels: levels.length,
+            bricksDestroyed: destroyedBricksRef.current,
+            totalBricks: totalBricksRef.current,
+          })
+        } else {
+          gameStateRef.current = 'levelComplete'
+          onStateChange?.('levelComplete')
         }
+
+        forceRender()
+        return
       }
 
       forceRender()
@@ -552,8 +629,16 @@ export function useBrickBreaker(
       initLevel(levelIndexRef.current)
     }
 
-    if (!ballRef.current.isLaunched) {
-      ballRef.current = launchBallFromPaddle(ballRef.current)
+    const waiting = ballsRef.current.filter((b) => !b.isLaunched)
+    if (waiting.length > 0) {
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 2)
+      for (const b of waiting) {
+        b.velocity = {
+          x: Math.cos(angle) * b.speed,
+          y: Math.sin(angle) * b.speed,
+        }
+        b.isLaunched = true
+      }
     }
 
     gameStateRef.current = 'playing'
@@ -674,10 +759,18 @@ export function useBrickBreaker(
   }, [])
 
   const launchBallAction = React.useCallback(() => {
-    if (!ballRef.current.isLaunched && gameStateRef.current === 'playing') {
-      ballRef.current = launchBallFromPaddle(ballRef.current)
-      forceRender()
+    if (gameStateRef.current !== 'playing') return
+    const waiting = ballsRef.current.filter((b) => !b.isLaunched)
+    if (waiting.length === 0) return
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * (Math.PI / 2)
+    for (const b of waiting) {
+      b.velocity = {
+        x: Math.cos(angle) * b.speed,
+        y: Math.sin(angle) * b.speed,
+      }
+      b.isLaunched = true
     }
+    forceRender()
   }, [])
 
   // Create snapshot for rendering
@@ -691,9 +784,15 @@ export function useBrickBreaker(
     lives: livesRef.current,
     bricks: bricksRef.current,
     paddle: paddleRef.current,
-    ball: ballRef.current,
+    balls: ballsRef.current.map((b) => ({
+      ...b,
+      trail: [...b.trail],
+    })),
     combo: comboRef.current,
     totalLevels: levels.length,
+    garrisonDoubleActive: Date.now() < garrisonExpiresRef.current,
+    bassmentWideActive: Date.now() < bassmentExpiresRef.current,
+    spiritsMultiballActive: spiritsMultiballRef.current,
   }
 
   return {

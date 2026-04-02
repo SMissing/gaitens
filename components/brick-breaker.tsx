@@ -9,6 +9,7 @@ import type {
   GameSnapshot,
   Brick,
   BrickType,
+  VenuePowerUp,
 } from './types'
 import {
   DEFAULT_CONFIG,
@@ -28,6 +29,12 @@ import {
   PlayfieldMetricsProvider,
   type PlayfieldMetrics,
 } from '@/components/brick-breaker-playfield-metrics'
+
+const VENUE_LOGO_SRC: Record<VenuePowerUp, string> = {
+  garrison: '/logos/garrison-logo-white.png',
+  spirits: '/logos/spirits-logo.png',
+  bassment: '/logos/bassment-logo.png',
+}
 
 /**
  * Draw rounded rectangle
@@ -204,6 +211,50 @@ function drawBrick(
   ctx.globalAlpha = 1
 }
 
+function drawVenueLogoOnBrick(
+  ctx: CanvasRenderingContext2D,
+  brick: Brick,
+  img: HTMLImageElement,
+  borderRadius: number
+): void {
+  const { x, y, width, height } = brick.bounds
+  const pad = 4
+  const mw = width - pad * 2
+  const mh = height - pad * 2
+  if (mw <= 2 || mh <= 2 || !img.naturalWidth) return
+
+  const iw = img.naturalWidth
+  const ih = img.naturalHeight
+  const sc = Math.min(mw / iw, mh / ih)
+  const dw = iw * sc
+  const dh = ih * sc
+  const dx = x + (width - dw) / 2
+  const dy = y + (height - dh) / 2
+
+  ctx.save()
+  ctx.beginPath()
+  const r = Math.max(2, borderRadius * 0.45)
+  ctx.moveTo(x + pad + r, y + pad)
+  ctx.lineTo(x + width - pad - r, y + pad)
+  ctx.quadraticCurveTo(x + width - pad, y + pad, x + width - pad, y + pad + r)
+  ctx.lineTo(x + width - pad, y + height - pad - r)
+  ctx.quadraticCurveTo(
+    x + width - pad,
+    y + height - pad,
+    x + width - pad - r,
+    y + height - pad
+  )
+  ctx.lineTo(x + pad + r, y + height - pad)
+  ctx.quadraticCurveTo(x + pad, y + height - pad, x + pad, y + height - pad - r)
+  ctx.lineTo(x + pad, y + pad + r)
+  ctx.quadraticCurveTo(x + pad, y + pad, x + pad + r, y + pad)
+  ctx.closePath()
+  ctx.clip()
+  ctx.globalAlpha = 0.92
+  ctx.drawImage(img, dx, dy, dw, dh)
+  ctx.restore()
+}
+
 /**
  * Render game to canvas
  */
@@ -213,7 +264,8 @@ function renderGame(
   snapshot: GameSnapshot,
   config: BrickBreakerConfig,
   dimensions: CanvasDimensions,
-  watermark: CanvasImageSource | null
+  watermark: CanvasImageSource | null,
+  venueLogos: Partial<Record<VenuePowerUp, HTMLImageElement | null>>
 ): void {
   const { width, height, dpr } = dimensions
 
@@ -295,6 +347,18 @@ function renderGame(
       brickColors[brick.type],
       config.layout.brickBorderRadius
     )
+
+    if (brick.powerUpVenue) {
+      const logo = venueLogos[brick.powerUpVenue]
+      if (logo && logo.naturalWidth > 0) {
+        drawVenueLogoOnBrick(
+          ctx,
+          brick,
+          logo,
+          config.layout.brickBorderRadius
+        )
+      }
+    }
   }
 
   // Helper to draw ball based on style
@@ -340,25 +404,20 @@ function renderGame(
     ctx.globalAlpha = 1
   }
 
-  // Draw ball trail
-  if (config.effects.showTrail && snapshot.ball.trail.length > 0) {
-    for (let i = 0; i < snapshot.ball.trail.length; i++) {
-      const pos = snapshot.ball.trail[i]
-      const progress = (i + 1) / snapshot.ball.trail.length
-      const opacity = progress * config.effects.trailOpacity
-      const trailRadius = snapshot.ball.radius * (0.3 + 0.7 * progress)
+  for (const ball of snapshot.balls) {
+    if (config.effects.showTrail && ball.trail.length > 0) {
+      for (let i = 0; i < ball.trail.length; i++) {
+        const pos = ball.trail[i]
+        const progress = (i + 1) / ball.trail.length
+        const opacity = progress * config.effects.trailOpacity
+        const trailRadius = ball.radius * (0.3 + 0.7 * progress)
 
-      drawBall(pos.x, pos.y, trailRadius, trailColor, opacity, false)
+        drawBall(pos.x, pos.y, trailRadius, trailColor, opacity, false)
+      }
     }
-  }
 
-  // Draw ball
-  drawBall(
-    snapshot.ball.position.x,
-    snapshot.ball.position.y,
-    snapshot.ball.radius,
-    ballColor
-  )
+    drawBall(ball.position.x, ball.position.y, ball.radius, ballColor)
+  }
 
   // Draw paddle — metallic bar with highlight
   const pb = snapshot.paddle.bounds
@@ -444,6 +503,35 @@ export function BrickBreaker({
       cancelled = true
     }
   }, [watermarkSrc])
+
+  const [venueLogos, setVenueLogos] = React.useState<
+    Partial<Record<VenuePowerUp, HTMLImageElement | null>>
+  >({})
+
+  React.useEffect(() => {
+    let cancelled = false
+    const venues: VenuePowerUp[] = ['garrison', 'spirits', 'bassment']
+    void Promise.all(
+      venues.map(
+        (v) =>
+          new Promise<[VenuePowerUp, HTMLImageElement | null]>((resolve) => {
+            const img = new Image()
+            img.decoding = 'async'
+            img.onload = () => resolve([v, img])
+            img.onerror = () => resolve([v, null])
+            img.src = VENUE_LOGO_SRC[v]
+          })
+      )
+    ).then((entries) => {
+      if (cancelled) return
+      const o: Partial<Record<VenuePowerUp, HTMLImageElement | null>> = {}
+      for (const [v, img] of entries) o[v] = img
+      setVenueLogos(o)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Input mode locking - prevents keyboard/mouse conflicts
   const inputModeRef = React.useRef<InputMode>('none')
@@ -613,8 +701,8 @@ export function BrickBreaker({
     canvas.height = dimensions.height * dimensions.dpr
 
     const wm = watermarkSrc && watermarkImg ? watermarkImg : null
-    renderGame(ctx, canvas, snapshot, config, dimensions, wm)
-  }, [snapshot, config, dimensions, theme, watermarkSrc, watermarkImg])
+    renderGame(ctx, canvas, snapshot, config, dimensions, wm, venueLogos)
+  }, [snapshot, config, dimensions, theme, watermarkSrc, watermarkImg, venueLogos])
 
   // Keyboard controls
   React.useEffect(() => {
@@ -662,7 +750,7 @@ export function BrickBreaker({
         } else if (snapshot.state === 'paused') {
           resumeGame()
         } else if (snapshot.state === 'playing') {
-          if (!snapshot.ball.isLaunched) {
+          if (snapshot.balls.some((b) => !b.isLaunched)) {
             launchBall()
           } else {
             pauseGame()
@@ -711,7 +799,7 @@ export function BrickBreaker({
     }
   }, [
     snapshot.state,
-    snapshot.ball.isLaunched,
+    snapshot.balls,
     startGame,
     pauseGame,
     resumeGame,
@@ -745,7 +833,10 @@ export function BrickBreaker({
         startGame()
       } else if (snapshot.state === 'paused') {
         resumeGame()
-      } else if (snapshot.state === 'playing' && !snapshot.ball.isLaunched) {
+      } else if (
+        snapshot.state === 'playing' &&
+        snapshot.balls.some((b) => !b.isLaunched)
+      ) {
         launchBall()
       } else if (snapshot.state === 'won' || snapshot.state === 'lost') {
         resetGame()
@@ -771,7 +862,7 @@ export function BrickBreaker({
     }
   }, [
     snapshot.state,
-    snapshot.ball.isLaunched,
+    snapshot.balls,
     dimensions,
     startGame,
     resumeGame,
@@ -804,7 +895,10 @@ export function BrickBreaker({
         startGame()
       } else if (snapshot.state === 'paused') {
         resumeGame()
-      } else if (snapshot.state === 'playing' && !snapshot.ball.isLaunched) {
+      } else if (
+        snapshot.state === 'playing' &&
+        snapshot.balls.some((b) => !b.isLaunched)
+      ) {
         launchBall()
       } else if (snapshot.state === 'won' || snapshot.state === 'lost') {
         resetGame()
@@ -843,7 +937,7 @@ export function BrickBreaker({
     }
   }, [
     snapshot.state,
-    snapshot.ball.isLaunched,
+    snapshot.balls,
     dimensions,
     startGame,
     resumeGame,

@@ -1,5 +1,8 @@
 export type GameState = 'idle' | 'playing' | 'paused' | 'won' | 'lost' | 'levelComplete'
 
+/** Venue brick power-up (one random brick per level) */
+export type VenuePowerUp = 'garrison' | 'spirits' | 'bassment'
+
 /** Brick types with different behaviors */
 export type BrickType =
   | 'normal'      // Standard brick, 1 hit
@@ -36,6 +39,8 @@ export interface Brick {
   destroyed: boolean
   destroyedAt?: number
   points: number
+  /** Hidden venue power-up brick (max one per level) */
+  powerUpVenue?: VenuePowerUp
 }
 
 /** Brick definition in level data (simplified for level design) */
@@ -85,7 +90,7 @@ export interface GameEngine {
   lives: number
   bricks: Brick[]
   paddle: Paddle
-  ball: Ball
+  balls: Ball[]
   combo: number
   lastHitTime: number
 }
@@ -100,9 +105,16 @@ export interface GameSnapshot {
   lives: number
   bricks: Brick[]
   paddle: Paddle
-  ball: Ball
+  /** All balls in play (normal: one; Spirits power-up: multiball) */
+  balls: Ball[]
   combo: number
   totalLevels: number
+  /** Garrison: double points after combo multiplier (time-limited) */
+  garrisonDoubleActive: boolean
+  /** Bassment: wide paddle (time-limited) */
+  bassmentWideActive: boolean
+  /** Spirits: multiball life rules until last ball is lost */
+  spiritsMultiballActive: boolean
 }
 
 /** Color configuration using CSS custom properties */
