@@ -20,6 +20,8 @@ export {
   BrickBreakerScoreDisplay,
   BrickBreakerActionButton,
   BrickBreakerDefaultUI,
+  BrickBreakerMultiplierBand,
+  BrickBreakerInterstitialQuiz,
 } from './ui'
 
 // Types

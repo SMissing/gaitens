@@ -267,6 +267,11 @@ export interface BrickBreakerProps {
    * `fill` — use the full play area (best for full-screen / phone portrait).
    */
   canvasLayout?: 'contain' | 'fill'
+  /**
+   * Optional image URL (e.g. `/logos/gaitens-logo-white.png`) drawn as a faint
+   * watermark on the playfield background.
+   */
+  watermarkSrc?: string
 }
 
 /** Game end result */

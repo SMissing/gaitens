@@ -15,7 +15,7 @@ interface BrickBreakerUIContextValue {
   pauseGame: () => void
   resumeGame: () => void
   resetGame: () => void
-  nextLevel: () => void
+  advanceAfterLevelQuiz: (wasCorrect: boolean) => void
 }
 
 const BrickBreakerUIContext =
@@ -358,8 +358,7 @@ export function BrickBreakerActionButton({
   onClick,
   ...props
 }: ActionButtonProps) {
-  const { snapshot, startGame, resumeGame, resetGame, nextLevel } =
-    useBrickBreakerUI()
+  const { snapshot, startGame, resumeGame, resetGame } = useBrickBreakerUI()
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     onClick?.(e)
@@ -377,7 +376,6 @@ export function BrickBreakerActionButton({
         setTimeout(startGame, 100)
         break
       case 'levelComplete':
-        nextLevel()
         break
     }
   }
@@ -387,10 +385,11 @@ export function BrickBreakerActionButton({
     paused: 'Resume',
     won: 'Play Again',
     lost: 'Try Again',
-    levelComplete: 'Next Level',
+    levelComplete: 'Use quiz to continue',
   }
 
-  if (snapshot.state === 'playing') return null
+  if (snapshot.state === 'playing' || snapshot.state === 'levelComplete')
+    return null
 
   return (
     <button

@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { Trophy } from 'lucide-react'
+import { ChevronLeft, Trophy } from 'lucide-react'
 import { BrickBreaker } from '@/components/brick-breaker'
 import type { BrickBreakerConfig, DeepPartial, GameEndResult } from '@/components/types'
 import { formatScore } from '@/components/utils'
@@ -23,28 +23,31 @@ type LeaderboardEntry = {
   updatedAt: string
 }
 
-/** Canvas + HUD colors aligned with portal / venue palette */
+/** White Gaitens head — used as playfield watermark (same asset as app shell) */
+const GAITENS_HEAD_LOGO = '/logos/gaitens-logo-white.png'
+
+/** Refined dark “arena” palette; bricks read as panels, gold accent on metal */
 const PORTAL_GAME_CONFIG: DeepPartial<BrickBreakerConfig> = {
   layout: {
-    /** Align with tall HUD; bricks start below ceiling + brickTopGap + one row */
     topPadding: 0.19,
     brickTopGap: 12,
+    brickBorderRadius: 5,
   },
   sizing: {
     paddleOffset: 0.11,
   },
   colors: {
-    background: 'oklch(0.065 0.025 265)',
-    ball: 'var(--spirits-cyan)',
-    paddle: 'var(--spirits-magenta)',
-    ballTrail: 'var(--spirits-cyan)',
-    text: 'var(--foreground)',
-    textMuted: 'var(--muted-foreground)',
+    background: '#0e1016',
+    ball: '#e8eaef',
+    paddle: '#353b4a',
+    ballTrail: 'rgba(232, 234, 239, 0.28)',
+    text: '#f4f4f5',
+    textMuted: '#a1a1aa',
     bricks: {
-      normal: 'var(--spirits-cyan)',
-      strong: 'var(--spirits-magenta)',
-      metal: 'var(--spirits-yellow)',
-      indestructible: 'var(--muted-foreground)',
+      normal: '#4f566b',
+      strong: '#5a4d6e',
+      metal: '#c5a66b',
+      indestructible: '#2a2e38',
     },
   },
 }
@@ -65,14 +68,14 @@ function LeaderboardList({
   currentUserId: string
 }) {
   if (loading) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">Loading…</p>
+    return <p className="py-6 text-center text-sm text-zinc-500">Loading…</p>
   }
   if (loadError) {
-    return <p className="py-6 text-center text-sm text-destructive">{loadError}</p>
+    return <p className="py-6 text-center text-sm text-red-400">{loadError}</p>
   }
   if (leaderboard.length === 0) {
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
+      <p className="py-6 text-center text-sm text-zinc-500">
         No scores yet — be the first on the board.
       </p>
     )
@@ -85,14 +88,14 @@ function LeaderboardList({
           className={cn(
             'flex items-center justify-between gap-2 rounded-xl px-3 py-2.5',
             row.userId === currentUserId &&
-              'bg-spirits-cyan/15 ring-1 ring-spirits-cyan/35'
+              'bg-amber-200/10 ring-1 ring-amber-200/25'
           )}
         >
           <span className="flex min-w-0 items-center gap-2">
-            <span className="w-7 shrink-0 tabular-nums text-muted-foreground">{row.rank}.</span>
-            <span className="truncate font-medium">{row.name}</span>
+            <span className="w-7 shrink-0 tabular-nums text-zinc-500">{row.rank}.</span>
+            <span className="truncate font-medium text-zinc-200">{row.name}</span>
           </span>
-          <span className="shrink-0 tabular-nums font-semibold text-spirits-cyan">
+          <span className="shrink-0 tabular-nums font-semibold text-amber-200/95">
             {formatScore(row.highScore)}
           </span>
         </li>
@@ -156,40 +159,48 @@ export function BrickBreakerScreen({ currentUserId }: BrickBreakerScreenProps) {
   )
 
   return (
-    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden overscroll-none bg-background text-foreground">
+    <div className="flex h-[100dvh] max-h-[100dvh] flex-col overflow-hidden overscroll-none bg-[#07080c] text-zinc-100">
       <header
-        className="flex shrink-0 items-center gap-2 border-b border-border/60 bg-card/85 px-3 py-2 backdrop-blur-md supports-[backdrop-filter]:bg-card/70 sm:gap-3 sm:px-4 sm:py-3"
+        className="shrink-0 border-b border-white/[0.06] bg-zinc-950/92 backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/80"
         style={{
-          paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))',
+          paddingTop: 'max(10px, env(safe-area-inset-top, 0px))',
+          paddingBottom: '10px',
+          paddingLeft: 'max(12px, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(12px, env(safe-area-inset-right, 0px))',
         }}
       >
-        <Link
-          href="/dashboard"
-          className="min-h-[44px] min-w-[44px] shrink-0 content-center text-center text-sm font-medium text-muted-foreground transition-colors hover:text-spirits-cyan sm:min-w-0 sm:text-left"
-        >
-          ← <span className="hidden sm:inline">Dashboard</span>
-        </Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate font-['Bebas_Neue',sans-serif] text-xl tracking-wide text-spirits-cyan sm:text-2xl">
-            Brick breaker
-          </h1>
-          <p className="truncate text-[10px] text-muted-foreground sm:text-xs">
-            10 levels · tap the game, then play · team high scores
-          </p>
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-2 sm:gap-3">
+          <Link
+            href="/dashboard"
+            aria-label="Back to dashboard"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-zinc-200 ring-1 ring-white/[0.08] transition-colors hover:bg-white/[0.1] hover:text-zinc-50 active:scale-[0.97]"
+          >
+            <ChevronLeft className="size-5" strokeWidth={2.25} aria-hidden />
+          </Link>
+
+          <div className="min-w-0 flex-1 px-1 text-center sm:px-2">
+            <h1 className="truncate font-['Bebas_Neue',sans-serif] text-[1.15rem] leading-tight tracking-[0.16em] text-zinc-50 sm:text-xl">
+              BRICK BREAKER
+            </h1>
+            <p className="truncate text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-500 sm:text-[11px]">
+              10 levels · team leaderboard
+            </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Open leaderboard"
+            className="size-11 shrink-0 rounded-full bg-white/[0.06] text-amber-200/95 ring-1 ring-white/[0.08] hover:bg-amber-200/10 hover:text-amber-100 active:scale-[0.97]"
+            onClick={() => setScoresOpen(true)}
+          >
+            <Trophy className="size-5" aria-hidden />
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="h-10 shrink-0 gap-1.5 border-spirits-cyan/35 bg-spirits-cyan/10 px-2.5 text-spirits-cyan hover:bg-spirits-cyan/20 sm:px-3"
-          onClick={() => setScoresOpen(true)}
-        >
-          <Trophy className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">Scores</span>
-        </Button>
       </header>
 
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 bg-[#060709]">
         <BrickBreaker
           canvasLayout="fill"
           className="absolute inset-0 flex min-h-0 flex-col"
@@ -197,6 +208,7 @@ export function BrickBreakerScreen({ currentUserId }: BrickBreakerScreenProps) {
             ...PORTAL_GAME_CONFIG,
             storage: { persistHighScore: false },
           }}
+          watermarkSrc={GAITENS_HEAD_LOGO}
           remoteHighScore={myHighScore}
           onGameEnd={onGameEnd}
           showFocusRing={false}
@@ -204,9 +216,11 @@ export function BrickBreakerScreen({ currentUserId }: BrickBreakerScreenProps) {
       </div>
 
       <p
-        className="shrink-0 border-t border-border/40 bg-card/40 px-3 py-2 text-center text-[10px] leading-snug text-muted-foreground sm:text-xs"
+        className="shrink-0 border-t border-white/[0.06] bg-zinc-950/70 py-2 text-center text-[10px] leading-snug text-zinc-500 sm:text-xs"
         style={{
           paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))',
+          paddingLeft: 'max(12px, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(12px, env(safe-area-inset-right, 0px))',
         }}
       >
         <span className="hidden sm:inline">
@@ -216,13 +230,13 @@ export function BrickBreakerScreen({ currentUserId }: BrickBreakerScreenProps) {
       </p>
 
       <Dialog open={scoresOpen} onOpenChange={setScoresOpen}>
-        <DialogContent className="max-h-[min(90dvh,32rem)] w-[min(100%,24rem)] border-border/60 bg-card">
+        <DialogContent className="max-h-[min(90dvh,32rem)] w-[min(100%,24rem)] border-white/10 bg-zinc-900 shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="font-['Bebas_Neue',sans-serif] text-2xl font-normal tracking-wide text-spirits-cyan">
+            <DialogTitle className="font-['Bebas_Neue',sans-serif] text-2xl font-normal tracking-[0.1em] text-zinc-100">
               Team leaderboard
             </DialogTitle>
           </DialogHeader>
-          <p className="px-4 pb-2 text-xs text-muted-foreground sm:px-6">
+          <p className="px-4 pb-2 text-xs text-zinc-500 sm:px-6">
             Best score per person is saved when a run ends (win or lose). Your HI on the game
             bar is your personal best.
           </p>

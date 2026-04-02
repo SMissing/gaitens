@@ -24,6 +24,10 @@ import {
   BrickBreakerDefaultUI,
   BrickBreakerCanvas,
 } from './ui'
+import {
+  PlayfieldMetricsProvider,
+  type PlayfieldMetrics,
+} from '@/components/brick-breaker-playfield-metrics'
 
 /**
  * Draw rounded rectangle
@@ -50,6 +54,92 @@ function drawRoundedRect(
   ctx.fill()
 }
 
+function strokeRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+  strokeStyle: string,
+  lineWidth: number
+): void {
+  ctx.beginPath()
+  ctx.moveTo(x + radius, y)
+  ctx.lineTo(x + width - radius, y)
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius)
+  ctx.lineTo(x + width, y + height - radius)
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height)
+  ctx.lineTo(x + radius, y + height)
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius)
+  ctx.lineTo(x, y + radius)
+  ctx.quadraticCurveTo(x, y, x + radius, y)
+  ctx.closePath()
+  ctx.strokeStyle = strokeStyle
+  ctx.lineWidth = lineWidth
+  ctx.stroke()
+}
+
+function drawArenaBackground(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  watermark: CanvasImageSource | null
+): void {
+  const g = ctx.createLinearGradient(0, 0, width, height * 1.05)
+  g.addColorStop(0, '#161922')
+  g.addColorStop(0.42, '#0e1016')
+  g.addColorStop(1, '#060709')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, width, height)
+
+  const wash = ctx.createRadialGradient(
+    width * 0.5,
+    height * 0.08,
+    0,
+    width * 0.5,
+    height * 0.35,
+    height * 0.72
+  )
+  wash.addColorStop(0, 'rgba(245, 240, 230, 0.045)')
+  wash.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = wash
+  ctx.fillRect(0, 0, width, height)
+
+  const vignette = ctx.createRadialGradient(
+    width * 0.5,
+    height * 0.52,
+    height * 0.22,
+    width * 0.5,
+    height * 0.52,
+    height * 0.92
+  )
+  vignette.addColorStop(0, 'rgba(0, 0, 0, 0)')
+  vignette.addColorStop(1, 'rgba(0, 0, 0, 0.5)')
+  ctx.fillStyle = vignette
+  ctx.fillRect(0, 0, width, height)
+
+  if (watermark && 'width' in watermark && (watermark as HTMLImageElement).width > 0) {
+    const iw = (watermark as HTMLImageElement).width
+    const ih = (watermark as HTMLImageElement).height
+    const maxW = width * 0.52
+    const maxH = height * 0.42
+    const scale = Math.min(maxW / iw, maxH / ih)
+    const dw = iw * scale
+    const dh = ih * scale
+    ctx.save()
+    ctx.globalAlpha = 0.072
+    ctx.drawImage(
+      watermark,
+      (width - dw) * 0.5,
+      height * 0.46 - dh * 0.5,
+      dw,
+      dh
+    )
+    ctx.restore()
+  }
+}
+
 /**
  * Draw brick with type-specific patterns
  */
@@ -72,6 +162,16 @@ function drawBrick(
 
   ctx.fillStyle = baseColor
   drawRoundedRect(ctx, x, y, width, height, borderRadius)
+  strokeRoundedRect(
+    ctx,
+    x + 0.5,
+    y + 0.5,
+    width - 1,
+    height - 1,
+    Math.max(0, borderRadius - 0.5),
+    'rgba(255, 255, 255, 0.14)',
+    1
+  )
 
   // Draw pattern overlay for special bricks
   if (visual.pattern && brick.type !== 'normal') {
@@ -112,7 +212,8 @@ function renderGame(
   canvas: HTMLCanvasElement,
   snapshot: GameSnapshot,
   config: BrickBreakerConfig,
-  dimensions: CanvasDimensions
+  dimensions: CanvasDimensions,
+  watermark: CanvasImageSource | null
 ): void {
   const { width, height, dpr } = dimensions
 
@@ -125,8 +226,6 @@ function renderGame(
   const paddleColor = resolveCssColor(config.colors.paddle, canvas)
   const ballColor = resolveCssColor(config.colors.ball, canvas)
   const trailColor = resolveCssColor(config.colors.ballTrail, canvas)
-  const textColor = resolveCssColor(config.colors.text, canvas)
-  const textMutedColor = resolveCssColor(config.colors.textMuted, canvas)
 
   const brickColors: Record<BrickType, string> = {
     normal: resolveCssColor(config.colors.bricks.normal, canvas),
@@ -138,29 +237,35 @@ function renderGame(
     ),
   }
 
-  // Background
-  ctx.fillStyle = bgColor
-  ctx.fillRect(0, 0, width, height)
+  if (watermark) {
+    drawArenaBackground(ctx, width, height, watermark)
+  } else {
+    ctx.fillStyle = bgColor
+    ctx.fillRect(0, 0, width, height)
+  }
 
   const ceilingY = height * config.layout.topPadding
-  const spiritsYellow = resolveCssColor('var(--spirits-yellow)', canvas)
+  const ceilingGold = 'rgba(212, 190, 152, 0.88)'
 
-  // Playfield ceiling (matches layout.topPadding — ball bounces here)
-  ctx.strokeStyle = spiritsYellow
-  ctx.globalAlpha = 0.95
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.moveTo(0, ceilingY + 0.5)
-  ctx.lineTo(width, ceilingY + 0.5)
-  ctx.stroke()
-  ctx.globalAlpha = 0.35
-  ctx.strokeStyle = spiritsYellow
-  ctx.lineWidth = 6
-  ctx.beginPath()
-  ctx.moveTo(0, ceilingY + 0.5)
-  ctx.lineTo(width, ceilingY + 0.5)
-  ctx.stroke()
+  // Playfield ceiling — slim champagne line + soft glow
+  ctx.save()
+  ctx.shadowColor = 'rgba(212, 190, 152, 0.35)'
+  ctx.shadowBlur = 10
+  ctx.strokeStyle = ceilingGold
   ctx.globalAlpha = 1
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(0, ceilingY + 0.5)
+  ctx.lineTo(width, ceilingY + 0.5)
+  ctx.stroke()
+  ctx.shadowBlur = 0
+  ctx.globalAlpha = 0.22
+  ctx.lineWidth = 5
+  ctx.beginPath()
+  ctx.moveTo(0, ceilingY + 0.5)
+  ctx.lineTo(width, ceilingY + 0.5)
+  ctx.stroke()
+  ctx.restore()
 
   // Draw bricks
   const now = Date.now()
@@ -198,7 +303,8 @@ function renderGame(
     y: number,
     radius: number,
     color: string,
-    alpha = 1
+    alpha = 1,
+    outline = true
   ) => {
     ctx.globalAlpha = alpha
     ctx.fillStyle = color
@@ -209,9 +315,26 @@ function renderGame(
       const size = radius * 2
       ctx.fillRect(x - radius, y - radius, size, size)
     } else {
+      const g = ctx.createRadialGradient(
+        x - radius * 0.35,
+        y - radius * 0.35,
+        0,
+        x,
+        y,
+        radius
+      )
+      g.addColorStop(0, 'rgba(255, 255, 255, 0.95)')
+      g.addColorStop(0.55, color)
+      g.addColorStop(1, 'rgba(0, 0, 0, 0.25)')
+      ctx.fillStyle = g
       ctx.beginPath()
       ctx.arc(x, y, radius, 0, Math.PI * 2)
       ctx.fill()
+      if (outline) {
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+        ctx.lineWidth = 1
+        ctx.stroke()
+      }
     }
 
     ctx.globalAlpha = 1
@@ -225,7 +348,7 @@ function renderGame(
       const opacity = progress * config.effects.trailOpacity
       const trailRadius = snapshot.ball.radius * (0.3 + 0.7 * progress)
 
-      drawBall(pos.x, pos.y, trailRadius, trailColor, opacity)
+      drawBall(pos.x, pos.y, trailRadius, trailColor, opacity, false)
     }
   }
 
@@ -237,19 +360,27 @@ function renderGame(
     ballColor
   )
 
-  // Draw paddle
-  ctx.fillStyle = paddleColor
+  // Draw paddle — metallic bar with highlight
+  const pb = snapshot.paddle.bounds
   const paddleRadius =
     config.layout.paddleBorderRadius === 'auto'
-      ? snapshot.paddle.bounds.height / 2
+      ? pb.height / 2
       : config.layout.paddleBorderRadius
-  drawRoundedRect(
+  const pg = ctx.createLinearGradient(pb.x, pb.y, pb.x, pb.y + pb.height)
+  pg.addColorStop(0, 'rgba(255, 255, 255, 0.22)')
+  pg.addColorStop(0.35, paddleColor)
+  pg.addColorStop(1, 'rgba(0, 0, 0, 0.45)')
+  ctx.fillStyle = pg
+  drawRoundedRect(ctx, pb.x, pb.y, pb.width, pb.height, paddleRadius)
+  strokeRoundedRect(
     ctx,
-    snapshot.paddle.bounds.x,
-    snapshot.paddle.bounds.y,
-    snapshot.paddle.bounds.width,
-    snapshot.paddle.bounds.height,
-    paddleRadius
+    pb.x + 0.5,
+    pb.y + 0.5,
+    pb.width - 1,
+    pb.height - 1,
+    Math.max(0, paddleRadius - 0.5),
+    'rgba(255, 255, 255, 0.2)',
+    1
   )
 
   // Note: HUD and overlays are now rendered as React components via children
@@ -267,6 +398,7 @@ export function BrickBreaker({
   startLevel = 1,
   remoteHighScore,
   canvasLayout = 'contain',
+  watermarkSrc,
   onGameEnd,
   onScoreChange,
   onStateChange,
@@ -285,6 +417,33 @@ export function BrickBreaker({
     dpr: 1,
   })
   const [theme, setTheme] = React.useState('')
+  const [watermarkImg, setWatermarkImg] = React.useState<HTMLImageElement | null>(
+    null
+  )
+  const [playfieldMetrics, setPlayfieldMetrics] = React.useState<PlayfieldMetrics>({
+    hudBottomPx: 0,
+    ceilingPx: 0,
+  })
+
+  React.useEffect(() => {
+    if (!watermarkSrc) {
+      setWatermarkImg(null)
+      return
+    }
+    let cancelled = false
+    const img = new Image()
+    img.decoding = 'async'
+    img.onload = () => {
+      if (!cancelled) setWatermarkImg(img)
+    }
+    img.onerror = () => {
+      if (!cancelled) setWatermarkImg(null)
+    }
+    img.src = watermarkSrc
+    return () => {
+      cancelled = true
+    }
+  }, [watermarkSrc])
 
   // Input mode locking - prevents keyboard/mouse conflicts
   const inputModeRef = React.useRef<InputMode>('none')
@@ -302,7 +461,8 @@ export function BrickBreaker({
     pauseGame,
     resumeGame,
     resetGame,
-    nextLevel,
+    advanceAfterLevelQuiz,
+    debugCompleteLevel,
     movePaddle,
     setPaddlePosition,
     launchBall,
@@ -381,6 +541,49 @@ export function BrickBreaker({
     }
   }, [canvasLayout])
 
+  const measurePlayfieldMetrics = React.useCallback(() => {
+    const canvas = canvasRef.current
+    const wrap = canvasWrapperRef.current
+    if (!canvas || !wrap) return
+
+    const hud = wrap.querySelector('[data-slot="brick-breaker-hud"]')
+    const wrapRect = wrap.getBoundingClientRect()
+    const crect = canvas.getBoundingClientRect()
+
+    let hudBottomPx = 0
+    if (hud) {
+      const hr = (hud as HTMLElement).getBoundingClientRect()
+      hudBottomPx = Math.max(0, hr.bottom - wrapRect.top)
+    }
+
+    const canvasTopInWrapper = Math.max(0, crect.top - wrapRect.top)
+    const ceilingPx = canvasTopInWrapper + dimensions.height * config.layout.topPadding
+
+    setPlayfieldMetrics((prev) => {
+      if (
+        Math.abs(prev.hudBottomPx - hudBottomPx) < 0.5 &&
+        Math.abs(prev.ceilingPx - ceilingPx) < 0.5
+      ) {
+        return prev
+      }
+      return { hudBottomPx, ceilingPx }
+    })
+  }, [dimensions.height, config.layout.topPadding])
+
+  React.useLayoutEffect(() => {
+    measurePlayfieldMetrics()
+  }, [measurePlayfieldMetrics, snapshot.state])
+
+  React.useEffect(() => {
+    const wrap = canvasWrapperRef.current
+    if (!wrap) return
+    const ro = new ResizeObserver(() => {
+      requestAnimationFrame(measurePlayfieldMetrics)
+    })
+    ro.observe(wrap)
+    return () => ro.disconnect()
+  }, [measurePlayfieldMetrics])
+
   // Theme changes
   React.useEffect(() => {
     const html = document.documentElement
@@ -409,8 +612,9 @@ export function BrickBreaker({
     canvas.width = dimensions.width * dimensions.dpr
     canvas.height = dimensions.height * dimensions.dpr
 
-    renderGame(ctx, canvas, snapshot, config, dimensions)
-  }, [snapshot, config, dimensions, theme])
+    const wm = watermarkSrc && watermarkImg ? watermarkImg : null
+    renderGame(ctx, canvas, snapshot, config, dimensions, wm)
+  }, [snapshot, config, dimensions, theme, watermarkSrc, watermarkImg])
 
   // Keyboard controls
   React.useEffect(() => {
@@ -440,6 +644,16 @@ export function BrickBreaker({
         return
       }
 
+      if (
+        process.env.NODE_ENV === 'development' &&
+        code === 'KeyG' &&
+        snapshot.state === 'playing'
+      ) {
+        e.preventDefault()
+        debugCompleteLevel()
+        return
+      }
+
       // Action keys (always allowed regardless of input mode)
       if (KEY_BINDINGS.START.includes(code)) {
         e.preventDefault()
@@ -453,8 +667,6 @@ export function BrickBreaker({
           } else {
             pauseGame()
           }
-        } else if (snapshot.state === 'levelComplete') {
-          nextLevel()
         }
       }
 
@@ -504,9 +716,9 @@ export function BrickBreaker({
     pauseGame,
     resumeGame,
     resetGame,
-    nextLevel,
     movePaddle,
     launchBall,
+    debugCompleteLevel,
   ])
 
   // Mouse controls
@@ -535,8 +747,6 @@ export function BrickBreaker({
         resumeGame()
       } else if (snapshot.state === 'playing' && !snapshot.ball.isLaunched) {
         launchBall()
-      } else if (snapshot.state === 'levelComplete') {
-        nextLevel()
       } else if (snapshot.state === 'won' || snapshot.state === 'lost') {
         resetGame()
         setTimeout(startGame, 100)
@@ -566,7 +776,6 @@ export function BrickBreaker({
     startGame,
     resumeGame,
     resetGame,
-    nextLevel,
     setPaddlePosition,
     launchBall,
   ])
@@ -597,8 +806,6 @@ export function BrickBreaker({
         resumeGame()
       } else if (snapshot.state === 'playing' && !snapshot.ball.isLaunched) {
         launchBall()
-      } else if (snapshot.state === 'levelComplete') {
-        nextLevel()
       } else if (snapshot.state === 'won' || snapshot.state === 'lost') {
         resetGame()
         setTimeout(startGame, 100)
@@ -641,7 +848,6 @@ export function BrickBreaker({
     startGame,
     resumeGame,
     resetGame,
-    nextLevel,
     setPaddlePosition,
     launchBall,
   ])
@@ -661,9 +867,9 @@ export function BrickBreaker({
       pauseGame,
       resumeGame,
       resetGame,
-      nextLevel,
+      advanceAfterLevelQuiz,
     }),
-    [snapshot, startGame, pauseGame, resumeGame, resetGame, nextLevel]
+    [snapshot, startGame, pauseGame, resumeGame, resetGame, advanceAfterLevelQuiz]
   )
 
   // Canvas element to render
@@ -739,47 +945,49 @@ export function BrickBreaker({
 
   return (
     <BrickBreakerUIProvider value={uiContextValue}>
-      <div
-        ref={containerRef}
-        data-slot="brick-breaker"
-        data-state={snapshot.state}
-        className={cn('relative flex flex-col', className)}
-      >
-        {hasCanvasSlot ? (
-          // User specified layout with canvas slot
-          processedChildren
-        ) : children ? (
-          // User provided children but no canvas slot - canvas first, then children overlay
-          <>
-            <div
-              ref={canvasWrapperRef}
-              className="relative flex min-h-0 w-full flex-1 items-center justify-center"
-            >
-              {canvasElement}
-              {children}
-            </div>
-          </>
-        ) : (
-          // No children - use default UI
-          <>
-            <div
-              ref={canvasWrapperRef}
-              className="relative flex min-h-0 w-full flex-1 items-center justify-center"
-            >
-              {canvasElement}
-              <BrickBreakerDefaultUI />
-            </div>
-          </>
-        )}
+      <PlayfieldMetricsProvider value={playfieldMetrics}>
+        <div
+          ref={containerRef}
+          data-slot="brick-breaker"
+          data-state={snapshot.state}
+          className={cn('relative flex flex-col', className)}
+        >
+          {hasCanvasSlot ? (
+            // User specified layout with canvas slot
+            processedChildren
+          ) : children ? (
+            // User provided children but no canvas slot - canvas first, then children overlay
+            <>
+              <div
+                ref={canvasWrapperRef}
+                className="relative flex min-h-0 w-full flex-1 items-center justify-center"
+              >
+                {canvasElement}
+                {children}
+              </div>
+            </>
+          ) : (
+            // No children - use default UI
+            <>
+              <div
+                ref={canvasWrapperRef}
+                className="relative flex min-h-0 w-full flex-1 items-center justify-center"
+              >
+                {canvasElement}
+                <BrickBreakerDefaultUI />
+              </div>
+            </>
+          )}
 
-        <div className="sr-only" aria-live="polite" aria-atomic="true">
-          {snapshot.state === 'won' &&
-            `You won! Final score: ${snapshot.score}`}
-          {snapshot.state === 'lost' && `Game over. Score: ${snapshot.score}`}
-          {snapshot.state === 'levelComplete' &&
-            `Level ${snapshot.level} complete! Score: ${snapshot.score}`}
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            {snapshot.state === 'won' &&
+              `You won! Final score: ${snapshot.score}`}
+            {snapshot.state === 'lost' && `Game over. Score: ${snapshot.score}`}
+            {snapshot.state === 'levelComplete' &&
+              `Level ${snapshot.level} complete! Score: ${snapshot.score}`}
+          </div>
         </div>
-      </div>
+      </PlayfieldMetricsProvider>
     </BrickBreakerUIProvider>
   )
 }

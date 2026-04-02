@@ -46,7 +46,10 @@ interface UseBrickBreakerReturn {
   pauseGame: () => void
   resumeGame: () => void
   resetGame: () => void
-  nextLevel: () => void
+  /** After level clear: wrong answer halves score, then advances. */
+  advanceAfterLevelQuiz: (wasCorrect: boolean) => void
+  /** Dev: instantly clear the level (last level → win). */
+  debugCompleteLevel: () => void
   movePaddle: (direction: 'left' | 'right' | 'none') => void
   setPaddlePosition: (x: number) => void
   launchBall: () => void
@@ -591,23 +594,74 @@ export function useBrickBreaker(
     forceRender()
   }, [config.gameplay.startingLives, startLevel, initLevel, onStateChange])
 
-  const nextLevel = React.useCallback(() => {
-    if (
-      gameStateRef.current === 'levelComplete' &&
-      levelIndexRef.current < levels.length - 1
-    ) {
+  const advanceAfterLevelQuiz = React.useCallback(
+    (wasCorrect: boolean) => {
+      if (
+        gameStateRef.current !== 'levelComplete' ||
+        levelIndexRef.current >= levels.length - 1
+      ) {
+        return
+      }
+
+      if (!wasCorrect) {
+        scoreRef.current = Math.max(0, Math.floor(scoreRef.current / 2))
+        onScoreChange?.(scoreRef.current, comboRef.current)
+      }
+
       levelIndexRef.current++
       initLevel(levelIndexRef.current)
       onLevelChange?.(levelIndexRef.current + 1)
 
-      // Auto-launch after brief pause
       gameStateRef.current = 'playing'
       onStateChange?.('playing')
       lastFrameTimeRef.current = performance.now()
       animationFrameRef.current = requestAnimationFrame(gameLoop)
       forceRender()
+    },
+    [levels.length, initLevel, onLevelChange, onStateChange, onScoreChange, gameLoop]
+  )
+
+  const debugCompleteLevel = React.useCallback(() => {
+    if (gameStateRef.current !== 'playing') return
+
+    cancelAnimationFrame(animationFrameRef.current)
+
+    const bricks = bricksRef.current
+    for (const b of bricks) {
+      if (b.type === 'indestructible') continue
+      b.destroyed = true
+      b.health = 0
     }
-  }, [levels.length, initLevel, onLevelChange, onStateChange, gameLoop])
+    destroyedBricksRef.current = totalBricksRef.current
+
+    scoreRef.current += config.scoring.levelBonus
+    onScoreChange?.(scoreRef.current, comboRef.current)
+
+    if (levelIndexRef.current >= levels.length - 1) {
+      gameStateRef.current = 'won'
+      onStateChange?.('won')
+      onGameEnd?.({
+        won: true,
+        score: scoreRef.current,
+        highScore: Math.max(scoreRef.current, highScoreRef.current),
+        level: levelIndexRef.current + 1,
+        totalLevels: levels.length,
+        bricksDestroyed: destroyedBricksRef.current,
+        totalBricks: totalBricksRef.current,
+      })
+    } else {
+      gameStateRef.current = 'levelComplete'
+      onStateChange?.('levelComplete')
+    }
+
+    forceRender()
+  }, [
+    config.scoring.levelBonus,
+    levels.length,
+    onGameEnd,
+    onScoreChange,
+    onStateChange,
+  ])
 
   const movePaddle = React.useCallback((direction: 'left' | 'right' | 'none') => {
     paddleDirectionRef.current = direction
@@ -648,7 +702,8 @@ export function useBrickBreaker(
     pauseGame,
     resumeGame,
     resetGame,
-    nextLevel,
+    advanceAfterLevelQuiz,
+    debugCompleteLevel,
     movePaddle,
     setPaddlePosition,
     launchBall: launchBallAction,
