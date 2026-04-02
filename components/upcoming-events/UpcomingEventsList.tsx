@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, MapPin, Edit, Trash2, Plus } from 'lucide-react'
-import { formatDate } from '@/lib/date-utils'
+import { formatDate, parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
 import { EventForm } from './EventForm'
 import Image from 'next/image'
 
@@ -26,12 +26,34 @@ interface Event {
   }
 }
 
-interface UpcomingEventsListProps {
+export interface UpcomingEventsListProps {
   initialEvents: Event[]
   isManagerOrAdmin: boolean
+  /** Past: events before today, newest first; no create button */
+  variant?: 'upcoming' | 'past'
 }
 
-export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: UpcomingEventsListProps) {
+function startOfToday(): Date {
+  const t = new Date()
+  t.setHours(0, 0, 0, 0)
+  return t
+}
+
+function eventDayLocal(eventDate: string): Date {
+  return /^\d{4}-\d{2}-\d{2}$/.test(eventDate)
+    ? parseYyyyMmDdLocal(eventDate)
+    : (() => {
+        const d = new Date(eventDate)
+        d.setHours(0, 0, 0, 0)
+        return d
+      })()
+}
+
+export function UpcomingEventsList({
+  initialEvents,
+  isManagerOrAdmin,
+  variant = 'upcoming',
+}: UpcomingEventsListProps) {
   const [events, setEvents] = useState<Event[]>(initialEvents)
   const [showForm, setShowForm] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
@@ -80,13 +102,22 @@ export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: Upcoming
     return `${displayHour}:${minutes} ${ampm}`
   }
 
-  // Filter out past events (only show upcoming)
-  const upcomingEvents = events.filter(event => {
-    const eventDate = new Date(event.eventDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    return eventDate >= today
-  })
+  const today = startOfToday()
+  const todayStr = toYyyyMmDdLocal(today)
+
+  const displayedEvents = events
+    .filter((event) => {
+      const day = eventDayLocal(event.eventDate)
+      const dayStr = /^\d{4}-\d{2}-\d{2}$/.test(event.eventDate)
+        ? event.eventDate
+        : toYyyyMmDdLocal(day)
+      return variant === 'upcoming' ? dayStr >= todayStr : dayStr < todayStr
+    })
+    .sort((a, b) => {
+      const da = eventDayLocal(a.eventDate).getTime()
+      const db = eventDayLocal(b.eventDate).getTime()
+      return variant === 'upcoming' ? da - db : db - da
+    })
 
   if (showForm || editingEvent) {
     return (
@@ -103,12 +134,17 @@ export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: Upcoming
     )
   }
 
-  if (upcomingEvents.length === 0 && !isManagerOrAdmin) {
+  const emptyMessage =
+    variant === 'upcoming'
+      ? 'No upcoming events scheduled.'
+      : 'No past events to show yet.'
+
+  if (displayedEvents.length === 0 && !isManagerOrAdmin) {
     return (
       <Card className="bg-[#1e1e1e] rounded-2xl border border-border/50">
         <CardContent className="p-8 text-center">
           <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-xl text-muted-foreground">No upcoming events scheduled.</p>
+          <p className="text-xl text-muted-foreground">{emptyMessage}</p>
         </CardContent>
       </Card>
     )
@@ -116,7 +152,7 @@ export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: Upcoming
 
   return (
     <div className="space-y-4">
-      {isManagerOrAdmin && (
+      {variant === 'upcoming' && isManagerOrAdmin && (
         <div className="flex justify-end">
           <Button
             onClick={() => setShowForm(true)}
@@ -128,12 +164,12 @@ export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: Upcoming
         </div>
       )}
 
-      {upcomingEvents.length === 0 ? (
+      {displayedEvents.length === 0 ? (
         <Card className="bg-[#1e1e1e] rounded-2xl border border-border/50">
           <CardContent className="p-8 text-center">
             <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-xl text-muted-foreground">No upcoming events scheduled.</p>
-            {isManagerOrAdmin && (
+            <p className="text-xl text-muted-foreground">{emptyMessage}</p>
+            {variant === 'upcoming' && isManagerOrAdmin && (
               <p className="text-sm text-muted-foreground mt-2">
                 Click "Create Event" to add one.
               </p>
@@ -142,7 +178,7 @@ export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: Upcoming
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {upcomingEvents.map((event) => (
+          {displayedEvents.map((event) => (
             <Card key={event.id} className="bg-[#1e1e1e] rounded-2xl border border-border/50 overflow-hidden">
               {event.imageUrl && (
                 <div className="relative w-full h-48 bg-muted">
@@ -220,4 +256,8 @@ export function UpcomingEventsList({ initialEvents, isManagerOrAdmin }: Upcoming
       )}
     </div>
   )
+}
+
+export function PastEventsList(props: Omit<UpcomingEventsListProps, 'variant'>) {
+  return <UpcomingEventsList {...props} variant="past" />
 }

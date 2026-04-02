@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   BookOpen,
   Calendar,
+  History,
   GraduationCap,
   MessageSquare,
   Lightbulb,
@@ -15,6 +16,7 @@ import {
   CheckCircle,
   AlertCircle,
   Image as ImageIcon,
+  Newspaper,
   Scale,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
@@ -61,6 +63,13 @@ export function DockExpansion() {
               <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Upcoming Events</div>
             </Link>
+            <Link
+              href="/past-events"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <History className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Past Events</div>
+            </Link>
           </div>
         )
       case 'learning':
@@ -100,6 +109,13 @@ export function DockExpansion() {
             >
               <ImageIcon className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Photo Album</div>
+            </Link>
+            <Link
+              href="/blog"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Newspaper className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Blog</div>
             </Link>
           </div>
         )
@@ -176,6 +192,13 @@ export function DockExpansion() {
               <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Staff Badges</div>
             </Link>
+            <Link
+              href="/manager/achievements/create"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Create Badges</div>
+            </Link>
           </div>
         )
       case 'admin':
@@ -197,11 +220,11 @@ export function DockExpansion() {
               <div className="text-sm font-medium text-card-foreground">Disciplinaries</div>
             </Link>
             <Link
-              href="/admin/achievements"
+              href="/admin/blog"
               className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
             >
-              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
-              <div className="text-sm font-medium text-card-foreground">Create Badges</div>
+              <Newspaper className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Blog</div>
             </Link>
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-3 mb-1 px-1">
               Legal

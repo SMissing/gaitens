@@ -124,7 +124,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const isBarredPage = pathname.startsWith('/manager/barred')
   const isMeetingsPage = pathname.startsWith('/manager/meetings')
   const isManagementCalPage = pathname.startsWith('/manager/management-calendar')
-  const isManagerAchievementsPage = pathname.startsWith('/manager/achievements')
+  const isManagerAchievementsPage =
+    pathname.startsWith('/manager/achievements') &&
+    !pathname.startsWith('/manager/achievements/create')
   const isModuleMakerPage = pathname.startsWith('/manager/training')
   const isNoticesPostPage =
     pathname === '/manager/notices/post' ||
@@ -519,7 +521,12 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   // Determine active category based on current route
   const getActiveCategory = (): string | null => {
     if (pathname === '/dashboard') return null
-    if (pathname.startsWith('/holidays') || pathname.startsWith('/upcoming-events')) return 'timeoff'
+    if (
+      pathname.startsWith('/holidays') ||
+      pathname.startsWith('/upcoming-events') ||
+      pathname.startsWith('/past-events')
+    )
+      return 'timeoff'
     if (pathname.startsWith('/training') || pathname.startsWith('/handbook') || pathname.startsWith('/businesses')) return 'learning'
     if (pathname.startsWith('/social') || pathname.startsWith('/employee-of-the-month') || pathname.startsWith('/photo-album')) return 'community'
     if (pathname.startsWith('/ideas') || pathname.startsWith('/grievance') || pathname.startsWith('/anonymous-report')) return 'feedback'
@@ -718,7 +725,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                             { value: 'calendar' as const, label: 'Calendar' },
                             { value: 'upcoming_list' as const, label: 'Upcoming list' },
                             { value: 'previous_list' as const, label: 'Previous list' },
-                          ] as const
+                            ...(user.role === 'manager' || user.role === 'admin'
+                              ? [{ value: 'by_staff_list' as const, label: 'By staff' }]
+                              : []),
+                          ] satisfies { value: HolidaysViewMode; label: string }[]
                         ).map((opt) => (
                           <button
                             key={opt.value}

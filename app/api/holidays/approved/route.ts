@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const filterUserId = searchParams.get('userId')
 
     let query = supabase
       .from('holiday_requests')
@@ -44,6 +45,10 @@ export async function GET(request: NextRequest) {
       `)
       .eq('status', 'approved')
       .order('startDate', { ascending: true })
+
+    if (filterUserId) {
+      query = query.eq('userId', filterUserId)
+    }
 
     if (startDate && endDate) {
       // Include holidays that overlap with the date range

@@ -6,6 +6,7 @@ import { useDockContext } from '@/components/core/dock'
 import {
   BookOpen,
   Calendar,
+  History,
   GraduationCap,
   MessageSquare,
   Lightbulb,
@@ -17,6 +18,7 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Ban,
+  Newspaper,
   Scale,
 } from 'lucide-react'
 import type { User } from '@/types/database'
@@ -77,6 +79,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Upcoming Events</span>
             </Link>
+            <Link
+              href="/past-events"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <History className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Past Events</span>
+            </Link>
           </div>
         )
       case 'learning':
@@ -134,6 +144,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <ImageIcon className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Photo Album</span>
+            </Link>
+            <Link
+              href="/blog"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Newspaper className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Blog</span>
             </Link>
           </div>
         )
@@ -225,6 +243,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Staff Badges</span>
             </Link>
+            <Link
+              href="/manager/achievements/create"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Create Badges</span>
+            </Link>
           </div>
         )
       case 'admin':
@@ -248,12 +274,12 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <span className="font-medium text-foreground">Disciplinaries</span>
             </Link>
             <Link
-              href="/admin/achievements"
+              href="/admin/blog"
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
-              <span className="font-medium text-foreground">Create Badges</span>
+              <Newspaper className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Blog</span>
             </Link>
             <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground px-1 pt-2 pb-0.5">
               Legal

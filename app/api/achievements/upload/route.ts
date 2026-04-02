@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { requireManager } from '@/lib/auth'
 import { createAdminClient, createServerClient } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 // POST - Upload image for achievement badge
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin()
+    await requireManager()
     // Try to use admin client (bypasses RLS), fallback to regular client
     let supabase
     try {

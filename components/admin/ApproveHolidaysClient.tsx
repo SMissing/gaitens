@@ -8,24 +8,32 @@ import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/date-utils'
 import type { HolidayRequest } from '@/types/database'
 import type { User } from '@/types/database'
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, XCircle, Loader2, Ban } from 'lucide-react'
 
 interface HolidayRequestWithUser extends HolidayRequest {
   users: User | null
 }
 
+export type HolidayApprovalQueueItem = HolidayRequestWithUser & {
+  reviewKind: 'new_request' | 'cancellation_request'
+}
+
 interface ApproveHolidaysClientProps {
-  initialRequests: HolidayRequestWithUser[]
+  initialRequests: HolidayApprovalQueueItem[]
 }
 
 export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClientProps) {
-  const [requests, setRequests] = useState<HolidayRequestWithUser[]>(initialRequests)
+  const [requests, setRequests] = useState<HolidayApprovalQueueItem[]>(initialRequests)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [rejectingId, setRejectingId] = useState<string | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
 
-  const handleApprove = async (requestId: string) => {
+  const removeRequest = (requestId: string) => {
+    setRequests((prev) => prev.filter((req) => req.id !== requestId))
+  }
+
+  const handleApproveNew = async (requestId: string) => {
     setProcessingId(requestId)
     setError(null)
 
@@ -43,8 +51,7 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
         throw new Error(data.error || 'Failed to approve request')
       }
 
-      // Remove the approved request from the list
-      setRequests(prev => prev.filter(req => req.id !== requestId))
+      removeRequest(requestId)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve request')
     } finally {
@@ -62,7 +69,7 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
     setRejectionReason('')
   }
 
-  const handleReject = async (requestId: string) => {
+  const handleRejectNew = async (requestId: string) => {
     setProcessingId(requestId)
     setError(null)
 
@@ -72,7 +79,7 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           status: 'rejected',
           rejectionReason: rejectionReason.trim() || null,
         }),
@@ -83,12 +90,35 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
         throw new Error(data.error || 'Failed to reject request')
       }
 
-      // Remove the rejected request from the list
-      setRequests(prev => prev.filter(req => req.id !== requestId))
+      removeRequest(requestId)
       setRejectingId(null)
       setRejectionReason('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reject request')
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleCancellationDecision = async (requestId: string, decision: 'approve' | 'reject') => {
+    setProcessingId(requestId)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/holidays/requests/${requestId}/cancellation-review`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to update cancellation request')
+      }
+
+      removeRequest(requestId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update cancellation request')
     } finally {
       setProcessingId(null)
     }
@@ -120,6 +150,7 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
       {requests.map((request) => {
         const user = request.users as User | null
         const isProcessing = processingId === request.id
+        const isCancellation = request.reviewKind === 'cancellation_request'
 
         return (
           <Card key={request.id} className={isProcessing ? 'opacity-50' : ''}>
@@ -131,8 +162,14 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
                     {user?.site || 'No site assigned'}
                   </CardDescription>
                 </div>
-                <span className="px-3 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-medium rounded border border-yellow-500/30">
-                  Pending
+                <span
+                  className={`px-3 py-1 text-xs font-medium rounded border ${
+                    isCancellation
+                      ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                      : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                  }`}
+                >
+                  {isCancellation ? 'Cancellation requested' : 'Pending approval'}
                 </span>
               </div>
             </CardHeader>
@@ -153,11 +190,55 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
                 )}
 
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Requested</p>
-                  <p className="text-foreground">{formatDate(request.createdAt)}</p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    {isCancellation ? 'Cancellation asked' : 'Requested'}
+                  </p>
+                  <p className="text-foreground">
+                    {formatDate(
+                      isCancellation ? request.cancellationRequestedAt || request.createdAt : request.createdAt
+                    )}
+                  </p>
                 </div>
 
-                {rejectingId === request.id ? (
+                {isCancellation ? (
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={() => handleCancellationDecision(request.id, 'approve')}
+                      disabled={isProcessing || rejectingId !== null}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="h-4 w-4 mr-2" />
+                          Approve cancellation
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => handleCancellationDecision(request.id, 'reject')}
+                      disabled={isProcessing || rejectingId !== null}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Keep holiday
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : rejectingId === request.id ? (
                   <div className="space-y-4 pt-2 border-t border-border">
                     <div>
                       <Label htmlFor={`rejection-reason-${request.id}`}>
@@ -173,14 +254,14 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault()
-                            handleReject(request.id)
+                            handleRejectNew(request.id)
                           }
                         }}
                       />
                     </div>
                     <div className="flex gap-2">
                       <Button
-                        onClick={() => handleReject(request.id)}
+                        onClick={() => handleRejectNew(request.id)}
                         disabled={isProcessing}
                         variant="destructive"
                         className="flex-1"
@@ -210,7 +291,7 @@ export function ApproveHolidaysClient({ initialRequests }: ApproveHolidaysClient
                 ) : (
                   <div className="flex gap-2 pt-2">
                     <Button
-                      onClick={() => handleApprove(request.id)}
+                      onClick={() => handleApproveNew(request.id)}
                       disabled={isProcessing || rejectingId !== null}
                       className="flex-1 bg-green-600 hover:bg-green-700"
                     >

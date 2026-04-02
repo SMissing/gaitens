@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireAdmin } from '@/lib/auth'
+import { requireAuth, requireManager } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import type { Achievement } from '@/types/database'
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 // POST - Create a new achievement (badge)
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin() // Only admins can create new badges
+    await requireManager()
     const supabase = createServerClient()
 
     const body = await request.json()

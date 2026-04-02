@@ -6,6 +6,8 @@ import { HolidayDayManager } from './HolidayDayManager'
 import { AddHolidayForm } from './AddHolidayForm'
 import type { HolidayRequest, User, UserRole } from '@/types/database'
 import { parseYyyyMmDdLocal, toYyyyMmDdLocal } from '@/lib/date-utils'
+import { cn } from '@/lib/utils'
+import { ChevronLeft, Loader2 } from 'lucide-react'
 import {
   emitHolidaysDockSync,
   HOLIDAYS_ADD,
@@ -47,9 +49,18 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
   const [myRequests, setMyRequests] = useState<HolidayRequest[]>([])
   const [requestsLoading, setRequestsLoading] = useState(false)
   const [requestsError, setRequestsError] = useState<string | null>(null)
+  const [requestActionId, setRequestActionId] = useState<string | null>(null)
 
   const [teamUpcoming, setTeamUpcoming] = useState<ApprovedTeamHoliday[]>([])
   const [teamListsLoading, setTeamListsLoading] = useState(false)
+
+  const [staffDirectory, setStaffDirectory] = useState<User[]>([])
+  const [staffDirectoryLoading, setStaffDirectoryLoading] = useState(false)
+  const [staffDirectoryError, setStaffDirectoryError] = useState<string | null>(null)
+  const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
+  const [staffScope, setStaffScope] = useState<'upcoming' | 'previous'>('upcoming')
+  const [staffMemberHolidays, setStaffMemberHolidays] = useState<ApprovedTeamHoliday[]>([])
+  const [staffMemberHolidaysLoading, setStaffMemberHolidaysLoading] = useState(false)
 
   const isAdmin = userRole === 'admin'
   const isManagerOrAdmin = userRole === 'manager' || userRole === 'admin'
@@ -266,6 +277,97 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     }
   }, [isManagerOrAdmin, pageView, today])
 
+  useEffect(() => {
+    if (pageView === 'by_staff_list' && !isManagerOrAdmin) {
+      setPageView('calendar')
+    }
+  }, [pageView, isManagerOrAdmin])
+
+  useEffect(() => {
+    if (pageView !== 'by_staff_list') {
+      setSelectedStaffId(null)
+    }
+  }, [pageView])
+
+  useEffect(() => {
+    if (!isManagerOrAdmin || pageView !== 'by_staff_list') return
+
+    let cancelled = false
+    ;(async () => {
+      setStaffDirectoryLoading(true)
+      setStaffDirectoryError(null)
+      try {
+        const res = await fetch('/api/staff?active=true', { cache: 'no-store' })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error || 'Failed to load staff')
+        }
+        const data = await res.json()
+        const list = Array.isArray(data?.staff) ? (data.staff as User[]) : []
+        if (!cancelled) {
+          setStaffDirectory(
+            [...list].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+          )
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setStaffDirectoryError(e instanceof Error ? e.message : 'Failed to load staff')
+          setStaffDirectory([])
+        }
+      } finally {
+        if (!cancelled) setStaffDirectoryLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isManagerOrAdmin, pageView])
+
+  useEffect(() => {
+    if (!isManagerOrAdmin || pageView !== 'by_staff_list' || !selectedStaffId) {
+      setStaffMemberHolidays([])
+      setStaffMemberHolidaysLoading(false)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      setStaffMemberHolidaysLoading(true)
+      try {
+        const res = await fetch(
+          `/api/holidays/approved?userId=${encodeURIComponent(selectedStaffId)}`,
+          { cache: 'no-store' }
+        )
+        if (!res.ok) throw new Error('Failed to load holidays')
+        const data: ApprovedTeamHoliday[] = await res.json()
+        if (!cancelled) setStaffMemberHolidays(data || [])
+      } catch (e) {
+        console.error(e)
+        if (!cancelled) setStaffMemberHolidays([])
+      } finally {
+        if (!cancelled) setStaffMemberHolidaysLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isManagerOrAdmin, pageView, selectedStaffId])
+
+  const staffSelectedHolidays = useMemo(() => {
+    const upcoming = staffMemberHolidays
+      .filter((req) => parseYyyyMmDdLocal(req.endDate) >= today)
+      .sort((a, b) => parseYyyyMmDdLocal(a.startDate).getTime() - parseYyyyMmDdLocal(b.startDate).getTime())
+
+    const previous = staffMemberHolidays
+      .filter((req) => parseYyyyMmDdLocal(req.endDate) < today)
+      .sort(
+        (a, b) =>
+          parseYyyyMmDdLocal(b.endDate).getTime() - parseYyyyMmDdLocal(a.endDate).getTime()
+      )
+
+    return { upcoming, previous }
+  }, [staffMemberHolidays, today])
+
   const { upcomingApproved, pastApproved } = useMemo(() => {
     const upcomingApproved = myRequests
       .filter((req) => {
@@ -288,6 +390,48 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
 
     return { upcomingApproved, pastApproved }
   }, [myRequests, today])
+
+  const pendingMyRequests = useMemo(() => {
+    return myRequests
+      .filter((r) => r.status === 'pending')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }, [myRequests])
+
+  const withdrawPendingRequest = useCallback(async (id: string) => {
+    setRequestActionId(id)
+    setRequestsError(null)
+    try {
+      const res = await fetch(`/api/holidays/requests/${id}/withdraw`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to withdraw request')
+      }
+      setRefreshKey((k) => k + 1)
+    } catch (e) {
+      setRequestsError(e instanceof Error ? e.message : 'Failed to withdraw request')
+    } finally {
+      setRequestActionId(null)
+    }
+  }, [])
+
+  const requestApprovedCancellation = useCallback(async (id: string) => {
+    setRequestActionId(id)
+    setRequestsError(null)
+    try {
+      const res = await fetch(`/api/holidays/requests/${id}/request-cancellation`, {
+        method: 'POST',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'Failed to request cancellation')
+      }
+      setRefreshKey((k) => k + 1)
+    } catch (e) {
+      setRequestsError(e instanceof Error ? e.message : 'Failed to request cancellation')
+    } finally {
+      setRequestActionId(null)
+    }
+  }, [])
 
   const countDays = (start: string, end: string) => {
     const startDate = parseYyyyMmDdLocal(start)
@@ -319,6 +463,29 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
     const names = list.map((x) => x?.name).filter(Boolean) as string[]
     return names[0] || 'Unknown'
   }
+
+  const renderApprovedHolidayCard = (req: HolidayRequest) => (
+    <div
+      key={req.id}
+      className="w-full rounded-xl border border-border/40 bg-black/15 p-3.5 text-left transition-colors hover:border-spirits-magenta/35 hover:bg-white/[0.03]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <div className="text-base font-semibold tracking-tight text-foreground">
+            {formatDate(req.startDate)}
+            {req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {countDays(req.startDate, req.endDate)} day{countDays(req.startDate, req.endDate) !== 1 ? 's' : ''}
+          </div>
+          {req.reason && <div className="text-xs italic text-muted-foreground">{req.reason}</div>}
+        </div>
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+          Approved
+        </div>
+      </div>
+    </div>
+  )
 
   const renderStaffListRow = (req: HolidayRequest, badge: 'approved' | 'pending') => (
     <div
@@ -354,6 +521,97 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
       </div>
     </div>
   )
+
+  const renderPendingRequestRow = (req: HolidayRequest) => {
+    const busy = requestActionId === req.id
+    return (
+      <div
+        key={req.id}
+        className="w-full rounded-xl border border-border/40 bg-black/15 p-3.5 text-left"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <div className="text-base font-semibold tracking-tight text-foreground">
+              {formatDate(req.startDate)}
+              {req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {countDays(req.startDate, req.endDate)} day{countDays(req.startDate, req.endDate) !== 1 ? 's' : ''}{' '}
+              · Requested{' '}
+              {new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+            </div>
+            {req.reason && <div className="text-xs italic text-muted-foreground">{req.reason}</div>}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-400">
+              Pending
+            </span>
+            <button
+              type="button"
+              onClick={() => void withdrawPendingRequest(req.id)}
+              disabled={busy}
+              className="rounded-lg border border-border/50 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-white/[0.08] disabled:opacity-50"
+            >
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                'Withdraw'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderUpcomingApprovedWithActions = (req: HolidayRequest) => {
+    const busy = requestActionId === req.id
+    const cancelPending = Boolean(req.cancellationRequestedAt)
+    return (
+      <div
+        key={req.id}
+        className="w-full rounded-xl border border-border/40 bg-black/15 p-3.5 text-left transition-colors hover:border-spirits-magenta/35 hover:bg-white/[0.03]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0">
+            <div className="text-base font-semibold tracking-tight text-foreground">
+              {formatDate(req.startDate)}
+              {req.startDate !== req.endDate ? ` – ${formatDate(req.endDate)}` : ''}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {countDays(req.startDate, req.endDate)} day{countDays(req.startDate, req.endDate) !== 1 ? 's' : ''}
+            </div>
+            {req.reason && <div className="text-xs italic text-muted-foreground">{req.reason}</div>}
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            {cancelPending ? (
+              <span className="rounded-lg border border-orange-500/30 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-400">
+                Cancellation pending
+              </span>
+            ) : (
+              <>
+                <span className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+                  Approved
+                </span>
+                <button
+                  type="button"
+                  onClick={() => void requestApprovedCancellation(req.id)}
+                  disabled={busy}
+                  className="rounded-lg border border-border/50 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-white/[0.08] disabled:opacity-50"
+                >
+                  {busy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  ) : (
+                    'Request cancellation'
+                  )}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderTeamListRow = (req: ApprovedTeamHoliday) => (
     <div
@@ -402,34 +660,51 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
 
       {pageView === 'upcoming_list' && (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto rounded-2xl border border-border/50 bg-[#1e1e1e] p-5 sm:p-6">
-          <h3 className="mb-4 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Upcoming holidays
-          </h3>
           {!isManagerOrAdmin && requestsError && (
             <div className="mb-3 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-500">
               {requestsError}
             </div>
           )}
           {isManagerOrAdmin ? (
-            teamListsLoading ? (
-              <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
-            ) : teamUpcoming.length === 0 ? (
-              <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
-                No upcoming approved holidays
-              </div>
-            ) : (
-              <div className="space-y-2">{teamUpcoming.map((r) => renderTeamListRow(r))}</div>
-            )
+            <>
+              <h3 className="mb-4 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Upcoming holidays
+              </h3>
+              {teamListsLoading ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : teamUpcoming.length === 0 ? (
+                <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                  No upcoming approved holidays
+                </div>
+              ) : (
+                <div className="space-y-2">{teamUpcoming.map((r) => renderTeamListRow(r))}</div>
+              )}
+            </>
           ) : requestsLoading ? (
             <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
-          ) : upcomingApproved.length === 0 ? (
-            <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
-              No upcoming approved holidays
-            </div>
           ) : (
-            <div className="space-y-2">
-              {upcomingApproved.map((r) => renderStaffListRow(r, 'approved'))}
-            </div>
+            <>
+              {pendingMyRequests.length > 0 && (
+                <section className="mb-8">
+                  <h3 className="mb-4 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    Pending requests
+                  </h3>
+                  <div className="space-y-2">{pendingMyRequests.map((r) => renderPendingRequestRow(r))}</div>
+                </section>
+              )}
+              <h3 className="mb-4 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Upcoming holidays
+              </h3>
+              {upcomingApproved.length === 0 ? (
+                <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                  No upcoming approved holidays
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {upcomingApproved.map((r) => renderUpcomingApprovedWithActions(r))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -471,6 +746,142 @@ export function HolidaysClient({ userRole }: HolidaysClientProps) {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {pageView === 'by_staff_list' && isManagerOrAdmin && (
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/50 bg-[#1e1e1e] p-4 sm:p-6">
+          <h3 className="mb-3 shrink-0 border-b border-border/40 pb-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Staff holidays
+          </h3>
+          {staffDirectoryError && (
+            <div className="mb-3 shrink-0 rounded-md border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-500">
+              {staffDirectoryError}
+            </div>
+          )}
+          <div className="grid min-h-0 flex-1 gap-4 sm:grid-cols-[minmax(0,260px)_1fr] sm:gap-5">
+            <div
+              className={cn(
+                'flex min-h-0 flex-col',
+                selectedStaffId ? 'hidden sm:flex' : 'flex'
+              )}
+            >
+              {staffDirectoryLoading ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : staffDirectory.length === 0 ? (
+                <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                  No active staff found
+                </div>
+              ) : (
+                <ul className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+                  {staffDirectory.map((member) => (
+                    <li key={member.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedStaffId(member.id)
+                          setStaffScope('upcoming')
+                        }}
+                        className={cn(
+                          'w-full rounded-xl border px-3.5 py-3 text-left text-sm font-medium transition-colors',
+                          selectedStaffId === member.id
+                            ? 'border-spirits-cyan/40 bg-spirits-cyan/10 text-spirits-cyan'
+                            : 'border-border/40 bg-black/15 text-foreground hover:border-spirits-magenta/35 hover:bg-white/[0.03]'
+                        )}
+                      >
+                        <span className="block truncate">{member.name}</span>
+                        <span className="mt-0.5 block text-xs font-normal capitalize text-muted-foreground">
+                          {member.role}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div
+              className={cn(
+                'flex min-h-0 min-w-0 flex-col',
+                selectedStaffId ? 'flex' : 'hidden sm:flex'
+              )}
+            >
+              {!selectedStaffId ? (
+                <div className="flex min-h-[200px] flex-1 items-center justify-center rounded-xl border border-border/40 bg-black/20 px-4 text-center text-sm text-muted-foreground">
+                  Select a staff member to see their holidays
+                </div>
+              ) : (
+                <>
+                  <div className="mb-3 flex shrink-0 flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedStaffId(null)}
+                      className="flex items-center gap-1 rounded-lg border border-border/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-white/[0.04] sm:hidden"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Staff list
+                    </button>
+                    <div className="min-w-0 flex-1 sm:min-w-[unset]">
+                      <p className="truncate text-base font-semibold text-foreground">
+                        {staffDirectory.find((s) => s.id === selectedStaffId)?.name ?? 'Staff member'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4 flex shrink-0 rounded-xl border border-border/40 bg-black/20 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setStaffScope('upcoming')}
+                      className={cn(
+                        'flex-1 rounded-lg px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide transition-colors',
+                        staffScope === 'upcoming'
+                          ? 'bg-spirits-cyan/20 text-spirits-cyan'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      Upcoming
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStaffScope('previous')}
+                      className={cn(
+                        'flex-1 rounded-lg px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide transition-colors',
+                        staffScope === 'previous'
+                          ? 'bg-spirits-cyan/20 text-spirits-cyan'
+                          : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      Previous
+                    </button>
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                    {staffMemberHolidaysLoading ? (
+                      <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+                    ) : staffScope === 'upcoming' ? (
+                      staffSelectedHolidays.upcoming.length === 0 ? (
+                        <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                          No upcoming approved holidays
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {staffSelectedHolidays.upcoming.map((r) => renderApprovedHolidayCard(r))}
+                        </div>
+                      )
+                    ) : staffSelectedHolidays.previous.length === 0 ? (
+                      <div className="rounded-xl border border-border/40 bg-black/20 py-10 text-center text-sm text-muted-foreground">
+                        No previous approved holidays
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {staffSelectedHolidays.previous.map((r) => renderApprovedHolidayCard(r))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
       </div>

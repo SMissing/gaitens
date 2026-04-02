@@ -1,4 +1,4 @@
-/** Manager Staff Badges (`/manager/achievements`) ↔ DockButtonRow */
+/** Manager Staff Badges list (`/manager/achievements`, not `/create`) ↔ DockButtonRow */
 
 export const STAFF_BADGES_DOCK_SET_SORT = 'staff-badges-dock:set-sort'
 export const STAFF_BADGES_DOCK_SET_FILTER = 'staff-badges-dock:set-filter'

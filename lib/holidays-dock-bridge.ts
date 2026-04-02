@@ -1,4 +1,8 @@
-export type HolidaysViewMode = 'calendar' | 'upcoming_list' | 'previous_list'
+export type HolidaysViewMode =
+  | 'calendar'
+  | 'upcoming_list'
+  | 'previous_list'
+  | 'by_staff_list'
 
 export type HolidaysDockPhase = 'browse' | 'day_edit'
 

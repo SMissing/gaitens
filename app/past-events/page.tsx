@@ -1,9 +1,9 @@
 import { requireAuth } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
-import { UpcomingEventsList } from '@/components/upcoming-events/UpcomingEventsList'
+import { PastEventsList } from '@/components/upcoming-events/UpcomingEventsList'
 import { EventsSubnav } from '@/components/upcoming-events/EventsSubnav'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Calendar } from 'lucide-react'
+import { History } from 'lucide-react'
 
 interface Event {
   id: string
@@ -23,11 +23,10 @@ interface Event {
   }
 }
 
-export default async function UpcomingEventsPage() {
+export default async function PastEventsPage() {
   const user = await requireAuth()
   const supabase = createServerClient()
 
-  // Fetch upcoming events
   const { data: events } = await supabase
     .from('upcoming_events')
     .select(`
@@ -38,13 +37,12 @@ export default async function UpcomingEventsPage() {
         staffCode
       )
     `)
-    .order('eventDate', { ascending: true })
-    .order('eventTime', { ascending: true, nullsFirst: false })
+    .order('eventDate', { ascending: false })
+    .order('eventTime', { ascending: false, nullsFirst: false })
 
-  // Transform the data
   const transformedEvents = (events || []).map((event: any) => {
     const userData = Array.isArray(event.users) ? event.users[0] : event.users
-    
+
     return {
       id: event.id,
       title: event.title,
@@ -56,27 +54,29 @@ export default async function UpcomingEventsPage() {
       imagePath: event.imagePath,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
-      createdBy: userData ? {
-        id: userData.id,
-        name: userData.name,
-        staffCode: userData.staffCode
-      } : { id: '', name: 'Unknown', staffCode: '' }
+      createdBy: userData
+        ? {
+            id: userData.id,
+            name: userData.name,
+            staffCode: userData.staffCode,
+          }
+        : { id: '', name: 'Unknown', staffCode: '' },
     }
   })
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader 
-        title="Upcoming Events"
-        icon={<Calendar className="h-6 w-6 text-spirits-magenta" />}
-        description="View and manage upcoming events"
+      <PageHeader
+        title="Past Events"
+        icon={<History className="h-6 w-6 text-spirits-magenta" />}
+        description="Events that have already happened"
         showBack={true}
         backHref="/dashboard"
       />
       <div className="p-4 sm:p-6 lg:p-8 pb-32">
         <div className="max-w-6xl mx-auto">
           <EventsSubnav />
-          <UpcomingEventsList 
+          <PastEventsList
             initialEvents={transformedEvents as Event[]}
             isManagerOrAdmin={user.role === 'manager' || user.role === 'admin'}
           />

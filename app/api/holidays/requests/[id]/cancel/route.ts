@@ -25,12 +25,12 @@ export async function DELETE(
       )
     }
 
-    // Update the holiday request status to 'rejected' instead of deleting
-    // This preserves the record for audit purposes
+    // Mark as cancelled (admin removed an approved holiday) — keeps audit trail
     const { data: updatedData, error } = await supabase
       .from('holiday_requests')
       .update({
-        status: 'rejected',
+        status: 'cancelled',
+        cancellationRequestedAt: null,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', params.id)
@@ -45,7 +45,7 @@ export async function DELETE(
       )
     }
 
-    console.log('Successfully rejected holiday request:', params.id, updatedData)
+    console.log('Successfully cancelled holiday request:', params.id, updatedData)
     return NextResponse.json({ 
       success: true, 
       updatedId: params.id,

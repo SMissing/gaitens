@@ -73,7 +73,7 @@ export function HolidayDayManager({ date, onUpdate, onClose, onEditAvailability,
   }
 
   const handleRemoveHoliday = async (holidayId: string) => {
-    if (!confirm('Are you sure you want to remove this holiday? The request will be marked as rejected.')) {
+    if (!confirm('Are you sure you want to remove this holiday? The booking will be cancelled.')) {
       return
     }
 

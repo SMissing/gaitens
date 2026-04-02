@@ -36,9 +36,11 @@ export interface HolidayRequest {
   userId: string
   startDate: string
   endDate: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
   reason: string | null
   rejectionReason: string | null
+  /** Set when staff requests cancellation of an approved holiday; cleared when resolved. */
+  cancellationRequestedAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -251,5 +253,24 @@ export interface UserStreak {
   currentStreak: number
   longestStreak: number
   lastCheckInDate: string | null
+  updatedAt: string
+}
+
+export interface BlogPost {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  body: string
+  published: boolean
+  publishedAt: string | null
+  /** When published, staff users can see the post on /blog if true. */
+  visibleToStaff: boolean
+  /** When published, managers can see the post on /blog if true. */
+  visibleToManager: boolean
+  /** When published, admins can see the post on /blog if true. */
+  visibleToAdmin: boolean
+  createdBy: string
+  createdAt: string
   updatedAt: string
 }
