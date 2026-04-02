@@ -22,6 +22,8 @@ import {
   Scale,
   ClipboardCheck,
   TabletSmartphone,
+  Megaphone,
+  Gamepad2,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -49,6 +51,8 @@ function categoryTitle(activeItem: string | null): string {
       return 'Manager'
     case 'admin':
       return 'Admin'
+    case 'games':
+      return 'Games'
     default:
       return ''
   }
@@ -132,6 +136,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <span className="font-medium text-foreground">Social</span>
             </Link>
             <Link
+              href="/notices"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Megaphone className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Notice board</span>
+            </Link>
+            <Link
               href="/employee-of-the-month"
               onClick={() => setActiveItem(null)}
               className={linkClass}
@@ -191,6 +203,19 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
               <span className="font-medium text-foreground">Anonymous Report</span>
+            </Link>
+          </div>
+        )
+      case 'games':
+        return (
+          <div className="grid gap-1">
+            <Link
+              href="/games/brick-breaker"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Gamepad2 className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Brick Breaker</span>
             </Link>
           </div>
         )

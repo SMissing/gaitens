@@ -7,6 +7,7 @@ import type { Notice } from '@/types/database'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { NoticeFormattedBody } from '@/components/notices/NoticeFormattedBody'
 
 interface NoticeModalProps {
   notices: Notice[]
@@ -76,9 +77,13 @@ export function NoticeModal({ notices, onClose, onMarkAsRead }: NoticeModalProps
         onClick={handleClose}
       >
         <div 
-          className="relative w-full max-w-2xl max-h-[90vh] bg-card rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col"
+          className="relative w-full max-w-2xl max-h-[90vh] bg-card rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col ring-1 ring-inset ring-white/[0.06]"
           onClick={(e) => e.stopPropagation()}
         >
+          <div
+            className="h-1 w-full shrink-0 bg-gradient-to-r from-spirits-cyan via-spirits-magenta to-spirits-yellow"
+            aria-hidden
+          />
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border/50">
             <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -109,7 +114,7 @@ export function NoticeModal({ notices, onClose, onMarkAsRead }: NoticeModalProps
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
             {/* Image */}
             {hasImage && (
-              <div className="relative w-full h-48 sm:h-64 lg:h-80 mb-4 rounded-xl overflow-hidden border border-border/30">
+              <div className="relative w-full h-48 sm:h-64 lg:h-80 mb-5 rounded-xl overflow-hidden border border-border/30 shadow-inner">
                 <Image
                   src={currentNotice.attachments![0]}
                   alt={currentNotice.title}
@@ -122,18 +127,15 @@ export function NoticeModal({ notices, onClose, onMarkAsRead }: NoticeModalProps
               </div>
             )}
 
-            {/* Content Text */}
-            <div className="prose prose-invert max-w-none">
-              <p className="text-base sm:text-lg text-foreground whitespace-pre-wrap leading-relaxed">
-                {currentNotice.content}
-              </p>
+            <div className="rounded-xl border border-border/30 bg-muted/20 px-4 py-5 sm:px-6 sm:py-6">
+              <NoticeFormattedBody content={currentNotice.content} lead className="text-foreground" />
             </div>
 
             {/* Date Info */}
-            <div className="mt-6 pt-4 border-t border-border/50 text-sm text-muted-foreground">
-              <div>Posted: {formatDate(currentNotice.createdAt)}</div>
+            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span>Posted {formatDate(currentNotice.createdAt)}</span>
               {currentNotice.expiresAt && (
-                <div className="mt-1">Expires: {formatDate(currentNotice.expiresAt)}</div>
+                <span>Expires {formatDate(currentNotice.expiresAt)}</span>
               )}
             </div>
           </div>

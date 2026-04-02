@@ -20,6 +20,8 @@ import {
   Scale,
   ClipboardCheck,
   TabletSmartphone,
+  Megaphone,
+  Gamepad2,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -99,6 +101,13 @@ export function DockExpansion() {
               <div className="text-sm font-medium text-card-foreground">Social</div>
             </Link>
             <Link
+              href="/notices"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Megaphone className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Notice board</div>
+            </Link>
+            <Link
               href="/employee-of-the-month"
               className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[44px]"
             >
@@ -152,6 +161,19 @@ export function DockExpansion() {
             >
               <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Anonymous Report</div>
+            </Link>
+          </div>
+        )
+      case 'games':
+        return (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-sm font-semibold text-card-foreground mb-1 px-1">Games</h3>
+            <Link
+              href="/games/brick-breaker"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Gamepad2 className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Brick Breaker</div>
             </Link>
           </div>
         )

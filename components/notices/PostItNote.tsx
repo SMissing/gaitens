@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/date-utils'
 import type { Notice } from '@/types/database'
 import { Pin, Edit } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { NoticeFormattedBody } from '@/components/notices/NoticeFormattedBody'
 
 interface PostItNoteProps {
   notice: Notice
@@ -106,9 +107,10 @@ export function PostItNote({ notice, color, rotation = 0, onImageClick, isAdmin 
         <h3 className={cn('font-bold text-lg leading-tight', styles.text)}>
           {notice.title}
         </h3>
-        <p className={cn('text-sm leading-relaxed whitespace-pre-wrap', styles.text, 'opacity-90')}>
-          {notice.content}
-        </p>
+        <NoticeFormattedBody
+          content={notice.content}
+          className={cn('text-sm', styles.text, 'opacity-90')}
+        />
         {notice.attachments && notice.attachments.length > 0 && (
           <div 
             className={cn(

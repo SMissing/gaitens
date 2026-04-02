@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { createServerClient } from '@/lib/db'
 import { formatDate } from '@/lib/date-utils'
-import type { User } from '@/types/database'
+import type { Notice, User } from '@/types/database'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dock } from '@/components/core/dock'
 import { DockButtonRow } from './DockButtonRow'
 import { DockSwipeOverlay } from './DockSwipeOverlay'
-import { NoticeBoardCard } from '@/components/notices/NoticeBoardCard'
+import { DashboardNoticeCard } from '@/components/notices/DashboardNoticeCard'
 import { UnreadNoticesModal } from '@/components/notices/UnreadNoticesModal'
 import { AchievementNotificationManager } from '@/components/achievements/AchievementNotificationManager'
 import { PushNotificationManager } from '@/components/notifications/PushNotificationManager'
@@ -112,13 +112,26 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     .order('startDate', { ascending: true })
     .limit(5)
 
-  // Pinned notices only for dashboard
-  const { data: notices } = await supabase
+  // Dashboard: pinned notices when present; otherwise latest active notices
+  const noticeExpiryOr = 'expiresAt.is.null,expiresAt.gt.' + new Date().toISOString()
+  const { data: pinnedForDashboard } = await supabase
     .from('notices')
     .select('*')
     .eq('pinned', true)
-    .or('expiresAt.is.null,expiresAt.gt.' + new Date().toISOString())
+    .or(noticeExpiryOr)
     .order('createdAt', { ascending: false })
+    .limit(6)
+
+  let dashboardNotices = pinnedForDashboard ?? []
+  if (dashboardNotices.length === 0) {
+    const { data: recentNotices } = await supabase
+      .from('notices')
+      .select('*')
+      .or(noticeExpiryOr)
+      .order('createdAt', { ascending: false })
+      .limit(3)
+    dashboardNotices = recentNotices ?? []
+  }
 
   // Employee of the month winner
   const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
@@ -226,10 +239,14 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
         <MeetingNotificationCard userId={user.id} />
       </div>
 
-      {/* Notice Board - Prominent Card */}
-      <div className="mb-4 sm:mb-6">
-        <NoticeBoardCard notices={notices || []} />
-      </div>
+      {/* Notice highlights — one card per notice (full width, no outer wrapper) */}
+      {dashboardNotices.length > 0 && (
+        <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:gap-4">
+          {dashboardNotices.map((n) => (
+            <DashboardNoticeCard key={n.id} notice={n as Notice} />
+          ))}
+        </div>
+      )}
 
       {/* Next Upcoming Event */}
       {nextEvent && (

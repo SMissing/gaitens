@@ -23,6 +23,7 @@ import {
   X,
   Loader2,
   RefreshCw,
+  Gamepad2,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 import {
@@ -586,7 +587,13 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     )
       return 'timeoff'
     if (pathname.startsWith('/training') || pathname.startsWith('/handbook') || pathname.startsWith('/businesses')) return 'learning'
-    if (pathname.startsWith('/social') || pathname.startsWith('/employee-of-the-month') || pathname.startsWith('/photo-album')) return 'community'
+    if (
+      pathname.startsWith('/social') ||
+      pathname.startsWith('/notices') ||
+      pathname.startsWith('/employee-of-the-month') ||
+      pathname.startsWith('/photo-album')
+    )
+      return 'community'
     if (
       pathname.startsWith('/ideas') ||
       pathname.startsWith('/app-feedback') ||
@@ -594,6 +601,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       pathname.startsWith('/anonymous-report')
     )
       return 'feedback'
+    if (pathname.startsWith('/games')) return 'games'
     if (pathname.startsWith('/manager/')) return 'manager'
     if (pathname.startsWith('/admin/')) return 'admin'
     return null
@@ -602,7 +610,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const activeCategory = getActiveCategory()
   
   // Count total items (including dashboard button)
-  const itemCount = 5 + (user.role === 'manager' || user.role === 'admin' ? 1 : 0) + (user.role === 'admin' ? 1 : 0)
+  const itemCount = 6 + (user.role === 'manager' || user.role === 'admin' ? 1 : 0) + (user.role === 'admin' ? 1 : 0)
   const hasManyItems = itemCount >= 6
   
   // Calculate icon sizes based on item count
@@ -716,6 +724,15 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
           <Lightbulb className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
         {activeCategory === 'feedback' && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full z-10" />
+        )}
+      </DockItem>
+
+      <DockItem itemId="games" className={DOCK_ACTION_SLOT}>
+        <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
+          <Gamepad2 className={`${iconSize} text-foreground transition-colors`} />
+        </DockIcon>
+        {activeCategory === 'games' && (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full z-10" />
         )}
       </DockItem>

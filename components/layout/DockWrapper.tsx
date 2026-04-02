@@ -5,8 +5,11 @@ import { usePathname } from 'next/navigation'
 export function DockWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   
-  // Don't show dock on social page
+  // Full-screen experiences without the dock
   if (pathname === '/social') {
+    return null
+  }
+  if (pathname.startsWith('/games')) {
     return null
   }
   
