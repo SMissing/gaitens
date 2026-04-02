@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const { data: staff, error } = await supabase
       .from('users')
-      .select('id, name, staffCode, site')
+      .select('id, name, site')
       .eq('role', 'staff')
       .eq('active', true)
       .order('name', { ascending: true })

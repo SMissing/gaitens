@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('employee_votes')
-      .select('*, users:nomineeId(id, name, staffCode)')
+      .select('*, users:nomineeId(id, name, site)')
       .eq('voterId', user.id)
       .eq('month', currentMonth)
       .single()

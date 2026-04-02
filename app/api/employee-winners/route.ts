@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       .from('employee_winners')
       .select(`
         *,
-        users(id, name, staffCode, site)
+        users(id, name, site)
       `)
       .eq('month', month)
 

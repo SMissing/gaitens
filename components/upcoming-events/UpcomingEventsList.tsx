@@ -22,7 +22,7 @@ interface Event {
   createdBy: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   }
 }
 

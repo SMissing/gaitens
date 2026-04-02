@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle, X } from 'lucide-react'
 import type { User } from '@/types/database'
+import { formatStaffNameAndVenue } from '@/lib/staff-display'
 import { Select, type SelectOption } from '@/components/ui/select'
 
 interface VotingCardProps {
@@ -128,7 +129,7 @@ export function VotingCard({ userRole, currentVote, currentUserId }: VotingCardP
             <div>
               <Label>Your Nominee</Label>
               <p className="text-foreground font-medium mt-1">
-                {nominee?.name || 'Unknown'} ({nominee?.staffCode || 'N/A'})
+                {formatStaffNameAndVenue(nominee?.name, nominee?.site)}
               </p>
             </div>
             {currentVote.reason && (

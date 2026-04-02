@@ -14,16 +14,18 @@ interface Photo {
   uploadedBy: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   }
 }
 
 interface PhotoAlbumClientProps {
   initialPhotos: Photo[]
   isAdmin: boolean
+  canUpload?: boolean
 }
 
-export function PhotoAlbumClient({ initialPhotos, isAdmin }: PhotoAlbumClientProps) {
+export function PhotoAlbumClient({ initialPhotos, isAdmin, canUpload }: PhotoAlbumClientProps) {
+  const showUpload = canUpload ?? isAdmin
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -57,7 +59,7 @@ export function PhotoAlbumClient({ initialPhotos, isAdmin }: PhotoAlbumClientPro
 
   return (
     <div className="space-y-6">
-      {isAdmin && (
+      {showUpload && (
         <div className="mb-6">
           <PhotoUploadForm onUploadSuccess={handleUploadSuccess} />
         </div>

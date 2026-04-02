@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         users:uploadedBy (
           id,
           name,
-          staffCode
+          site
         )
       `)
       .order('createdAt', { ascending: false })
@@ -54,8 +54,8 @@ export async function GET(request: NextRequest) {
         uploadedBy: userData ? {
           id: userData.id,
           name: userData.name,
-          staffCode: userData.staffCode
-        } : { id: '', name: 'Unknown', staffCode: '' }
+          site: userData.site ?? null,
+        } : { id: '', name: 'Unknown', site: null }
       }
     })
     return NextResponse.json(transformedData)

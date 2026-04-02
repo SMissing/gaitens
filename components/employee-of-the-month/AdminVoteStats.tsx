@@ -9,7 +9,7 @@ import { Loader2, BarChart3, Trophy, CheckCircle } from 'lucide-react'
 interface VoteStat {
   nomineeId: string
   nomineeName: string
-  staffCode: string
+  site: string | null
   totalVotes: number
   staffVotes: number
   managerVotes: number

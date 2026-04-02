@@ -17,7 +17,7 @@ export default async function EmployeeOfTheMonthPage() {
     .from('employee_votes')
     .select(`
       *,
-      users:nomineeId(id, name, staffCode)
+      users:nomineeId(id, name, site)
     `)
     .eq('voterId', user.id)
     .eq('month', currentMonth)
@@ -28,7 +28,7 @@ export default async function EmployeeOfTheMonthPage() {
     .from('employee_winners')
     .select(`
       *,
-      users(id, name, staffCode)
+      users(id, name, site)
     `)
     .eq('month', currentMonth)
 

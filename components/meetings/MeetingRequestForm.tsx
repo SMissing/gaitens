@@ -12,13 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { staffListFromApiResponse } from '@/lib/staff-permissions'
 import { MEETINGS_DOCK_SUBMIT_FORM } from '@/lib/meetings-dock-bridge'
-
-interface User {
-  id: string
-  name: string
-  staffCode: string
-  role: string
-}
+import { formatStaffNameAndVenue } from '@/lib/staff-display'
+import type { User } from '@/types/database'
 
 interface MeetingRequestFormProps {
   onSuccess: () => void
@@ -212,7 +207,7 @@ export function MeetingRequestForm({
                   onChange={(value) => setRequestedFor(value)}
                   options={users.map((u) => ({
                     value: u.id,
-                    label: `${u.name} (${u.staffCode})${u.role === 'manager' ? ' — Manager' : ''}`,
+                    label: `${formatStaffNameAndVenue(u.name, u.site)}${u.role === 'manager' ? ' — Manager' : ''}`,
                   }))}
                   placeholder="Select a person…"
                   required
@@ -309,7 +304,7 @@ export function MeetingRequestForm({
                           className="h-4 w-4 shrink-0 rounded border-input accent-spirits-yellow"
                         />
                         <span>
-                          {u.name} ({u.staffCode})
+                          {formatStaffNameAndVenue(u.name, u.site)}
                           {u.role === 'manager' ? ' — Manager' : ''}
                         </span>
                       </label>

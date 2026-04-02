@@ -168,12 +168,12 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
         requester:requested_by (
           id,
           name,
-          "staffCode"
+          site
         ),
         recipient:requested_for (
           id,
           name,
-          "staffCode"
+          site
         )
       `)
       .eq('status', 'accepted')
@@ -195,12 +195,12 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
           requestedBy: requesterData ? {
             id: requesterData.id,
             name: requesterData.name,
-            staffCode: requesterData.staff_code || requesterData.staffCode
+            site: requesterData.site ?? null,
           } : null,
           requestedFor: recipientData ? {
             id: recipientData.id,
             name: recipientData.name,
-            staffCode: recipientData.staff_code || recipientData.staffCode
+            site: recipientData.site ?? null,
           } : null,
           status: meeting.status,
           meetingDate: meeting.meeting_date || meeting.meetingDate,

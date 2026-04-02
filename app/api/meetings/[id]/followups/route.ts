@@ -41,17 +41,17 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const creatorIds = Array.from(new Set((followupRows || []).map((r: any) => r.created_by).filter(Boolean)))
-    let usersById = new Map<string, { id: string; name: string; staffCode: string }>()
+    let usersById = new Map<string, { id: string; name: string; site: string | null }>()
     if (creatorIds.length > 0) {
       const { data: usersRows } = await supabase
         .from('users')
-        .select('id, name, staffCode')
+        .select('id, name, site')
         .in('id', creatorIds)
 
       usersById = new Map(
         (usersRows || []).map((u: any) => [
           u.id,
-          { id: u.id, name: u.name, staffCode: u.staff_code || u.staffCode },
+          { id: u.id, name: u.name, site: u.site ?? null },
         ]),
       )
     }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const { data: creator } = await supabase
       .from('users')
-      .select('id, name, staffCode')
+      .select('id, name, site')
       .eq('id', created.created_by)
       .single()
 
@@ -125,9 +125,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         ? {
             id: creator.id,
             name: creator.name,
-            // Supabase select uses `staffCode`, but some older code paths used `staff_code`.
-            // Cast to `any` to keep this resilient while satisfying TS types.
-            staffCode: (creator as any).staff_code ?? creator.staffCode,
+            site: creator.site ?? null,
           }
         : null,
     }

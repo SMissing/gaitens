@@ -24,7 +24,7 @@ export default async function AwardAchievementPage() {
   // Fetch all active users
   const { data: users, error: usersError } = await supabase
     .from('users')
-    .select('id, name, staffCode')
+    .select('id, name, site')
     .eq('active', true)
     .order('name', { ascending: true })
 

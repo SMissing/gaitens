@@ -19,7 +19,7 @@ interface Event {
   createdBy: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   }
 }
 
@@ -34,7 +34,7 @@ export default async function PastEventsPage() {
       users:createdBy (
         id,
         name,
-        staffCode
+        site
       )
     `)
     .order('eventDate', { ascending: false })
@@ -58,9 +58,9 @@ export default async function PastEventsPage() {
         ? {
             id: userData.id,
             name: userData.name,
-            staffCode: userData.staffCode,
+            site: userData.site ?? null,
           }
-        : { id: '', name: 'Unknown', staffCode: '' },
+        : { id: '', name: 'Unknown', site: null },
     }
   })
 

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Fetch all staff members
     const { data: staff, error: staffError } = await supabase
       .from('users')
-      .select('id, name, staffCode, site, role')
+      .select('id, name, site, role')
       .in('role', ['staff', 'manager'])
       .eq('active', true)
       .order('name', { ascending: true })

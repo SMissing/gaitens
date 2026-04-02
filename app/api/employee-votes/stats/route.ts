@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         reason,
         createdAt,
         voters:voterId(id, name, role),
-        nominees:nomineeId(id, name, staffCode)
+        nominees:nomineeId(id, name, site)
       `)
       .eq('month', currentMonth)
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Get all staff members
     const { data: staffMembers, error: staffError } = await supabase
       .from('users')
-      .select('id, name, staffCode')
+      .select('id, name, site')
       .eq('role', 'staff')
       .eq('active', true)
       .order('name', { ascending: true })
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const voteCounts: Record<string, {
       nomineeId: string
       nomineeName: string
-      staffCode: string
+      site: string | null
       totalVotes: number
       staffVotes: number
       managerVotes: number
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       voteCounts[staff.id] = {
         nomineeId: staff.id,
         nomineeName: staff.name,
-        staffCode: staff.staffCode,
+        site: staff.site ?? null,
         totalVotes: 0,
         staffVotes: 0,
         managerVotes: 0,
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         voteCounts[nomineeId] = {
           nomineeId,
           nomineeName: nominee?.name || 'Unknown',
-          staffCode: nominee?.staffCode || 'N/A',
+          site: nominee?.site ?? null,
           totalVotes: 0,
           staffVotes: 0,
           managerVotes: 0,

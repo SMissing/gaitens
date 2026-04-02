@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Award, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Achievement, User } from '@/types/database'
+import { formatStaffNameAndVenue } from '@/lib/staff-display'
 
 interface AwardAchievementFormProps {
   achievements: Achievement[]
@@ -91,7 +92,7 @@ export function AwardAchievementForm({ achievements, users }: AwardAchievementFo
             disabled={loading}
             options={users.map((user) => ({
               value: user.id,
-              label: `${user.name} (${user.staffCode})`,
+              label: formatStaffNameAndVenue(user.name, user.site),
             }))}
           />
         </div>

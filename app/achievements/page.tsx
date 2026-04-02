@@ -1,8 +1,6 @@
-import { requireAuth, getCurrentUser } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
-import { PageHeader } from '@/components/layout/PageHeader'
-import { AchievementsClient } from '@/components/achievements/AchievementsClient'
-import { Award } from 'lucide-react'
+import { AchievementsShell } from '@/components/achievements/AchievementsShell'
 import type { Achievement, UserAchievement } from '@/types/database'
 
 export default async function AchievementsPage() {
@@ -51,24 +49,9 @@ export default async function AchievementsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader
-        title="Achievements"
-        icon={<Award className="h-6 w-6 text-spirits-cyan" />}
-        description="Your badges and accomplishments"
-        showBack={true}
-        backHref="/dashboard"
-      />
-      <div className="p-4 sm:p-6 lg:p-8 pb-32">
-        <div className="max-w-7xl mx-auto">
-          <AchievementsClient 
-            achievements={achievements as Achievement[] || []}
-            userAchievements={userAchievementMap}
-            currentUserId={user.id}
-            userRole={user.role}
-          />
-        </div>
-      </div>
-    </div>
+    <AchievementsShell
+      achievements={(achievements as Achievement[]) || []}
+      userAchievements={userAchievementMap}
+    />
   )
 }

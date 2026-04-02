@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { ArrowLeft, Award } from 'lucide-react'
 import LogoutButton from './LogoutButton'
@@ -15,9 +16,22 @@ interface PageHeaderProps {
   showBack?: boolean
   backHref?: string
   showAchievements?: boolean
+  /** e.g. achievements grid/list toggle — aligned top-right */
+  rightSlot?: ReactNode
 }
 
-export function PageHeader({ title, icon, logo, logoAlt, description, showLogout = false, showBack = false, backHref = '/dashboard', showAchievements = false }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  icon,
+  logo,
+  logoAlt,
+  description,
+  showLogout = false,
+  showBack = false,
+  backHref = '/dashboard',
+  showAchievements = false,
+  rightSlot,
+}: PageHeaderProps) {
   return (
     <>
       {/* Header - extends into safe area */}
@@ -28,7 +42,12 @@ export function PageHeader({ title, icon, logo, logoAlt, description, showLogout
         }}
       >
         <div className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-3">
-          <div className="flex flex-col items-center justify-center relative min-h-[44px]">
+          <div
+            className={cn(
+              'relative flex min-h-[44px] flex-col items-center justify-center',
+              rightSlot && 'pr-[4.75rem] sm:pr-[5.25rem]',
+            )}
+          >
             <div className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
               {showBack && (
                 <Link
@@ -48,9 +67,10 @@ export function PageHeader({ title, icon, logo, logoAlt, description, showLogout
                 </Link>
               )}
             </div>
-            {showLogout && (
-              <div className="absolute top-0 right-0">
-                <LogoutButton />
+            {(rightSlot || showLogout) && (
+              <div className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center gap-2 pr-0.5">
+                {rightSlot}
+                {showLogout && <LogoutButton />}
               </div>
             )}
             {logo ? (

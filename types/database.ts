@@ -132,6 +132,20 @@ export interface UserAchievement {
   achievement?: Achievement
 }
 
+export type BadgeRequestStatus = 'pending' | 'approved' | 'declined'
+
+export interface BadgeRequest {
+  id: string
+  userId: string
+  achievementId: string
+  status: BadgeRequestStatus
+  rejectionReason: string | null
+  resolvedBy: string | null
+  resolvedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Grievance {
   id: string
   userId: string

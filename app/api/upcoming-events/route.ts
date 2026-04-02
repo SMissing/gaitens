@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         users:createdBy (
           id,
           name,
-          staffCode
+          site
         )
       `)
       .order('eventDate', { ascending: true })
@@ -72,8 +72,8 @@ export async function GET(request: NextRequest) {
         createdBy: userData ? {
           id: userData.id,
           name: userData.name,
-          staffCode: userData.staffCode
-        } : { id: '', name: 'Unknown', staffCode: '' }
+          site: userData.site ?? null,
+        } : { id: '', name: 'Unknown', site: null }
       }
     })
 

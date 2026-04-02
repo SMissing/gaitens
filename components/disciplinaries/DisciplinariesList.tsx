@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { DisciplinariesSortFilter } from './DisciplinariesSortFilter'
 import { Heart, Gavel, HeartHandshake, Skull } from 'lucide-react'
 import type { User } from '@/types/database'
+import { formatStaffNameAndVenue } from '@/lib/staff-display'
 
 type SortOption = 'name' | 'most_disciplinaries' | 'least_disciplinaries' | 'site'
 type FilterOption = 'All' | 'Garrison' | 'Spirits' | 'Bassment'
@@ -296,7 +297,7 @@ export function DisciplinariesList({ initialStaff }: DisciplinariesListProps) {
                   {/* Middle - Staff info (centered) */}
                   <div className="flex-1 p-4 sm:p-6 min-w-0 flex flex-col items-center justify-center">
                     <h3 className="text-base sm:text-lg font-semibold text-foreground break-words text-center mb-3">
-                      {member.name}
+                      {formatStaffNameAndVenue(member.name, member.site)}
                     </h3>
                     <div className="flex items-center justify-center gap-1">
                       {renderHearts(member.remainingHearts, member.disciplinaryCount)}

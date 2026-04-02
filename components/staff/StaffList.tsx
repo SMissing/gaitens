@@ -21,6 +21,7 @@ import {
   Settings,
 } from 'lucide-react'
 import type { User, UserRole } from '@/types/database'
+import { formatStaffNameAndVenue } from '@/lib/staff-display'
 import { StaffForm } from './StaffForm'
 
 const ROLE_ORDER: UserRole[] = ['admin', 'manager', 'staff']
@@ -245,7 +246,7 @@ export function StaffList({ currentUser }: StaffListProps) {
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium leading-tight text-foreground">
-                              {member.name}
+                              {formatStaffNameAndVenue(member.name, member.site)}
                               {!member.active && (
                                 <span className="font-normal text-muted-foreground">
                                   {' '}

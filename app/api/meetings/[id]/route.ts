@@ -152,8 +152,8 @@ export async function PATCH(
 
     try {
       const [requestedByData, requestedForData] = await Promise.all([
-        supabase.from('users').select('name, staffCode').eq('id', requestedBy).single(),
-        supabase.from('users').select('name, staffCode').eq('id', requestedFor).single(),
+        supabase.from('users').select('name').eq('id', requestedBy).single(),
+        supabase.from('users').select('name').eq('id', requestedFor).single(),
       ])
 
       const byName = requestedByData.data?.name || `User ${requestedBy}`

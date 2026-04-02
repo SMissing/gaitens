@@ -17,17 +17,17 @@ interface Meeting {
   requestedBy: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   } | null
   requestedFor: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   } | null
   ccUsers?: Array<{
     id: string
     name: string
-    staffCode: string
+    site: string | null
   }>
   status: string
   suggestedDate: string
@@ -43,7 +43,7 @@ interface Meeting {
     createdBy: {
       id: string
       name: string
-      staffCode: string
+      site: string | null
     } | null
   }>
 }
@@ -74,7 +74,7 @@ export function MeetingModal({ meeting, currentUserId, onClose, onUpdate }: Meet
       id: string
       note: string
       createdAt: string
-      createdBy: { id: string; name: string; staffCode: string } | null
+      createdBy: { id: string; name: string; site: string | null } | null
     }>
   >(meeting.followups || [])
   const [followupNote, setFollowupNote] = useState('')

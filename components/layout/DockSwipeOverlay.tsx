@@ -20,6 +20,7 @@ import {
   Ban,
   Newspaper,
   Scale,
+  ClipboardCheck,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -235,6 +236,9 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Management Calendar</span>
             </Link>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground px-1 pt-2 pb-0.5">
+              Badges
+            </p>
             <Link
               href="/manager/achievements"
               onClick={() => setActiveItem(null)}
@@ -250,6 +254,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Award className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Create Badges</span>
+            </Link>
+            <Link
+              href="/manager/badge-requests"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <ClipboardCheck className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Approve badge requests</span>
             </Link>
           </div>
         )

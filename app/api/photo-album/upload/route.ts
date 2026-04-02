@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/auth'
+import { requireManager } from '@/lib/auth'
 import { createAdminClient, createServerClient } from '@/lib/db'
 
 // POST - Upload image for photo album
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireAdmin()
+    const user = await requireManager()
     // Try to use admin client (bypasses RLS), fallback to regular client
     let supabase
     try {

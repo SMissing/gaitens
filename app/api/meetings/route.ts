@@ -30,17 +30,17 @@ export async function GET(request: NextRequest) {
         requester:requested_by (
           id,
           name,
-          "staffCode"
+          site
         ),
         recipient:requested_for (
           id,
           name,
-          "staffCode"
+          site
         ),
         lastActionUser:last_action_by (
           id,
           name,
-          "staffCode"
+          site
         )
       `)
 
@@ -106,12 +106,12 @@ export async function GET(request: NextRequest) {
         requestedBy: requesterData ? {
           id: requesterData.id,
           name: requesterData.name,
-          staffCode: requesterData.staff_code || requesterData.staffCode
+          site: requesterData.site ?? null,
         } : null,
         requestedFor: recipientData ? {
           id: recipientData.id,
           name: recipientData.name,
-          staffCode: recipientData.staff_code || recipientData.staffCode
+          site: recipientData.site ?? null,
         } : null,
         status: meeting.status,
         suggestedDate: meeting.suggested_date || meeting.suggestedDate,
@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
         lastActionBy: lastActionData ? {
           id: lastActionData.id,
           name: lastActionData.name,
-          staffCode: lastActionData.staff_code || lastActionData.staffCode
+          site: lastActionData.site ?? null,
         } : null,
         createdAt: meeting.created_at || meeting.createdAt,
         updatedAt: meeting.updated_at || meeting.updatedAt,
@@ -144,17 +144,17 @@ export async function GET(request: NextRequest) {
           const uniqueUserIds = Array.from(new Set((ccRows || []).map((r: any) => r.user_id))).filter(Boolean)
           const { data: usersRows } = await supabase
             .from('users')
-            .select('id, name, staffCode')
+            .select('id, name, site')
             .in('id', uniqueUserIds)
 
           const userMap = new Map(
             (usersRows || []).map((u: any) => [
               u.id,
-              { id: u.id, name: u.name, staffCode: u.staff_code || u.staffCode },
+              { id: u.id, name: u.name, site: u.site ?? null },
             ]),
           )
 
-          const ccByMeeting = new Map<string, Array<{ id: string; name: string; staffCode: string }>>()
+          const ccByMeeting = new Map<string, Array<{ id: string; name: string; site: string | null }>>()
           for (const row of ccRows as any[]) {
             const user = userMap.get(row.user_id)
             if (!user) continue
@@ -180,19 +180,19 @@ export async function GET(request: NextRequest) {
           )
           const { data: followUsersRows } = await supabase
             .from('users')
-            .select('id, name, staffCode')
+            .select('id, name, site')
             .in('id', uniqueCreatorIds)
 
           const followUserMap = new Map(
             (followUsersRows || []).map((u: any) => [
               u.id,
-              { id: u.id, name: u.name, staffCode: u.staff_code || u.staffCode },
+              { id: u.id, name: u.name, site: u.site ?? null },
             ]),
           )
 
           const followByMeeting = new Map<
             string,
-            Array<{ id: string; note: string; createdAt: string; createdBy: { id: string; name: string; staffCode: string } | null }>
+            Array<{ id: string; note: string; createdAt: string; createdBy: { id: string; name: string; site: string | null } | null }>
           >()
 
           for (const row of followRows as any[]) {
@@ -323,7 +323,7 @@ export async function POST(request: NextRequest) {
     try {
       const { data: recipientData } = await supabase
         .from('users')
-        .select('name, staffCode')
+        .select('name')
         .eq('id', validatedData.requestedFor)
         .single()
 
@@ -337,7 +337,6 @@ export async function POST(request: NextRequest) {
         `Recipient: ${recipientName}`,
         `Suggested: ${validatedData.suggestedDate}${validatedData.suggestedTime ? ` @ ${validatedData.suggestedTime}` : ''}`,
         validatedData.description ? `Description: ${validatedData.description}` : null,
-        recipientData?.staffCode ? `Recipient code: ${recipientData.staffCode}` : null,
       ]
         .filter(Boolean)
         .join('\n')

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Trash2, User, X } from 'lucide-react'
 import { formatDate } from '@/lib/date-utils'
+import { formatStaffNameAndVenue } from '@/lib/staff-display'
 
 interface Photo {
   id: string
@@ -16,7 +17,7 @@ interface Photo {
   uploadedBy: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   }
 }
 
@@ -124,7 +125,11 @@ export function PhotoGallery({ photos, isAdmin, onDelete }: PhotoGalleryProps) {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  Uploaded by {selectedPhoto.uploadedBy.name}
+                  Uploaded by{' '}
+                  {formatStaffNameAndVenue(
+                    selectedPhoto.uploadedBy.name,
+                    selectedPhoto.uploadedBy.site,
+                  )}
                 </div>
                 <div>
                   {formatDate(selectedPhoto.createdAt)}

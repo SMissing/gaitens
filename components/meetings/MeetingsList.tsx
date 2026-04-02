@@ -14,12 +14,12 @@ interface Meeting {
   requestedBy: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   } | null
   requestedFor: {
     id: string
     name: string
-    staffCode: string
+    site: string | null
   } | null
   status: string
   suggestedDate: string

@@ -21,7 +21,7 @@ export default async function PhotoAlbumPage() {
       users:uploadedBy (
         id,
         name,
-        staffCode
+        site
       )
     `)
     .order('createdAt', { ascending: false })
@@ -47,8 +47,8 @@ export default async function PhotoAlbumPage() {
       uploadedBy: userData ? {
         id: userData.id,
         name: userData.name,
-        staffCode: userData.staffCode
-      } : { id: '', name: 'Unknown', staffCode: '' }
+        site: userData.site ?? null,
+      } : { id: '', name: 'Unknown', site: null }
     }
   })
 
@@ -66,6 +66,7 @@ export default async function PhotoAlbumPage() {
           <PhotoAlbumClient 
             initialPhotos={transformedPhotos as any}
             isAdmin={user.role === 'admin'}
+            canUpload={user.role === 'admin' || user.role === 'manager'}
           />
         </div>
       </div>
