@@ -113,6 +113,21 @@ const FILTER_OPTIONS: { value: FilterOption; label: string }[] = [
   { value: 'Bassment', label: 'Bassment' },
 ]
 
+type AppFeedbackSortOption = 'recent' | 'oldest'
+type AppFeedbackFilterOption = 'All' | 'feature' | 'issue' | 'question'
+
+const APP_FEEDBACK_SORT_OPTIONS: { value: AppFeedbackSortOption; label: string }[] = [
+  { value: 'recent', label: 'Most recent' },
+  { value: 'oldest', label: 'Oldest' },
+]
+
+const APP_FEEDBACK_FILTER_OPTIONS: { value: AppFeedbackFilterOption; label: string }[] = [
+  { value: 'All', label: 'All types' },
+  { value: 'feature', label: 'Feature' },
+  { value: 'issue', label: 'Issue' },
+  { value: 'question', label: 'Question' },
+]
+
 export function DockButtonRow({ user }: DockButtonRowProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -120,6 +135,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const isDashboard = pathname === '/dashboard'
   const isHolidaysPage = pathname.startsWith('/holidays')
   const isIdeasPage = pathname.startsWith('/ideas')
+  const isAppFeedbackPage = pathname.startsWith('/app-feedback')
   const isManageStaffPage = pathname.startsWith('/manager/staff')
   const isBarredPage = pathname.startsWith('/manager/barred')
   const isMeetingsPage = pathname.startsWith('/manager/meetings')
@@ -136,6 +152,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const [holidaysSync, setHolidaysSync] = useState<HolidaysDockSyncDetail | null>(null)
   const [notesDraft, setNotesDraft] = useState('')
   const [showIdeasDock, setShowIdeasDock] = useState(isIdeasPage)
+  const [showAppFeedbackDock, setShowAppFeedbackDock] = useState(isAppFeedbackPage)
   const [showStaffDock, setShowStaffDock] = useState(isManageStaffPage)
   const [showBarredDock, setShowBarredDock] = useState(isBarredPage)
   const [showModuleMakerDock, setShowModuleMakerDock] = useState(isModuleMakerPage)
@@ -180,6 +197,11 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const [ideasMenuOpen, setIdeasMenuOpen] = useState<'sort' | 'filter' | null>(null)
   const [selectedSort, setSelectedSort] = useState<SortOption>('recent')
   const [selectedFilter, setSelectedFilter] = useState<FilterOption>('All')
+  const [appFeedbackMenuOpen, setAppFeedbackMenuOpen] = useState<'sort' | 'filter' | null>(null)
+  const [selectedAppFeedbackSort, setSelectedAppFeedbackSort] =
+    useState<AppFeedbackSortOption>('recent')
+  const [selectedAppFeedbackFilter, setSelectedAppFeedbackFilter] =
+    useState<AppFeedbackFilterOption>('All')
   const [showStaffBadgesDock, setShowStaffBadgesDock] = useState(isManagerAchievementsPage)
   const [staffBadgesMenuOpen, setStaffBadgesMenuOpen] = useState<'sort' | 'filter' | null>(null)
   const [staffBadgesSort, setStaffBadgesSort] = useState<StaffBadgesSortOption>('role_then_name')
@@ -213,6 +235,12 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       setShowIdeasDock(true)
     }
   }, [isIdeasPage])
+
+  useEffect(() => {
+    if (isAppFeedbackPage) {
+      setShowAppFeedbackDock(true)
+    }
+  }, [isAppFeedbackPage])
 
   useEffect(() => {
     if (isManagerAchievementsPage) {
@@ -355,6 +383,36 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       document.removeEventListener('mousedown', handleOutsideClick)
     }
   }, [isIdeasPage, showIdeasDock])
+
+  useEffect(() => {
+    if (!isAppFeedbackPage || showAppFeedbackDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setShowAppFeedbackDock(true)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isAppFeedbackPage, showAppFeedbackDock])
+
+  useEffect(() => {
+    if (!isAppFeedbackPage || !showAppFeedbackDock) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (dockRowRef.current?.contains(target)) return
+      setAppFeedbackMenuOpen(null)
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+    }
+  }, [isAppFeedbackPage, showAppFeedbackDock])
 
   useEffect(() => {
     if (!isManagerAchievementsPage || showStaffBadgesDock) return
@@ -529,7 +587,13 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       return 'timeoff'
     if (pathname.startsWith('/training') || pathname.startsWith('/handbook') || pathname.startsWith('/businesses')) return 'learning'
     if (pathname.startsWith('/social') || pathname.startsWith('/employee-of-the-month') || pathname.startsWith('/photo-album')) return 'community'
-    if (pathname.startsWith('/ideas') || pathname.startsWith('/grievance') || pathname.startsWith('/anonymous-report')) return 'feedback'
+    if (
+      pathname.startsWith('/ideas') ||
+      pathname.startsWith('/app-feedback') ||
+      pathname.startsWith('/grievance') ||
+      pathname.startsWith('/anonymous-report')
+    )
+      return 'feedback'
     if (pathname.startsWith('/manager/')) return 'manager'
     if (pathname.startsWith('/admin/')) return 'admin'
     return null
@@ -562,6 +626,20 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const setIdeaFilter = (filter: FilterOption) => {
     setSelectedFilter(filter)
     window.dispatchEvent(new CustomEvent('ideas:set-filter', { detail: { filter } }))
+  }
+
+  const openAppFeedbackModal = () => {
+    window.dispatchEvent(new CustomEvent('app-feedback:open-modal'))
+  }
+
+  const setAppFeedbackSort = (sort: AppFeedbackSortOption) => {
+    setSelectedAppFeedbackSort(sort)
+    window.dispatchEvent(new CustomEvent('app-feedback:set-sort', { detail: { sort } }))
+  }
+
+  const setAppFeedbackFilter = (filter: AppFeedbackFilterOption) => {
+    setSelectedAppFeedbackFilter(filter)
+    window.dispatchEvent(new CustomEvent('app-feedback:set-filter', { detail: { filter } }))
   }
 
   const setStaffBadgesSortValue = (sort: StaffBadgesSortOption) => {
@@ -1073,6 +1151,164 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
             ) : (
               <motion.div
                 key="main-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              >
+                {mainDockRow}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </MotionConfig>
+    )
+  }
+
+  if (isAppFeedbackPage) {
+    const appFeedbackPanelTitle =
+      appFeedbackMenuOpen === 'filter'
+        ? 'Filter by type'
+        : appFeedbackMenuOpen === 'sort'
+          ? 'Sort feedback'
+          : null
+
+    return (
+      <MotionConfig transition={transition}>
+        <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
+          {showAppFeedbackDock && (
+            <AnimatePresence initial={false}>
+              {appFeedbackMenuOpen && (
+                <motion.div
+                  key={appFeedbackMenuOpen}
+                  initial={{ opacity: 0, y: 10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: 10, height: 0 }}
+                  className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden z-[1]"
+                >
+                  <div className="rounded-2xl border border-white/10 bg-[#171717] shadow-2xl p-2">
+                    <p className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {appFeedbackPanelTitle}
+                    </p>
+                    <div className="grid gap-1">
+                      {appFeedbackMenuOpen === 'filter' &&
+                        APP_FEEDBACK_FILTER_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setAppFeedbackFilter(option.value)
+                              setAppFeedbackMenuOpen(null)
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              selectedAppFeedbackFilter === option.value
+                                ? 'bg-spirits-cyan/20 text-spirits-cyan'
+                                : 'text-foreground sm:hover:bg-accent'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      {appFeedbackMenuOpen === 'sort' &&
+                        APP_FEEDBACK_SORT_OPTIONS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setAppFeedbackSort(option.value)
+                              setAppFeedbackMenuOpen(null)
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              selectedAppFeedbackSort === option.value
+                                ? 'bg-spirits-cyan/20 text-spirits-cyan'
+                                : 'text-foreground sm:hover:bg-accent'
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          )}
+
+          <AnimatePresence mode="wait" initial={false}>
+            {showAppFeedbackDock ? (
+              <motion.div
+                key="app-feedback-dock"
+                transition={dockSwitchTransition}
+                initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className={DOCK_ROW}
+              >
+                <div className={DOCK_ACTION_SLOT}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppFeedbackMenuOpen(null)
+                      setShowAppFeedbackDock(false)
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Show main dock"
+                  >
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                  </button>
+                </div>
+
+                <div className={DOCK_ACTION_SLOT}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAppFeedbackMenuOpen((prev) => (prev === 'filter' ? null : 'filter'))
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Filter app feedback by type"
+                  >
+                    <ListFilter
+                      className={`h-6 w-6 sm:h-7 sm:w-7 transition-colors ${
+                        appFeedbackMenuOpen === 'filter' ? 'text-spirits-cyan' : 'text-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className={DOCK_ACTION_SLOT}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAppFeedbackMenuOpen((prev) => (prev === 'sort' ? null : 'sort'))
+                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
+                    aria-label="Sort app feedback"
+                  >
+                    <ArrowUpDown
+                      className={`h-6 w-6 sm:h-7 sm:w-7 transition-colors ${
+                        appFeedbackMenuOpen === 'sort' ? 'text-spirits-cyan' : 'text-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                <div className={DOCK_ACTION_SLOT}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppFeedbackMenuOpen(null)
+                      openAppFeedbackModal()
+                    }}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15"
+                    aria-label="Submit app feedback"
+                  >
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors" />
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="main-dock-app-feedback"
                 transition={dockSwitchTransition}
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}

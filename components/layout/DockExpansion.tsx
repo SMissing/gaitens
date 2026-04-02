@@ -19,6 +19,7 @@ import {
   Newspaper,
   Scale,
   ClipboardCheck,
+  TabletSmartphone,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -130,6 +131,13 @@ export function DockExpansion() {
             >
               <Lightbulb className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Ideas</div>
+            </Link>
+            <Link
+              href="/app-feedback"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <TabletSmartphone className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">App feedback</div>
             </Link>
             <Link
               href="/grievance"

@@ -52,6 +52,21 @@ export const ideaSchema = z.object({
   description: z.string().min(1, 'Description is required').max(2000, 'Description is too long'),
 })
 
+export const appFeedbackSchema = z.object({
+  category: z.enum(['feature', 'issue', 'question']),
+  title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
+  description: z.string().min(1, 'Description is required').max(2000, 'Description is too long'),
+})
+
+export const appFeedbackAdminPatchSchema = z.object({
+  adminStatus: z.enum(['open', 'denied', 'working_on_it', 'completed']),
+  adminComment: z
+    .string()
+    .max(2000, 'Comment is too long')
+    .nullable()
+    .optional(),
+})
+
 // Employee vote schema
 export const employeeVoteSchema = z.object({
   nomineeId: z.string().uuid(),

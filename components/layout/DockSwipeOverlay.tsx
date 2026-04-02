@@ -21,6 +21,7 @@ import {
   Newspaper,
   Scale,
   ClipboardCheck,
+  TabletSmartphone,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -166,6 +167,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Lightbulb className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
               <span className="font-medium text-foreground">Ideas</span>
+            </Link>
+            <Link
+              href="/app-feedback"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <TabletSmartphone className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">App feedback</span>
             </Link>
             <Link
               href="/grievance"

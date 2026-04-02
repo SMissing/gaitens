@@ -174,6 +174,23 @@ export interface Idea {
   userVote?: 1 | -1 | null
 }
 
+export type AppFeedbackCategory = 'feature' | 'issue' | 'question'
+
+export type AppFeedbackAdminStatus = 'open' | 'denied' | 'working_on_it' | 'completed'
+
+export interface AppFeedback {
+  id: string
+  userId: string
+  category: AppFeedbackCategory
+  title: string
+  description: string
+  adminStatus: AppFeedbackAdminStatus
+  adminComment: string | null
+  createdAt: string
+  updatedAt: string
+  submitterName?: string
+}
+
 export interface AnonymousReport {
   id: string
   note: string
