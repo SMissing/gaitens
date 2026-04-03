@@ -1,4 +1,12 @@
 export { BrickBreaker } from './brick-breaker'
+export { Stacker } from './stacker'
+export { useStacker } from './use-stacker'
+export type {
+  StackerGameState,
+  StackerSnapshot,
+  StackerGameEndResult,
+  PlacedBlock,
+} from './use-stacker'
 
 // Hook (for advanced usage)
 export { useBrickBreaker } from './use-brick-breaker'

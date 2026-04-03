@@ -22,6 +22,7 @@ import {
   TabletSmartphone,
   Megaphone,
   Gamepad2,
+  Layers,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -174,6 +175,13 @@ export function DockExpansion() {
             >
               <Gamepad2 className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Brick Breaker</div>
+            </Link>
+            <Link
+              href="/games/stacker"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Layers className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Stacker</div>
             </Link>
           </div>
         )

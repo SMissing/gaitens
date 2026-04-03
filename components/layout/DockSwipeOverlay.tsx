@@ -24,6 +24,7 @@ import {
   TabletSmartphone,
   Megaphone,
   Gamepad2,
+  Layers,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -216,6 +217,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Gamepad2 className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Brick Breaker</span>
+            </Link>
+            <Link
+              href="/games/stacker"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Layers className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
+              <span className="font-medium text-foreground">Stacker</span>
             </Link>
           </div>
         )
