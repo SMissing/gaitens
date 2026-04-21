@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, CheckCircle, X } from 'lucide-react'
-import type { User } from '@/types/database'
+import type { User, UserRole } from '@/types/database'
 import { formatStaffNameAndVenue } from '@/lib/staff-display'
 import { Select, type SelectOption } from '@/components/ui/select'
 
 interface VotingCardProps {
-  userRole: 'staff' | 'manager'
+  userRole: UserRole
   currentVote?: {
     id: string
     nomineeId: string
@@ -122,6 +122,11 @@ export function VotingCard({ userRole, currentVote, currentUserId }: VotingCardP
           <CardTitle>Your Vote</CardTitle>
           <CardDescription>
             You have already voted for this month. You can change your vote at any time.
+            {userRole === 'admin' && (
+              <span className="block mt-1 text-muted-foreground">
+                Your vote counts toward the manager pick tally.
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -176,9 +181,14 @@ export function VotingCard({ userRole, currentVote, currentUserId }: VotingCardP
       <CardHeader>
         <CardTitle>{currentVote ? 'Change Your Vote' : 'Vote for Employee of the Month'}</CardTitle>
         <CardDescription>
-          {currentVote 
+          {currentVote
             ? 'Select a different staff member or update your reason'
             : 'Select a staff member and provide a reason for your vote. You can change your vote at any time.'}
+          {userRole === 'admin' && (
+            <span className="block mt-1 text-muted-foreground">
+              As an admin, your vote counts toward the manager pick tally (same as a manager vote).
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>

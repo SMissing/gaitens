@@ -19,6 +19,7 @@ import {
   Newspaper,
   Scale,
   ClipboardCheck,
+  ListChecks,
   TabletSmartphone,
   Megaphone,
   Gamepad2,
@@ -202,6 +203,13 @@ export function DockExpansion() {
             >
               <GraduationCap className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Module Maker</div>
+            </Link>
+            <Link
+              href="/manager/staff-training"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-magenta/50 sm:hover:bg-accent sm:hover:border-spirits-magenta/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <ListChecks className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Staff training</div>
             </Link>
             <Link
               href="/manager/notices/post"

@@ -72,13 +72,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify voter is staff or manager (not admin voting through this endpoint)
-    if (user.role === 'admin') {
-      return NextResponse.json(
-        { error: 'Admins should use the admin voting interface' },
-        { status: 403 }
-      )
-    }
+    // Staff, manager, and admin may vote; admin votes count toward manager pick in statistics.
 
     // Check if vote already exists for this user and month
     const { data: existingVote, error: fetchError } = await supabase

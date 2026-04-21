@@ -21,6 +21,7 @@ import {
   Newspaper,
   Scale,
   ClipboardCheck,
+  ListChecks,
   TabletSmartphone,
   Megaphone,
   Gamepad2,
@@ -254,6 +255,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <GraduationCap className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Module Maker</span>
+            </Link>
+            <Link
+              href="/manager/staff-training"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <ListChecks className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <span className="font-medium text-foreground">Staff training</span>
             </Link>
             <Link
               href="/manager/notices/post"

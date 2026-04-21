@@ -1,4 +1,4 @@
-/** Manager Staff Badges list (`/manager/achievements`, not `/create`) ↔ DockButtonRow */
+/** Manager staff list pages (`/manager/achievements`, `/manager/staff-training`; not `/create`) ↔ DockButtonRow */
 
 export const STAFF_BADGES_DOCK_SET_SORT = 'staff-badges-dock:set-sort'
 export const STAFF_BADGES_DOCK_SET_FILTER = 'staff-badges-dock:set-filter'
@@ -18,6 +18,15 @@ export const STAFF_BADGES_SORT_OPTIONS: { value: StaffBadgesSortOption; label: s
   { value: 'name_desc', label: 'Name (Z–A)' },
   { value: 'badges_desc', label: 'Most badges' },
   { value: 'badges_asc', label: 'Fewest badges' },
+  { value: 'role_then_name', label: 'Role, then name' },
+]
+
+/** Same `value`s as badges sort; labels for Staff training page dock only. */
+export const STAFF_TRAINING_SORT_OPTIONS: { value: StaffBadgesSortOption; label: string }[] = [
+  { value: 'name_asc', label: 'Name (A–Z)' },
+  { value: 'name_desc', label: 'Name (Z–A)' },
+  { value: 'badges_desc', label: 'Most modules completed' },
+  { value: 'badges_asc', label: 'Fewest modules completed' },
   { value: 'role_then_name', label: 'Role, then name' },
 ]
 

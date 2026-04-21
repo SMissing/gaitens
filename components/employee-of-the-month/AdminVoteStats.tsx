@@ -277,10 +277,13 @@ export function AdminVoteStats() {
             {topManagerPick ? (
               <div>
                 <p className="text-xl font-bold">{topManagerPick.nomineeName}</p>
-                <p className="text-sm text-muted-foreground">{topManagerPick.managerVotes} manager vote(s)</p>
+                <p className="text-sm text-muted-foreground">
+                  {topManagerPick.managerVotes} manager pick vote(s)
+                  <span className="block text-xs mt-0.5">Includes managers and admins</span>
+                </p>
               </div>
             ) : (
-              <p className="text-muted-foreground">No manager votes yet</p>
+              <p className="text-muted-foreground">No manager pick votes yet</p>
             )}
           </CardContent>
         </Card>
@@ -290,7 +293,9 @@ export function AdminVoteStats() {
       <Card>
         <CardHeader>
           <CardTitle>Vote Breakdown</CardTitle>
-          <CardDescription>Voting period: {stats.month}</CardDescription>
+          <CardDescription>
+            Voting period: {stats.month}. Manager pick totals include votes from managers and admins.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -305,7 +310,8 @@ export function AdminVoteStats() {
                         {stat.nomineeName}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {stat.staffVotes} staff vote(s) • {stat.managerVotes} manager vote(s) • {stat.totalVotes} total
+                        {stat.staffVotes} staff vote(s) • {stat.managerVotes} manager pick vote(s) •{' '}
+                        {stat.totalVotes} total
                       </p>
                     </div>
                     <div className="text-right">
@@ -330,7 +336,15 @@ export function AdminVoteStats() {
                           <p className="text-foreground">
                             <span className="font-medium">{vote.voterName}</span>
                             <span className="text-muted-foreground ml-2">
-                              ({vote.voterRole === 'staff' ? 'Staff' : 'Manager'})
+                              (
+                              {vote.voterRole === 'staff'
+                                ? 'Staff'
+                                : vote.voterRole === 'manager'
+                                  ? 'Manager'
+                                  : vote.voterRole === 'admin'
+                                    ? 'Admin'
+                                    : vote.voterRole}
+                              )
                             </span>
                           </p>
                           {vote.reason && (

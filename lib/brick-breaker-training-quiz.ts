@@ -1,4 +1,4 @@
-import type { QuizQuestion, TrainingCourse, User } from '@/types/database'
+import type { QuizQuestion, TrainingCourse, User, UserRole } from '@/types/database'
 
 /** Human-readable venue label for training `site` (matches training UI naming). */
 export function trainingVenueLabel(site: string | null): string {
@@ -11,13 +11,22 @@ export function trainingVenueLabel(site: string | null): string {
   return map[site] ?? site
 }
 
+/** Same rules as staff training list: all-site modules + venue-specific when assigned. */
+export function trainingCourseAvailableToUser(
+  role: UserRole,
+  userSite: string | null,
+  course: Pick<TrainingCourse, 'site'>
+): boolean {
+  if (role !== 'staff') return true
+  if (!userSite) return course.site === null
+  return course.site === null || course.site === userSite
+}
+
 export function userMayAccessTrainingCourse(
   user: User,
   course: Pick<TrainingCourse, 'site'>
 ): boolean {
-  if (user.role !== 'staff') return true
-  if (!user.site) return course.site === null
-  return course.site === null || course.site === user.site
+  return trainingCourseAvailableToUser(user.role, user.site, course)
 }
 
 export function isValidQuizQuestion(q: unknown): q is QuizQuestion {

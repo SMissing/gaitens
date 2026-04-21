@@ -64,20 +64,20 @@ export default async function EmployeeOfTheMonthPage() {
           </div>
         )}
 
-        {/* Admin View - Vote Statistics */}
+        {(user.role === 'staff' || user.role === 'manager' || user.role === 'admin') && (
+          <div className="mb-8">
+            <VotingCard
+              userRole={user.role}
+              currentVote={currentVote || null}
+              currentUserId={user.id}
+            />
+          </div>
+        )}
+
         {user.role === 'admin' && (
           <div className="mb-8">
             <AdminVoteStats />
           </div>
-        )}
-
-        {/* Staff/Manager View - Voting Card */}
-        {(user.role === 'staff' || user.role === 'manager') && (
-          <VotingCard
-            userRole={user.role}
-            currentVote={currentVote || null}
-            currentUserId={user.id}
-          />
         )}
         </div>
       </div>

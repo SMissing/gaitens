@@ -89,6 +89,7 @@ import {
   STAFF_BADGES_DOCK_SET_SORT,
   STAFF_BADGES_FILTER_OPTIONS,
   STAFF_BADGES_SORT_OPTIONS,
+  STAFF_TRAINING_SORT_OPTIONS,
   type StaffBadgesSortOption,
   type StaffBadgesVenueFilter,
 } from '@/lib/staff-badges-dock-bridge'
@@ -144,6 +145,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   const isManagerAchievementsPage =
     pathname.startsWith('/manager/achievements') &&
     !pathname.startsWith('/manager/achievements/create')
+  const isManagerStaffTrainingPage = pathname.startsWith('/manager/staff-training')
+  const isManagerStaffBadgesDockPage =
+    isManagerAchievementsPage || isManagerStaffTrainingPage
   const isModuleMakerPage = pathname.startsWith('/manager/training')
   const isNoticesPostPage =
     pathname === '/manager/notices/post' ||
@@ -203,7 +207,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     useState<AppFeedbackSortOption>('recent')
   const [selectedAppFeedbackFilter, setSelectedAppFeedbackFilter] =
     useState<AppFeedbackFilterOption>('All')
-  const [showStaffBadgesDock, setShowStaffBadgesDock] = useState(isManagerAchievementsPage)
+  const [showStaffBadgesDock, setShowStaffBadgesDock] = useState(isManagerStaffBadgesDockPage)
   const [staffBadgesMenuOpen, setStaffBadgesMenuOpen] = useState<'sort' | 'filter' | null>(null)
   const [staffBadgesSort, setStaffBadgesSort] = useState<StaffBadgesSortOption>('role_then_name')
   const [staffBadgesFilter, setStaffBadgesFilter] = useState<StaffBadgesVenueFilter>('All')
@@ -244,10 +248,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   }, [isAppFeedbackPage])
 
   useEffect(() => {
-    if (isManagerAchievementsPage) {
+    if (isManagerStaffBadgesDockPage) {
       setShowStaffBadgesDock(true)
     }
-  }, [isManagerAchievementsPage])
+  }, [isManagerStaffBadgesDockPage])
 
   useEffect(() => {
     if (isManageStaffPage) {
@@ -416,7 +420,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   }, [isAppFeedbackPage, showAppFeedbackDock])
 
   useEffect(() => {
-    if (!isManagerAchievementsPage || showStaffBadgesDock) return
+    if (!isManagerStaffBadgesDockPage || showStaffBadgesDock) return
 
     const handleOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node
@@ -428,10 +432,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick)
     }
-  }, [isManagerAchievementsPage, showStaffBadgesDock])
+  }, [isManagerStaffBadgesDockPage, showStaffBadgesDock])
 
   useEffect(() => {
-    if (!isManagerAchievementsPage || !showStaffBadgesDock) return
+    if (!isManagerStaffBadgesDockPage || !showStaffBadgesDock) return
 
     const handleOutsideClick = (event: MouseEvent) => {
       const target = event.target as Node
@@ -443,7 +447,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     return () => {
       document.removeEventListener('mousedown', handleOutsideClick)
     }
-  }, [isManagerAchievementsPage, showStaffBadgesDock])
+  }, [isManagerStaffBadgesDockPage, showStaffBadgesDock])
 
   useEffect(() => {
     if (dockCategoryOpen) {
@@ -1340,12 +1344,17 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     )
   }
 
-  if (isManagerAchievementsPage) {
+  if (isManagerStaffBadgesDockPage) {
+    const staffListSortOptions = isManagerStaffTrainingPage
+      ? STAFF_TRAINING_SORT_OPTIONS
+      : STAFF_BADGES_SORT_OPTIONS
     const staffBadgesPanelTitle =
       staffBadgesMenuOpen === 'filter'
         ? 'Filter by venue'
         : staffBadgesMenuOpen === 'sort'
-          ? 'Sort accounts'
+          ? isManagerStaffTrainingPage
+            ? 'Sort by training'
+            : 'Sort accounts'
           : null
 
     return (
@@ -1385,7 +1394,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                           </button>
                         ))}
                       {staffBadgesMenuOpen === 'sort' &&
-                        STAFF_BADGES_SORT_OPTIONS.map((option) => (
+                        staffListSortOptions.map((option) => (
                           <button
                             key={option.value}
                             type="button"
@@ -1457,7 +1466,11 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                       setStaffBadgesMenuOpen((prev) => (prev === 'sort' ? null : 'sort'))
                     }
                     className="flex h-10 w-10 items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
-                    aria-label="Sort accounts"
+                    aria-label={
+                      isManagerStaffTrainingPage
+                        ? 'Sort by training completion'
+                        : 'Sort accounts'
+                    }
                   >
                     <ArrowUpDown
                       className={`h-6 w-6 transition-colors sm:h-7 sm:w-7 ${
@@ -1472,7 +1485,11 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                     type="button"
                     onClick={triggerStaffBadgesRefresh}
                     className="flex h-10 w-10 items-center justify-center rounded-lg bg-spirits-yellow/15 p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
-                    aria-label="Refresh badge list"
+                    aria-label={
+                      isManagerStaffTrainingPage
+                        ? 'Refresh training progress'
+                        : 'Refresh badge list'
+                    }
                   >
                     <RefreshCw className="h-6 w-6 text-spirits-yellow transition-colors sm:h-7 sm:w-7" />
                   </button>

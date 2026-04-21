@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
       if (voter?.role === 'staff') {
         voteCounts[nomineeId].staffVotes++
-      } else if (voter?.role === 'manager') {
+      } else if (voter?.role === 'manager' || voter?.role === 'admin') {
         voteCounts[nomineeId].managerVotes++
       }
     })
