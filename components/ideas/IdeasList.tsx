@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { GlowEffect } from '@/components/ui/glow-effect'
-import { ThumbsUp, ThumbsDown } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, X } from 'lucide-react'
 import { fetchWithAuth } from '@/lib/fetch-with-auth'
 import type { Idea } from '@/types/database'
 
@@ -55,6 +55,7 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
   const [loading, setLoading] = useState(false)
   const [votingIdeas, setVotingIdeas] = useState<Set<string>>(new Set())
   const [voteFlash, setVoteFlash] = useState<Record<string, 'up' | 'down'>>({})
+  const [expandedImageUrl, setExpandedImageUrl] = useState<string | null>(null)
 
   // Filter and sort ideas
   const filteredAndSortedIdeas = useMemo(() => {
@@ -82,6 +83,15 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
 
     return sorted
   }, [ideas, sortBy, filterBy])
+
+  useEffect(() => {
+    if (!expandedImageUrl) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setExpandedImageUrl(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [expandedImageUrl])
 
   useEffect(() => {
     const refreshIdeas = async () => {
@@ -166,6 +176,7 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
   }
 
   return (
+    <>
     <div className="space-y-4">
       {filteredAndSortedIdeas.map((idea) => {
         const isVoting = votingIdeas.has(idea.id)
@@ -214,6 +225,29 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
                   </Avatar>
                 </div>
 
+                {idea.imageUrl ? (
+                  <div
+                    className="relative w-full overflow-hidden rounded-xl bg-black/50 cursor-pointer"
+                    onClick={() => setExpandedImageUrl(idea.imageUrl!)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        setExpandedImageUrl(idea.imageUrl!)
+                      }
+                    }}
+                    aria-label="View attached image"
+                  >
+                    <img
+                      src={idea.imageUrl}
+                      alt=""
+                      className="w-full max-h-[min(70vh,32rem)] object-contain mx-auto"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : null}
+
                 {/* Description */}
                 <div>
                   <p className="text-foreground whitespace-pre-wrap">{idea.description}</p>
@@ -253,5 +287,35 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
         )
       })}
     </div>
+
+    {expandedImageUrl ? (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+        onClick={() => setExpandedImageUrl(null)}
+      >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setExpandedImageUrl(null)
+          }}
+          className="absolute top-4 right-4 z-10 p-2 bg-card/90 hover:bg-card rounded-full border border-border transition-colors"
+          aria-label="Close image"
+        >
+          <X className="h-6 w-6 text-foreground" />
+        </button>
+        <div
+          className="relative max-w-[90vw] max-h-[90vh] p-4"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <img
+            src={expandedImageUrl}
+            alt="Idea attachment"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+          />
+        </div>
+      </div>
+    ) : null}
+    </>
   )
 }

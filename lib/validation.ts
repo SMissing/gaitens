@@ -45,12 +45,49 @@ export const grievanceSchema = z.object({
   whatHasBeenDone: z.string().min(1, 'What has been done to date is required').max(1000, 'Description is too long'),
 })
 
+function getIdeasStoragePublicUrlPrefix(): string | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) return null
+  return `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/ideas/`
+}
+
 // Idea schema
-export const ideaSchema = z.object({
-  venue: z.enum(['Garrison', 'Spirits', 'Bassment', 'All']),
-  title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
-  description: z.string().min(1, 'Description is required').max(2000, 'Description is too long'),
-})
+export const ideaSchema = z
+  .object({
+    venue: z.enum(['Garrison', 'Spirits', 'Bassment', 'All']),
+    title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
+    description: z.string().min(1, 'Description is required').max(2000, 'Description is too long'),
+    imageUrl: z.string().url().optional().nullable(),
+    imagePath: z.string().min(1).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    const hasUrl = Boolean(data.imageUrl)
+    const hasPath = Boolean(data.imagePath)
+    if (hasUrl !== hasPath) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Image URL and path must be provided together',
+        path: ['imageUrl'],
+      })
+    }
+    if (data.imageUrl) {
+      const prefix = getIdeasStoragePublicUrlPrefix()
+      if (prefix && !data.imageUrl.startsWith(prefix)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Invalid image URL',
+          path: ['imageUrl'],
+        })
+      }
+      if (data.imagePath && !data.imageUrl.includes(data.imagePath)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Image URL does not match storage path',
+          path: ['imagePath'],
+        })
+      }
+    }
+  })
 
 export const appFeedbackSchema = z.object({
   category: z.enum(['feature', 'issue', 'question']),

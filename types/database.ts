@@ -167,6 +167,8 @@ export interface Idea {
   venue: 'Garrison' | 'Spirits' | 'Bassment' | 'All'
   title: string
   description: string
+  imageUrl?: string | null
+  imagePath?: string | null
   status: 'submitted' | 'under_review' | 'implemented' | 'rejected'
   createdAt: string
   updatedAt: string

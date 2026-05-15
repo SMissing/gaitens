@@ -68,6 +68,8 @@ export async function POST(request: NextRequest) {
         venue: validatedData.venue,
         title: validatedData.title,
         description: validatedData.description,
+        imageUrl: validatedData.imageUrl ?? null,
+        imagePath: validatedData.imagePath ?? null,
         status: 'submitted',
       })
       .select()
