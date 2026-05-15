@@ -18,8 +18,8 @@ export default async function BusinessesPage() {
       title: 'Site Management',
       roles: [
         { title: 'Garrison General Manager', people: ['James Harvey'] },
-        { title: 'Garrison Assistant Manager', people: ['Matt Douglas'] },
-        { title: 'Spirits General Manager', people: ['Bret Sanders'] },
+        { title: 'Bassment Assistant Manager', people: ['Matt Douglas'] },
+        { title: 'Spirits General Manager', people: ['TBN'] },
         { title: 'Bassment General Manager', people: ['Daisy King'] },
       ],
     },
