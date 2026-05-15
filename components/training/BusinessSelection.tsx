@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Building2 } from 'lucide-react'
+import mattPhoto from '@/assets/pngs/matt_photo.png'
 
 interface Business {
   name: string
@@ -42,11 +43,19 @@ export function BusinessSelection({ onSelect }: BusinessSelectionProps) {
         >
           <CardContent className="p-4 sm:p-8 flex flex-col items-center justify-center min-h-[150px] sm:min-h-[200px] overflow-hidden">
             {business.logo ? (
-              <div className="w-full h-24 sm:h-32 flex items-center justify-center overflow-hidden">
+              <div className="relative w-full h-24 sm:h-32 flex items-center justify-center overflow-hidden">
+                {business.site === 'Bassment' && (
+                  <img
+                    src={mattPhoto.src}
+                    alt=""
+                    aria-hidden
+                    className="absolute inset-0 m-auto max-w-[90%] max-h-full w-auto h-auto object-contain opacity-[0.1] pointer-events-none z-0"
+                  />
+                )}
                 <img
                   src={business.logo}
                   alt={`${business.name} logo`}
-                  className="max-w-[90%] max-h-full w-auto h-auto object-contain"
+                  className="relative z-10 max-w-[90%] max-h-full w-auto h-auto object-contain"
                 />
               </div>
             ) : (
