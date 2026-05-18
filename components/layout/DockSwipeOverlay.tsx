@@ -26,6 +26,7 @@ import {
   Megaphone,
   Gamepad2,
   Layers,
+  Flame,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -226,6 +227,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Layers className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Stacker</span>
+            </Link>
+            <Link
+              href="/games/firemon"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Flame className="h-5 w-5 text-orange-500 flex-shrink-0" />
+              <span className="font-medium text-foreground">Firemon (WIP)</span>
             </Link>
           </div>
         )
