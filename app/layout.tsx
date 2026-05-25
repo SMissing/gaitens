@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { GlobalDock } from '@/components/layout/GlobalDock'
 import { DockWrapper } from '@/components/layout/DockWrapper'
@@ -111,6 +112,7 @@ export default function RootLayout({
         </DockWrapper>
         {/* Global Achievement Notifications - Works on all pages */}
         <GlobalAchievementNotification />
+        <Analytics />
       </body>
     </html>
   )
