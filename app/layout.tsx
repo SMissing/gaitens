@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Analytics } from '@vercel/analytics/next'
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css'
 import { GlobalDock } from '@/components/layout/GlobalDock'
 import { DockWrapper } from '@/components/layout/DockWrapper'

@@ -255,7 +255,7 @@ export function useFiremonBattle() {
         log: appendLog(prev.log, result),
       }
     }
-
+    
     const plan = chooseFireAttack(fire, prev)
 
     if (plan.kind === 'start-charge') {
