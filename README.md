@@ -1,243 +1,65 @@
-# Gaitens Leisure Group - Staff Portal
+![Gaitens Leisure Group](assets/pngs/logos/gtnslogo_text.png)
 
-Internal staff portal web application for Gaitens Leisure Group.
+# Gaitens Leisure Group Staff Portal
 
-## 🚀 Deployment
+An internal digital workplace for Gaitens Leisure Group teams.  
+The portal brings day-to-day staff operations, communication, recognition, and manager workflows into one secure app.
 
-**Note:** This is a Next.js application with server-side features. GitHub Pages will only show the README file. 
+## What The App Does
 
-**Recommended:** Deploy to [Vercel](https://vercel.com) for the best Next.js experience:
-1. Connect your GitHub repository
-2. Add environment variables
-3. Deploy automatically on every push
+The Staff Portal helps teams stay informed, complete tasks, and collaborate across sites without relying on scattered chats, paper processes, or disconnected tools.
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions.
+Core outcomes:
+- Centralized communication and updates for all staff
+- Faster manager workflows for approvals and people operations
+- Better staff engagement through recognition and feedback channels
+- Clear visibility of upcoming events, meetings, and training progress
 
-## Tech Stack
+## Key Features
 
-- **Next.js 14** (App Router)
-- **TypeScript**
-- **TailwindCSS**
-- **Supabase** (Database & Authentication)
-- **Zod** (Validation)
+### Staff Experience
+- Personal dashboard with important updates and quick actions
+- Notices and announcements with unread tracking
+- Holiday request submission and calendar visibility
+- Training modules and progress/completion tracking
+- Employee of the Month nominations and results
+- Ideas and app feedback submission
+- Anonymous reporting and grievance channels
+- Social, blog, and photo album areas for team culture
 
-## Getting Started
+### Manager And Admin Tools
+- Staff management and role-based access controls
+- Meeting creation, updates, and follow-up tracking
+- Holiday request review and approval flows
+- Achievement and badge request workflows
+- Notice publishing and content management
+- Disciplinary and legal acknowledgement workflows
+- Management calendar and operational planning views
 
-1. Install dependencies:
-```bash
-npm install
-```
+## Value For The Team
 
-2. Set up environment variables:
-```bash
-cp .env.example .env
-```
+- **For staff:** a clear single place to get updates, complete actions, and be heard
+- **For managers:** less admin overhead and faster, auditable approval processes
+- **For the business:** stronger engagement, better governance, and more consistent communication standards
 
-Fill in your Supabase credentials:
-- `https://ycfemtinonheyjtndyrm.supabase.co`
-- `https://ycfemtinonheyjtndyrm.supabase.co
+## Privacy, Security, And GDPR Approach
 
-3. Set up Supabase database:
+This portal is designed for internal business use and supports good GDPR-aligned practices:
+- Role-based access to limit data exposure to authorized users
+- Authentication and session controls to protect account access
+- Audit-friendly workflows around approvals, acknowledgements, and records
+- Data minimization principles (collect only what is needed for operations)
+- Support for retention and review processes to meet internal policy obligations
 
-Run the following SQL in your Supabase SQL editor to create the required tables:
+> Note: GDPR compliance depends on both application behavior and operational policy (for example retention schedules, lawful basis, and subject rights handling). Final compliance should always be validated by your internal compliance/legal process.
 
-```sql
--- Users table
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  "staffCode" TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL CHECK (role IN ('staff', 'manager', 'admin')),
-  site TEXT,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  active BOOLEAN DEFAULT TRUE
-);
+## Platform Snapshot
 
--- Holiday requests table
-CREATE TABLE holiday_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userId" UUID NOT NULL REFERENCES users(id),
-  "startDate" DATE NOT NULL,
-  "endDate" DATE NOT NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
-  reason TEXT,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+- Built with Next.js and TypeScript
+- Uses Supabase for data and authentication services
+- UI powered by Tailwind CSS
+- Validation handled with Zod
 
--- Holiday calendar events table
-CREATE TABLE holiday_calendar_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userId" UUID NOT NULL REFERENCES users(id),
-  date DATE NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('holiday', 'approved_request')),
-  title TEXT,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+---
 
--- Training courses table
-CREATE TABLE training_courses (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT,
-  "videoUrl" TEXT,
-  content TEXT,
-  "quizQuestions" JSONB,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Training completions table
-CREATE TABLE training_completions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userId" UUID NOT NULL REFERENCES users(id),
-  "courseId" UUID NOT NULL REFERENCES training_courses(id),
-  "completedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "expiresAt" TIMESTAMP WITH TIME ZONE NOT NULL,
-  score INTEGER
-);
-
--- Notices table
-CREATE TABLE notices (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  content TEXT NOT NULL,
-  attachments TEXT[],
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "expiresAt" TIMESTAMP WITH TIME ZONE,
-  pinned BOOLEAN DEFAULT FALSE,
-  "createdBy" UUID NOT NULL REFERENCES users(id)
-);
-
--- Grievances table
-CREATE TABLE grievances (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userId" UUID NOT NULL REFERENCES users(id),
-  subject TEXT NOT NULL,
-  content TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'in_review', 'resolved')),
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Ideas table
-CREATE TABLE ideas (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userId" UUID NOT NULL REFERENCES users(id),
-  title TEXT NOT NULL,
-  description TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'submitted' CHECK (status IN ('submitted', 'under_review', 'implemented', 'rejected')),
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Employee votes table
-CREATE TABLE employee_votes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "voterId" UUID NOT NULL REFERENCES users(id),
-  "nomineeId" UUID NOT NULL REFERENCES users(id),
-  reason TEXT NOT NULL,
-  month TEXT NOT NULL,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE("voterId", month)
-);
-
--- Employee winners table
-CREATE TABLE employee_winners (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "userId" UUID NOT NULL REFERENCES users(id),
-  month TEXT NOT NULL UNIQUE,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Meetings table
-CREATE TABLE meetings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  "createdBy" UUID NOT NULL REFERENCES users(id),
-  title TEXT NOT NULL,
-  date TIMESTAMP WITH TIME ZONE NOT NULL,
-  location TEXT,
-  attendees UUID[] NOT NULL,
-  notes TEXT,
-  "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create indexes for better performance
-CREATE INDEX idx_users_staff_code ON users("staffCode");
-CREATE INDEX idx_holiday_requests_user ON holiday_requests("userId");
-CREATE INDEX idx_training_completions_user ON training_completions("userId");
-CREATE INDEX idx_notices_expires ON notices("expiresAt");
-CREATE INDEX idx_employee_votes_month ON employee_votes(month);
-```
-
-4. Run the development server:
-```bash
-npm run dev
-```
-
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Project Structure
-
-```
-/app
-  /login          - Login page
-  /dashboard      - Main dashboard
-  /handbook       - Staff handbook
-  /holidays       - Holiday management
-  /training       - Training system
-  /notices        - Notice board
-  /ideas          - Ideas submission
-  /employee-of-the-month - Voting system
-  /grievance      - Grievance form
-  /businesses     - Business information
-  /social         - Social feed
-  /manager        - Manager tools
-  /staff          - Staff management
-  /meetings       - Meeting management
-/components
-  /forms          - Form components
-  /layout         - Layout components
-  /ui             - UI components
-/lib
-  auth.ts         - Authentication logic
-  db.ts           - Database client
-  validation.ts   - Zod schemas
-/types
-  database.ts     - TypeScript types
-```
-
-## Authentication
-
-Users log in using a **4-digit numeric code**. The system includes:
-- Lock after 5 failed attempts for 5 minutes
-- Name confirmation before login
-- 8-hour session duration
-
-## Features
-
-- ✅ Staff login with 4-digit code
-- ✅ Dashboard with overview
-- 🚧 Manager staff creation
-- 🚧 Handbook viewing
-- 🚧 Holiday requests
-- 🚧 Training system
-- 🚧 Notice board
-- 🚧 Grievance form
-- 🚧 Ideas submission
-- 🚧 Employee of the month
-- 🚧 Social feed
-- 🚧 Business information
-- 🚧 Manager meeting tool
-
-## Development
-
-This project uses:
-- React Server Components where appropriate
-- TypeScript for type safety
-- TailwindCSS for styling
-- Zod for validation
-- Supabase for backend services
-
-Keep code simple, modular, and beginner-friendly.
+This repository is the source code for the internal Gaitens Leisure Group Staff Portal.
