@@ -114,6 +114,7 @@ export default function RootLayout({
         {/* Global Achievement Notifications - Works on all pages */}
         <GlobalAchievementNotification />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
