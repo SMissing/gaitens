@@ -13,6 +13,7 @@ import { PushNotificationManager } from '@/components/notifications/PushNotifica
 import { PushNotificationButton } from '@/components/notifications/PushNotificationButton'
 import { InstagramFeed } from '@/components/social/InstagramFeed'
 import { NextEventCard } from '@/components/upcoming-events/NextEventCard'
+import { EotmDashboardCard } from './EotmDashboardCard'
 import { MeetingNotificationCard } from '@/components/meetings/MeetingNotificationCard'
 import { MeetingCard } from '@/components/meetings/MeetingCard'
 import dynamic from 'next/dynamic'
@@ -39,7 +40,6 @@ import {
   Award,
   Building2,
   Users,
-  Trophy,
 } from 'lucide-react'
 
 interface DashboardContentProps {
@@ -145,6 +145,19 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
   const eotmWinners = latestMonth
     ? (recentWinnerRows ?? []).filter(w => w.month === latestMonth)
     : []
+
+  // Fetch vote reasons left for the winning nominees that month
+  let eotmReasons: string[] = []
+  if (latestMonth && eotmWinners.length > 0) {
+    const winnerIds = eotmWinners.map(w => w.userId)
+    const { data: reasonRows } = await supabase
+      .from('employee_votes')
+      .select('reason')
+      .eq('month', latestMonth)
+      .in('nomineeId', winnerIds)
+      .not('reason', 'is', null)
+    eotmReasons = (reasonRows ?? []).map((r: any) => r.reason).filter(Boolean)
+  }
 
   // User's grievances (only their own)
   const { data: userGrievances } = await supabase
@@ -263,46 +276,11 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
       {/* Employees of the Month */}
       {eotmWinners.length > 0 && (
         <div className="mb-4 sm:mb-6">
-          <Card
-            className="border-2"
-            style={{ borderColor: 'var(--spirits-yellow)' }}
-          >
-            <CardContent className="p-4 sm:p-5">
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-spirits-yellow" />
-                    <CardTitle className="text-base sm:text-lg">Employees of the Month</CardTitle>
-                  </div>
-                  <span className="text-xs text-muted-foreground">{formatVotingMonth(latestMonth!)}</span>
-                </div>
-
-                {/* Winners inner box */}
-                <div
-                  className={`p-3 bg-background/50 rounded-lg border grid gap-3 ${eotmWinners.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}
-                  style={{ borderColor: 'color-mix(in oklch, var(--spirits-yellow) 30%, transparent)' }}
-                >
-                  {eotmWinners.map((winner) => {
-                    const u = Array.isArray(winner.users) ? winner.users[0] : winner.users
-                    return (
-                      <div key={winner.id} className="flex items-center gap-2 min-w-0">
-                        <Award className="h-6 w-6 text-spirits-yellow flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground truncate leading-tight">{u?.name}</p>
-                          {u?.site && <p className="text-xs text-muted-foreground truncate">{u.site}</p>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                <p className="text-xs text-muted-foreground">
-                  Congratulations to our outstanding team members!
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <EotmDashboardCard
+            winners={eotmWinners as any}
+            formattedMonth={formatVotingMonth(latestMonth!)}
+            reasons={eotmReasons}
+          />
         </div>
       )}
 

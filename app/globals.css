@@ -485,6 +485,14 @@
     line-height: 1.8;
   }
   
+  /* Employee of the Month — falling particles */
+  @keyframes eotm-fall {
+    0%   { transform: translateY(-4px); opacity: 0; }
+    8%   { opacity: 0.8; }
+    85%  { opacity: 0.45; }
+    100% { transform: translateY(160px); opacity: 0; }
+  }
+
   /* Highlight animation */
   @keyframes highlight-flash {
     0%, 100% {
