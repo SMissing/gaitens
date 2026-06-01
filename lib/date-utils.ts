@@ -1,4 +1,14 @@
 /**
+ * Format a "YYYY-MM" voting month string into a human-readable month name.
+ * e.g. "2025-05" → "May 2025"
+ */
+export function formatVotingMonth(month: string): string {
+  const [year, monthNum] = month.split('-')
+  const date = new Date(parseInt(year), parseInt(monthNum) - 1)
+  return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+}
+
+/**
  * Format date consistently across server and client
  * Returns date in DD/MM/YYYY format
  */
