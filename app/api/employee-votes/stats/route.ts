@@ -3,14 +3,15 @@ import { requireAdmin } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { getCurrentVotingMonth } from '@/lib/date-utils'
 
-// GET - Get vote statistics for the current month (admin only)
+// GET - Get vote statistics for a given month (admin only), defaults to current month
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin()
     const supabase = createServerClient()
-    const currentMonth = getCurrentVotingMonth()
+    const { searchParams } = new URL(request.url)
+    const month = searchParams.get('month') || getCurrentVotingMonth()
 
-    // Get all votes for the current month with voter and nominee info
+    // Get all votes for the requested month with voter and nominee info
     const { data: votes, error: votesError } = await supabase
       .from('employee_votes')
       .select(`
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
         voters:voterId(id, name, role),
         nominees:nomineeId(id, name, site)
       `)
-      .eq('month', currentMonth)
+      .eq('month', month)
 
     if (votesError) {
       console.error('Error fetching votes:', votesError)
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.totalVotes - a.totalVotes)
 
     return NextResponse.json({
-      month: currentMonth,
+      month,
       stats,
       totalVotes: votes?.length || 0,
     })

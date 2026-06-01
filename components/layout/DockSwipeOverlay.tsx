@@ -27,6 +27,7 @@ import {
   Gamepad2,
   Layers,
   Flame,
+  Trophy,
 } from 'lucide-react'
 import type { User } from '@/types/database'
 
@@ -364,6 +365,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Scale className="h-5 w-5 text-garrison-orange flex-shrink-0" />
               <span className="font-medium text-foreground">Barred Disclaimers</span>
+            </Link>
+            <Link
+              href="/admin/employee-of-the-month"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Trophy className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <span className="font-medium text-foreground">Employee of the Month</span>
             </Link>
           </div>
         )

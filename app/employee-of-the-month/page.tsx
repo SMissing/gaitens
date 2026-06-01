@@ -2,10 +2,9 @@ import { requireAuth } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { getCurrentVotingMonth } from '@/lib/date-utils'
 import { VotingCard } from '@/components/employee-of-the-month/VotingCard'
-import { AdminVoteStats } from '@/components/employee-of-the-month/AdminVoteStats'
 import { WinnerDisplay } from '@/components/employee-of-the-month/WinnerDisplay'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Award, Calendar } from 'lucide-react'
+import { Award } from 'lucide-react'
 
 export default async function EmployeeOfTheMonthPage() {
   const user = await requireAuth()
@@ -74,12 +73,7 @@ export default async function EmployeeOfTheMonthPage() {
           </div>
         )}
 
-        {user.role === 'admin' && (
-          <div className="mb-8">
-            <AdminVoteStats />
-          </div>
-        )}
-        </div>
+</div>
       </div>
     </div>
   )

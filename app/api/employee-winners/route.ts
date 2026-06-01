@@ -8,10 +8,10 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin()
     const supabase = createServerClient()
-    const currentMonth = getCurrentVotingMonth()
 
     const body = await request.json()
-    const { staffPickUserId, managerPickUserId } = body
+    const { staffPickUserId, managerPickUserId, month: bodyMonth } = body
+    const targetMonth = bodyMonth || getCurrentVotingMonth()
 
     if (!staffPickUserId || !managerPickUserId) {
       return NextResponse.json(
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('employee_winners')
       .delete()
-      .eq('month', currentMonth)
+      .eq('month', targetMonth)
 
     // Insert new winners
     const { data: winners, error: insertError } = await supabase
@@ -47,12 +47,12 @@ export async function POST(request: NextRequest) {
       .insert([
         {
           userId: staffPickUserId,
-          month: currentMonth,
+          month: targetMonth,
           type: 'staff_pick',
         },
         {
           userId: managerPickUserId,
-          month: currentMonth,
+          month: targetMonth,
           type: 'manager_pick',
         },
       ])

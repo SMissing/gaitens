@@ -25,6 +25,7 @@ import {
   Gamepad2,
   Layers,
   Flame,
+  Trophy,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -300,6 +301,13 @@ export function DockExpansion() {
             >
               <Scale className="h-5 w-5 text-garrison-orange flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Barred Disclaimers</div>
+            </Link>
+            <Link
+              href="/admin/employee-of-the-month"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Trophy className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Employee of the Month</div>
             </Link>
           </div>
         )
