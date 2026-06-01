@@ -10,10 +10,8 @@ export function EotmReasonRotator({ reasons }: EotmReasonRotatorProps) {
   const [index, setIndex] = useState(0)
   const [visible, setVisible] = useState(false)
 
-  // Randomise only after mount to avoid server/client mismatch
   useEffect(() => {
     if (reasons.length === 0) return
-    setIndex(Math.floor(Math.random() * reasons.length))
     setVisible(true)
 
     if (reasons.length <= 1) return
