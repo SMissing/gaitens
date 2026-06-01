@@ -122,11 +122,6 @@ export function VotingCard({ userRole, currentVote, currentUserId }: VotingCardP
           <CardTitle>Your Vote</CardTitle>
           <CardDescription>
             You have already voted for this month. You can change your vote at any time.
-            {userRole === 'admin' && (
-              <span className="block mt-1 text-muted-foreground">
-                Your vote counts toward the manager pick tally.
-              </span>
-            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -182,13 +177,8 @@ export function VotingCard({ userRole, currentVote, currentUserId }: VotingCardP
         <CardTitle>{currentVote ? 'Change Your Vote' : 'Vote for Employee of the Month'}</CardTitle>
         <CardDescription>
           {currentVote
-            ? 'Select a different staff member or update your reason'
+            ? 'Select a different staff member or update your reason.'
             : 'Select a staff member and provide a reason for your vote. You can change your vote at any time.'}
-          {userRole === 'admin' && (
-            <span className="block mt-1 text-muted-foreground">
-              As an admin, your vote counts toward the manager pick tally (same as a manager vote).
-            </span>
-          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
