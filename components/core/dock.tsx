@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const DockContext = React.createContext<{
@@ -78,10 +79,11 @@ Dock.displayName = 'Dock'
 interface DockItemProps extends React.HTMLAttributes<HTMLDivElement> {
   itemId: string
   children: React.ReactNode
+  hasSubmenu?: boolean
 }
 
 const DockItem = React.forwardRef<HTMLDivElement, DockItemProps>(
-  ({ className, itemId, children, ...props }, ref) => {
+  ({ className, itemId, children, hasSubmenu, ...props }, ref) => {
     const { activeItem, setActiveItem } = React.useContext(DockContext)
     const isActive = activeItem === itemId
 
@@ -94,6 +96,14 @@ const DockItem = React.forwardRef<HTMLDivElement, DockItemProps>(
         )}
         {...props}
       >
+        {hasSubmenu && (
+          <ChevronUp
+            className={cn(
+              'absolute -top-2 left-1/2 -translate-x-1/2 h-2.5 w-2.5 transition-colors pointer-events-none',
+              isActive ? 'text-spirits-cyan' : 'text-foreground/25'
+            )}
+          />
+        )}
         <div
           onClick={() => setActiveItem(isActive ? null : itemId)}
           className={cn(

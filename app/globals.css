@@ -298,6 +298,11 @@
     opacity: 0.4;
   }
 
+  /* Training hub — own background colour so no other backdrop bleeds through */
+  body.training-hub-bg {
+    background-color: #0c0c1e;
+  }
+
   /* Calm backdrop (Ideas-style): all portal pages except dashboard/login via body class */
   body.calm-portal-background::before {
     background-image:

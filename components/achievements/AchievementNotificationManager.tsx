@@ -39,6 +39,15 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
   const currentNotificationRef = useRef(currentNotification)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   const hasCheckedInitialLoad = useRef(false)
+  const hasFiredReadyEvent = useRef(false)
+
+  const fireReadyEvent = () => {
+    if (hasFiredReadyEvent.current) return
+    hasFiredReadyEvent.current = true
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('achievements-ready'))
+    }
+  }
 
   // Check for unviewed achievements on initial load
   useEffect(() => {
@@ -51,12 +60,7 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
         if (!response.ok) {
           setIsInitialLoad(false)
           onAllAchievementsShown?.()
-          // Dispatch event even on error
-          if (typeof window !== 'undefined') {
-            setTimeout(() => {
-              window.dispatchEvent(new Event('achievements-ready'))
-            }, 100)
-          }
+          setTimeout(fireReadyEvent, 100)
           return
         }
 
@@ -86,32 +90,26 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
           // Show first achievement immediately
           setCurrentNotification(unviewedAchievements[0])
         } else {
-          // No unviewed achievements, mark as ready immediately
+          // No unviewed achievements — signal ready immediately
           setIsInitialLoad(false)
           onAllAchievementsShown?.()
-          // Dispatch event to notify that achievements are ready
-          if (typeof window !== 'undefined') {
-            // Small delay to ensure event listeners are set up
-            setTimeout(() => {
-              window.dispatchEvent(new Event('achievements-ready'))
-            }, 100)
-          }
+          setTimeout(fireReadyEvent, 100)
         }
       } catch (error) {
         console.error('Error checking for unviewed achievements:', error)
         setIsInitialLoad(false)
         onAllAchievementsShown?.()
-        // Dispatch event even on error
-        if (typeof window !== 'undefined') {
-          setTimeout(() => {
-            window.dispatchEvent(new Event('achievements-ready'))
-          }, 100)
-        }
+        setTimeout(fireReadyEvent, 100)
       }
     }
 
     checkForUnviewedAchievements()
   }, [userId, onAllAchievementsShown])
+
+  // Fire the ready event on unmount if it hasn't fired yet (e.g. user navigates away mid-queue)
+  useEffect(() => {
+    return () => { fireReadyEvent() }
+  }, [])
 
   // Keep a ref to avoid restarting the polling interval.
   useEffect(() => {
@@ -186,10 +184,7 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
       setAchievementQueue([])
       setIsInitialLoad(false)
       onAllAchievementsShown?.()
-      // Dispatch event to notify that achievements are ready
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('achievements-ready'))
-      }
+      fireReadyEvent()
     }
   }, [currentNotification, achievementQueue, onAllAchievementsShown, userId])
 

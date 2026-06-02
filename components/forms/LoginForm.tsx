@@ -7,7 +7,7 @@ import { loginSchema } from '@/lib/validation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { Delete } from 'lucide-react'
+import { Delete, Sparkles } from 'lucide-react'
 
 interface LoginFormProps {
   fromQuery?: string | null
@@ -19,6 +19,7 @@ export default function LoginForm({ fromQuery }: LoginFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showNameConfirmation, setShowNameConfirmation] = useState(false)
+  const [showWelcomeFlash, setShowWelcomeFlash] = useState(false)
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
 
@@ -49,8 +50,11 @@ export default function LoginForm({ fromQuery }: LoginFormProps) {
       })
 
       const destination = getPostLoginPath(fromQuery)
-      router.push(destination)
-      router.refresh()
+      setShowWelcomeFlash(true)
+      setTimeout(() => {
+        router.push(destination)
+        router.refresh()
+      }, 1600)
     } catch (err) {
       setError('An error occurred. Please try again.')
       setIsLoading(false)
@@ -153,6 +157,22 @@ export default function LoginForm({ fromQuery }: LoginFormProps) {
       return () => clearTimeout(timer)
     }
   }, [staffCode, isLoading, showNameConfirmation, handleSubmit])
+
+  if (showWelcomeFlash) {
+    return (
+      <div className="flex flex-col items-center gap-5 text-center py-8 animate-in fade-in duration-500">
+        <div className="p-4 bg-spirits-cyan/15 rounded-full border border-spirits-cyan/30">
+          <Sparkles className="h-10 w-10 text-spirits-cyan" />
+        </div>
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
+            Welcome, {userName}
+          </h2>
+          <p className="text-muted-foreground text-sm">Let's see what's on today...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (showNameConfirmation) {
     return (

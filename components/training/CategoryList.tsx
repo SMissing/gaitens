@@ -77,36 +77,54 @@ export function CategoryList({ courses, onSelectCategory }: CategoryListProps) {
     )
   }
 
+  // DC-03: find the single "Up Next" category — first with incomplete required, else first incomplete
+  const upNextName = categories.find(c => c.completed < c.total && c.courses.some(x => x.required && !x.completed))?.name
+    ?? categories.find(c => c.completed < c.total)?.name
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {categories.map((category, index) => {
         const isComplete = category.completed === category.total
         const color = getCategoryColor(index)
-        
+        const isUpNext = category.name === upNextName
+        // DC-11: does this category have required incomplete courses?
+        const hasRequiredIncomplete = category.courses.some(c => c.required && !c.completed)
+
         return (
           <Card
             key={category.name}
             className={cn(
-              "cursor-pointer border-2",
-              isComplete && "border-green-500/50"
+              // DC-12: hover affordance
+              "cursor-pointer border-2 transition-all duration-150 hover:bg-accent/50 hover:shadow-md active:scale-95",
+              isComplete && "border-green-500/50",
+              isUpNext && !isComplete && "border-primary/50 ring-2 ring-primary/20",
             )}
             onClick={() => onSelectCategory(category.name)}
           >
             <CardContent className="p-4">
-              {/* Category Name */}
-              <h3 className="text-base font-semibold mb-3">
-                {category.name}
-              </h3>
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <h3 className="text-base font-semibold leading-tight">{category.name}</h3>
+                <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
+                  {/* DC-03: Up Next badge */}
+                  {isUpNext && !isComplete && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground font-semibold animate-pulse">
+                      Up Next
+                    </span>
+                  )}
+                  {/* DC-11: Required badge */}
+                  {hasRequiredIncomplete && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-500 font-medium">
+                      Required
+                    </span>
+                  )}
+                </div>
+              </div>
 
               {/* Progress */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {category.completed} / {category.total}
-                  </span>
-                  <span>
-                    {Math.round(category.progress)}%
-                  </span>
+                  <span>{category.completed} / {category.total}</span>
+                  <span>{Math.round(category.progress)}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                   <div

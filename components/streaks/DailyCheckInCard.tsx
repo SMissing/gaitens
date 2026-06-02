@@ -2,95 +2,72 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Flame, CheckCircle2, Calendar } from 'lucide-react'
+import { Card, CardContent, CardTitle } from '@/components/ui/card'
+import { Flame, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { fetchWithAuth } from '@/lib/fetch-with-auth'
+import { AnimatePresence, motion } from 'motion/react'
 
 interface StreakData {
-  checkedInToday: boolean
   currentStreak: number
   longestStreak: number
-  lastCheckInDate: string | null
 }
 
 export function DailyCheckInCard() {
   const router = useRouter()
   const [streakData, setStreakData] = useState<StreakData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [checkingIn, setCheckingIn] = useState(false)
+  const [justCheckedIn, setJustCheckedIn] = useState(false)
 
   useEffect(() => {
-    fetchStreakData()
+    const autoCheckIn = async () => {
+      try {
+        const response = await fetchWithAuth('/api/checkin', { method: 'POST' })
+        if (response.ok) {
+          const data = await response.json()
+          setStreakData({
+            currentStreak: data.currentStreak,
+            longestStreak: data.longestStreak,
+          })
+          if (data.success) {
+            setJustCheckedIn(true)
+            router.refresh()
+            setTimeout(() => setJustCheckedIn(false), 2800)
+          }
+        }
+      } catch (error) {
+        console.error('Error auto checking in:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    autoCheckIn()
   }, [])
-
-  const fetchStreakData = async () => {
-    try {
-      const response = await fetchWithAuth('/api/checkin')
-      if (response.ok) {
-        const data = await response.json()
-        setStreakData(data)
-      }
-    } catch (error) {
-      console.error('Error fetching streak data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleCheckIn = async () => {
-    setCheckingIn(true)
-    try {
-      const response = await fetchWithAuth('/api/checkin', {
-        method: 'POST',
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setStreakData(data)
-        // Refresh the dashboard data (including achievements) without full page reload
-        router.refresh()
-      } else {
-        const error = await response.json()
-        console.error('Check-in failed:', error)
-      }
-    } catch (error) {
-      console.error('Error checking in:', error)
-    } finally {
-      setCheckingIn(false)
-    }
-  }
 
   if (loading) {
     return (
       <Card>
         <CardContent className="py-6">
-          <div className="text-center text-muted-foreground">
-            <div className="animate-pulse">Loading streak data...</div>
-          </div>
+          <div className="animate-pulse h-3 bg-muted rounded w-1/3 mx-auto" />
         </CardContent>
       </Card>
     )
   }
 
-  if (!streakData) {
-    return null
-  }
+  if (!streakData) return null
 
-  const { checkedInToday, currentStreak, longestStreak } = streakData
+  const { currentStreak, longestStreak } = streakData
 
-  // Calculate next milestone
   const milestones = [1, 7, 30, 100]
   const nextMilestone = milestones.find(m => currentStreak < m) || null
   const daysUntilNext = nextMilestone ? nextMilestone - currentStreak : null
 
   return (
     <Card className={cn(
-      "border-2 transition-all",
-      checkedInToday 
-        ? "border-green-500/50 bg-green-500/5" 
-        : "border-orange-500/50 bg-orange-500/5"
+      'border-2 transition-all duration-500',
+      justCheckedIn
+        ? 'border-orange-500/60 bg-orange-500/8'
+        : 'border-green-500/40 bg-green-500/5'
     )}>
       <CardContent className="p-4 sm:p-5">
         <div className="space-y-3">
@@ -98,39 +75,55 @@ export function DailyCheckInCard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className={cn(
-                "h-5 w-5",
-                checkedInToday ? "text-green-500" : "text-orange-500"
+                'h-5 w-5 transition-colors',
+                justCheckedIn ? 'text-orange-500' : 'text-green-500'
               )} />
               <CardTitle className="text-base sm:text-lg">Daily Check-In</CardTitle>
             </div>
-            {checkedInToday && (
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-            )}
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
           </div>
 
-          {/* Current Streak - Condensed */}
-          <div className="flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50">
+          {/* Streak numbers with +1 animation */}
+          <div className="relative flex items-center justify-between p-3 bg-background/50 rounded-lg border border-border/50 overflow-hidden">
             <div className="flex items-center gap-2">
               <Flame className={cn(
-                "h-6 w-6",
-                currentStreak > 0 ? "text-orange-500 fill-orange-500" : "text-muted-foreground"
+                'h-6 w-6 transition-colors',
+                currentStreak > 0 ? 'text-orange-500 fill-orange-500' : 'text-muted-foreground',
+                justCheckedIn && 'animate-pulse'
               )} />
               <div>
                 <p className="text-xs text-muted-foreground">Current</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {currentStreak} <span className="text-sm text-muted-foreground font-normal">days</span>
-                </p>
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl font-bold text-foreground">{currentStreak}</p>
+                  <span className="text-sm text-muted-foreground font-normal">days</span>
+                </div>
               </div>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted-foreground">Longest</p>
               <p className="text-xl font-semibold text-foreground">
-                {longestStreak} <span className="text-xs text-muted-foreground font-normal">days</span>
+                {longestStreak}{' '}
+                <span className="text-xs text-muted-foreground font-normal">days</span>
               </p>
             </div>
+
+            {/* +1 day badge — floats up and fades out */}
+            <AnimatePresence>
+              {justCheckedIn && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -14, scale: 0.9 }}
+                  transition={{ type: 'spring', bounce: 0.35, duration: 0.45 }}
+                  className="absolute top-1.5 right-2 px-2 py-0.5 bg-orange-500 text-white text-xs font-bold rounded-full shadow-lg pointer-events-none"
+                >
+                  +1 day
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Next Milestone - Condensed */}
+          {/* Next milestone progress bar */}
           {nextMilestone && daysUntilNext !== null && (
             <div className="p-2.5 bg-muted/30 rounded-lg border border-border/30">
               <div className="flex items-center justify-between mb-1.5">
@@ -141,36 +134,13 @@ export function DailyCheckInCard() {
                   {daysUntilNext} {daysUntilNext === 1 ? 'day' : 'days'} left
                 </p>
               </div>
-              {/* Progress bar */}
               <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500"
                   style={{ width: `${(currentStreak / nextMilestone) * 100}%` }}
                 />
               </div>
             </div>
-          )}
-
-          {/* Check-In Button */}
-          {!checkedInToday && (
-            <Button
-              onClick={handleCheckIn}
-              disabled={checkingIn}
-              className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
-              size="default"
-            >
-              {checkingIn ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Checking in...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Check In Today
-                </>
-              )}
-            </Button>
           )}
         </div>
       </CardContent>

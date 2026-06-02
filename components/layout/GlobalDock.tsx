@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { Dock } from '@/components/core/dock'
 import { DockButtonRow } from './DockButtonRow'
 import { DockSwipeOverlay } from './DockSwipeOverlay'
+import { DockTooltipHint } from './DockTooltipHint'
 
 export async function GlobalDock() {
   const user = await getCurrentUser()
@@ -27,9 +28,12 @@ export async function GlobalDock() {
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 2px)' }}
       >
         <Dock className="relative h-16 min-w-0 max-w-full overflow-visible rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-md sm:h-20">
+          {/* First-session hint — one-time tooltip above dock */}
+          <DockTooltipHint />
+
           {/* Dock Swipe Overlay - inside Dock for context access */}
           <DockSwipeOverlay user={user} />
-          
+
           {/* Button Row */}
           <DockButtonRow user={user} />
         </Dock>

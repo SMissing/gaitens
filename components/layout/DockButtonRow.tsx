@@ -592,7 +592,6 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       return 'timeoff'
     if (pathname.startsWith('/training') || pathname.startsWith('/handbook') || pathname.startsWith('/businesses')) return 'learning'
     if (
-      pathname.startsWith('/social') ||
       pathname.startsWith('/notices') ||
       pathname.startsWith('/employee-of-the-month') ||
       pathname.startsWith('/photo-album')
@@ -693,7 +692,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </div>
 
       {/* Time Off */}
-      <DockItem itemId="timeoff" className={DOCK_ACTION_SLOT}>
+      <DockItem itemId="timeoff" hasSubmenu className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <Calendar className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -703,7 +702,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </DockItem>
 
       {/* Learning */}
-      <DockItem itemId="learning" className={DOCK_ACTION_SLOT}>
+      <DockItem itemId="learning" hasSubmenu className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <GraduationCap className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -713,7 +712,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </DockItem>
 
       {/* Community */}
-      <DockItem itemId="community" className={DOCK_ACTION_SLOT}>
+      <DockItem itemId="community" hasSubmenu className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <MessageSquare className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -723,7 +722,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       </DockItem>
 
       {/* Feedback */}
-      <DockItem itemId="feedback" className={DOCK_ACTION_SLOT}>
+      <DockItem itemId="feedback" hasSubmenu className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <Lightbulb className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -732,7 +731,8 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
         )}
       </DockItem>
 
-      <DockItem itemId="games" className={DOCK_ACTION_SLOT}>
+      {/* Games — placed last among standard items */}
+      <DockItem itemId="games" hasSubmenu className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <Gamepad2 className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
@@ -743,7 +743,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
       {/* Manager Tools */}
       {(user.role === 'manager' || user.role === 'admin') && (
-        <DockItem itemId="manager" className={DOCK_ACTION_SLOT}>
+        <DockItem itemId="manager" hasSubmenu className={DOCK_ACTION_SLOT}>
           <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
             <Briefcase className={`${iconSize} text-spirits-magenta transition-colors`} />
           </DockIcon>
@@ -755,7 +755,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
 
       {/* Admin Tools */}
       {user.role === 'admin' && (
-        <DockItem itemId="admin" className={DOCK_ACTION_SLOT}>
+        <DockItem itemId="admin" hasSubmenu className={DOCK_ACTION_SLOT}>
           <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
             <Shield className={`${iconSize} text-garrison-orange transition-colors`} />
           </DockIcon>
@@ -1162,10 +1162,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                       setIdeasMenuOpen(null)
                       openIdeaModal()
                     }}
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15"
                     aria-label="Submit an idea"
                   >
-                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors" />
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors" />
                   </button>
                 </div>
               </motion.div>
@@ -1484,14 +1484,14 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                   <button
                     type="button"
                     onClick={triggerStaffBadgesRefresh}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-spirits-yellow/15 p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-spirits-cyan/15 p-2 transition-all touch-manipulation active:scale-95 sm:h-12 sm:w-12 sm:hover:scale-105"
                     aria-label={
                       isManagerStaffTrainingPage
                         ? 'Refresh training progress'
                         : 'Refresh badge list'
                     }
                   >
-                    <RefreshCw className="h-6 w-6 text-spirits-yellow transition-colors sm:h-7 sm:w-7" />
+                    <RefreshCw className="h-6 w-6 text-spirits-cyan transition-colors sm:h-7 sm:w-7" />
                   </button>
                 </div>
               </motion.div>
@@ -1678,10 +1678,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                       setBarredMenuOpen(null)
                       window.dispatchEvent(new CustomEvent(BARRED_DOCK_ADD))
                     }}
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-magenta/15"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-garrison-orange/15"
                     aria-label="Add barred person"
                   >
-                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-magenta transition-colors" />
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-garrison-orange transition-colors" />
                   </button>
                 </div>
               </motion.div>
@@ -1872,14 +1872,14 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                         new CustomEvent(MEETINGS_DOCK_SUBMIT_FORM)
                       )
                     }
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15 disabled:opacity-40"
                     aria-label="Send meeting request"
                   >
                     {meetingsDockMeta.saving ? (
-                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-cyan" />
                     ) : (
                       <Check
-                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors"
+                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors"
                         strokeWidth={2.5}
                       />
                     )}
@@ -1932,10 +1932,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                     onClick={() =>
                       window.dispatchEvent(new CustomEvent(MEETINGS_DOCK_ADD))
                     }
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-magenta/15"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15"
                     aria-label="Request new meeting"
                   >
-                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-magenta transition-colors" />
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors" />
                   </button>
                 </div>
               </motion.div>
@@ -1985,7 +1985,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                     new CustomEvent(NOTICES_POST_DOCK_SUBMIT)
                   )
                 }
-                className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15 disabled:opacity-40"
                 aria-label={
                   noticesPostMeta.editing
                     ? 'Save notice changes'
@@ -1993,7 +1993,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 }
               >
                 {noticesPostMeta.saving ? (
-                  <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                  <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-cyan" />
                 ) : (
                   <Check
                     className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors"
@@ -2060,7 +2060,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                         new CustomEvent(TRAINING_DOCK_SUBMIT_FORM)
                       )
                     }
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15 disabled:opacity-40"
                     aria-label={
                       moduleMakerMeta.editing
                         ? 'Save module changes'
@@ -2068,10 +2068,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                     }
                   >
                     {moduleMakerMeta.saving ? (
-                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-cyan" />
                     ) : (
                       <Check
-                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors"
+                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors"
                         strokeWidth={2.5}
                       />
                     )}
@@ -2124,10 +2124,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                     onClick={() =>
                       window.dispatchEvent(new CustomEvent(TRAINING_DOCK_ADD))
                     }
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15"
                     aria-label="New training module"
                   >
-                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors" />
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors" />
                   </button>
                 </div>
               </motion.div>

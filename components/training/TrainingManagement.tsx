@@ -8,6 +8,7 @@ import {
   useRef,
   type ReactNode,
 } from 'react'
+import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -74,13 +75,15 @@ function FormSection({
   title,
   hint,
   children,
+  id,
 }: {
   title: string
   hint?: string
   children: ReactNode
+  id?: string
 }) {
   return (
-    <section className="border-t border-white/[0.08] pt-8 first:border-t-0 first:pt-0 scroll-mt-20">
+    <section id={id} className="border-t border-white/[0.08] pt-8 first:border-t-0 first:pt-0 scroll-mt-20">
       <h2 className="text-xs font-semibold uppercase tracking-wider text-spirits-yellow/90">
         {title}
       </h2>
@@ -95,6 +98,77 @@ function FormSection({
     </section>
   )
 }
+
+// ── Content section builder ──────────────────────────────────────────────────
+
+interface ContentSection {
+  title: string
+  body: string
+}
+
+const defaultSection = (): ContentSection => ({ title: '', body: '' })
+
+/** Convert section array → HTML stored in the database content field */
+function sectionsToHtml(sections: ContentSection[]): string {
+  return sections
+    .map(s => {
+      const parts: string[] = []
+      if (s.title.trim()) parts.push(`<h2>${s.title.trim()}</h2>`)
+      if (s.body.trim()) {
+        const paragraphs = s.body.trim()
+          .split(/\n\n+/)
+          .map(p => `<p>${p.trim().replace(/\n/g, '<br />')}</p>`)
+          .filter(p => p !== '<p></p>')
+        if (paragraphs.length) parts.push(paragraphs.join('\n'))
+      }
+      return parts.join('\n')
+    })
+    .filter(s => s.trim())
+    .join('\n\n')
+}
+
+/** Parse stored HTML back into editable sections */
+/** Convert HTML to plain text for textarea editing */
+function stripToText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+    .replace(/<p[^>]*>/gi, '')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .trim()
+}
+
+/**
+ * Parse stored HTML back into editable sections.
+ * Uses the same <h2>/<h3> split boundary as the lesson viewer (paginateHTML),
+ * so what staff see as pages maps 1-to-1 to sections the manager can edit.
+ */
+function htmlToSections(html: string | null | undefined): ContentSection[] {
+  if (!html?.trim()) return [defaultSection()]
+
+  // Same heading boundary as paginateHTML in CoursePage
+  const hasHeadings = /<h[23][\s>]/i.test(html)
+
+  if (hasHeadings) {
+    const parts = html.split(/(?=<h[23][\s>])/i).filter(p => p.trim())
+    const sections = parts.map(part => {
+      const headingMatch = part.match(/<h[23][^>]*>([\s\S]*?)<\/h[23]>/i)
+      const title = headingMatch ? headingMatch[1].replace(/<[^>]+>/g, '').trim() : ''
+      const bodyHtml = part.replace(/<h[23][^>]*>[\s\S]*?<\/h[23]>/i, '')
+      const body = stripToText(bodyHtml)
+      return { title, body }
+    }).filter(s => s.title || s.body)
+
+    if (sections.length > 0) return sections
+  }
+
+  // No headings — single untitled section
+  const body = stripToText(html)
+  return [{ title: '', body: body || html.trim() }]
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 const emptyForm = () => ({
   title: '',
@@ -124,8 +198,17 @@ export function TrainingManagement() {
   const [saving, setSaving] = useState(false)
   const [sites, setSites] = useState<string[]>([])
   const [saveError, setSaveError] = useState<string | null>(null)
+  // DC-14: inline delete confirmation
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // DC-16: active form step (0-3)
+  const [activeStep, setActiveStep] = useState(0)
 
   const [formData, setFormData] = useState(emptyForm)
+  // Structured content sections (serialised to HTML on save)
+  const [sections, setSections] = useState<ContentSection[]>([defaultSection()])
+  // Only re-serialise sections if the manager actually edited them.
+  // If sections were untouched (e.g. only quiz changed), preserve the original HTML.
+  const [sectionsModified, setSectionsModified] = useState(false)
 
   /** Venue → category → courses (sorted). */
   const modulesByVenueAndCategory = useMemo(() => {
@@ -209,11 +292,33 @@ export function TrainingManagement() {
     )
   }, [showForm, loading, saving, editingCourse])
 
+  // DC-16: form step tracker via IntersectionObserver
+  const SECTION_IDS = ['fm-basics', 'fm-audience', 'fm-content', 'fm-quiz'] as const
+  useEffect(() => {
+    if (!showForm) return
+    const observers: IntersectionObserver[] = []
+    SECTION_IDS.forEach((id, idx) => {
+      const el = document.getElementById(id)
+      if (!el) return
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveStep(idx) },
+        { rootMargin: '-20% 0px -60% 0px', threshold: 0 },
+      )
+      obs.observe(el)
+      observers.push(obs)
+    })
+    return () => observers.forEach(o => o.disconnect())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showForm])
+
   const closeForm = useCallback(() => {
     setShowForm(false)
     setEditingCourse(null)
     setSaveError(null)
+    setActiveStep(0)
     setFormData(emptyForm())
+    setSections([defaultSection()])
+    setSectionsModified(false)
   }, [])
 
   useEffect(() => {
@@ -221,6 +326,9 @@ export function TrainingManagement() {
       setSaveError(null)
       setEditingCourse(null)
       setFormData(emptyForm())
+      setSections([defaultSection()])
+      setSectionsModified(false)
+      setActiveStep(0)
       setShowForm(true)
     }
     const onClose = () => closeForm()
@@ -259,6 +367,9 @@ export function TrainingManagement() {
 
       const payload = {
         ...formData,
+        // Only re-serialise if sections were actually edited — otherwise keep the
+        // original HTML so quiz-only edits never disturb the content structure.
+        content: sectionsModified ? sectionsToHtml(sections) : (formData.content || ''),
         duration: formData.duration ? parseInt(formData.duration, 10) : null,
         site: formData.site || null,
         category: formData.category || null,
@@ -301,21 +412,23 @@ export function TrainingManagement() {
       duration: course.duration?.toString() || '',
       quizQuestions: course.quizQuestions || [],
     })
+    setSections(htmlToSections(course.content))
+    setSectionsModified(false)
+    setActiveStep(0)
     setEditingCourse(course.id)
     setShowForm(true)
   }
 
-  const handleDelete = async (courseId: string) => {
-    if (!confirm('Delete this training module?')) return
+  // DC-14: two-step inline delete — no window.confirm()
+  const handleDeleteClick = (courseId: string) => {
+    setConfirmDeleteId(courseId)
+  }
 
+  const handleDeleteConfirm = async (courseId: string) => {
+    setConfirmDeleteId(null)
     try {
-      const response = await fetch(`/api/training/${courseId}`, {
-        method: 'DELETE',
-      })
-
-      if (response.ok) {
-        void fetchCourses()
-      }
+      const response = await fetch(`/api/training/${courseId}`, { method: 'DELETE' })
+      if (response.ok) void fetchCourses()
     } catch (error) {
       console.error('Error deleting course:', error)
     }
@@ -371,17 +484,50 @@ export function TrainingManagement() {
         >
           <header className="mb-10">
             <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              {editingCourse ? 'Edit training module' : 'New training module'}
+              {editingCourse ? "Edit training module" : "New training module"}
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base mt-2 leading-relaxed max-w-prose">
               {editingCourse
-                ? 'Change what staff see, where this module applies, and any quiz. Use the dock below to cancel or save.'
-                : 'Give it a name, say who it’s for, then add content. Cancel or publish from the dock below.'}
+                ? "Change what staff see, where this module applies, and any quiz. Use the dock below to cancel or save."
+                : "Give it a name, say who it’s for, then add content. Cancel or publish from the dock below."}
             </p>
+
+            {/* DC-16: sticky 4-step progress indicator */}
+            <div className="sticky top-0 z-10 -mx-1 mt-6 rounded-xl border border-border/20 bg-background/80 backdrop-blur-sm px-3 py-2.5">
+              <div className="flex items-center gap-1">
+                {(["Basics", "Audience", "Content", "Quiz"] as const).map((label, idx) => (
+                  <div key={label} className="flex items-center gap-1 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <div className={cn(
+                        "w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition-colors",
+                        idx < activeStep && "bg-green-500 text-white",
+                        idx === activeStep && "bg-spirits-yellow text-black",
+                        idx > activeStep && "bg-muted text-muted-foreground",
+                      )}>
+                        {idx < activeStep ? "✓" : idx + 1}
+                      </div>
+                      <span className={cn(
+                        "text-xs font-medium truncate transition-colors",
+                        idx === activeStep ? "text-spirits-yellow" : "text-muted-foreground",
+                      )}>
+                        {label}
+                      </span>
+                    </div>
+                    {idx < 3 && (
+                      <div className={cn(
+                        "h-px flex-1 mx-1 transition-colors",
+                        idx < activeStep ? "bg-green-500" : "bg-border/30",
+                      )} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
           </header>
 
           <div className="space-y-10">
             <FormSection
+              id="fm-basics"
               title="Basics"
               hint="What staff see in the list, and whether this is mainly video, reading, or a guide."
             >
@@ -432,6 +578,7 @@ export function TrainingManagement() {
             </FormSection>
 
             <FormSection
+              id="fm-audience"
               title="Who it applies to"
               hint="Pick a single venue or leave All sites. Mandatory controls whether completion is required."
             >
@@ -490,13 +637,15 @@ export function TrainingManagement() {
             </FormSection>
 
             <FormSection
+              id="fm-content"
               title="Content"
               hint={
                 formData.moduleType === 'video'
-                  ? 'Paste a YouTube or direct video link, then add notes or HTML below if you want.'
-                  : 'Use the box below for the main training text. HTML is allowed.'
+                  ? 'Paste a YouTube or direct video link below, then add as many content sections as you like beneath it.'
+                  : 'Build the training content section by section. Each section can have an optional heading and its own text — staff see them as separate pages.'
               }
             >
+              {/* Video URL */}
               {formData.moduleType === 'video' && (
                 <div className="space-y-2">
                   <Label htmlFor="videoUrl">Video link</Label>
@@ -506,24 +655,86 @@ export function TrainingManagement() {
                     onChange={(e) =>
                       setFormData({ ...formData, videoUrl: e.target.value })
                     }
-                    placeholder="https://…"
+                    placeholder="https://youtube.com/… or direct .mp4 link"
                     className="bg-background/80 border-border/50"
                   />
                 </div>
               )}
-              <div className="space-y-2">
-                <Label htmlFor="content">Main content</Label>
-                <textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) =>
-                    setFormData({ ...formData, content: e.target.value })
-                  }
-                  className="w-full min-h-[200px] rounded-xl border border-border/50 bg-background/80 px-3 py-3 text-sm leading-relaxed"
-                  placeholder="Instructions, policy text, embeds, or HTML…"
-                />
+
+              {/* Section builder */}
+              <div className="space-y-4">
+                {sections.map((section, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-white/[0.08] bg-white/[0.02] px-4 py-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-spirits-yellow">
+                        Section {idx + 1}
+                      </span>
+                      {sections.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => { setSections(s => s.filter((_, i) => i !== idx)); setSectionsModified(true) }}
+                          className="rounded-md p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          aria-label="Remove section"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Section title */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">
+                        Heading <span className="opacity-50">(optional)</span>
+                      </Label>
+                      <Input
+                        value={section.title}
+                        onChange={(e) => {
+                          const updated = [...sections]
+                          updated[idx] = { ...updated[idx], title: e.target.value }
+                          setSections(updated)
+                          setSectionsModified(true)
+                        }}
+                        placeholder="e.g. Opening Procedures, Health & Safety…"
+                        className="bg-background/80 border-border/50"
+                      />
+                    </div>
+
+                    {/* Section body */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Content</Label>
+                      <textarea
+                        value={section.body}
+                        onChange={(e) => {
+                          const updated = [...sections]
+                          updated[idx] = { ...updated[idx], body: e.target.value }
+                          setSections(updated)
+                          setSectionsModified(true)
+                        }}
+                        rows={5}
+                        className="w-full rounded-xl border border-border/50 bg-background/80 px-3 py-3 text-sm leading-relaxed resize-y"
+                        placeholder="Write the content for this section. Press Enter twice to start a new paragraph."
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-spirits-yellow/40 text-spirits-yellow hover:bg-spirits-yellow/10"
+                  onClick={() => { setSections(s => [...s, defaultSection()]); setSectionsModified(true) }}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add section
+                </Button>
               </div>
-              <div className="space-y-2 max-w-xs">
+
+              {/* Duration */}
+              <div className="space-y-2 max-w-xs pt-2">
                 <Label htmlFor="duration">Estimated time (minutes)</Label>
                 <Input
                   id="duration"
@@ -540,6 +751,7 @@ export function TrainingManagement() {
             </FormSection>
 
             <FormSection
+              id="fm-quiz"
               title="Knowledge check (optional)"
               hint="Multiple choice. Use the dot to mark the correct answer. Skip this if you don’t need a quiz."
             >
@@ -717,29 +929,46 @@ export function TrainingManagement() {
                                           : ''}
                                       </p>
                                     </div>
-                                    <div className="flex items-center gap-0.5 shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleEdit(course)}
-                                        className="rounded-lg p-2 text-muted-foreground active:bg-white/[0.08] active:text-foreground touch-manipulation"
-                                        aria-label={`Edit ${course.title}`}
-                                      >
-                                        <Edit2
-                                          className="h-4 w-4"
-                                          strokeWidth={1.75}
-                                        />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleDelete(course.id)}
-                                        className="rounded-lg p-2 text-muted-foreground active:bg-red-500/15 active:text-red-400 touch-manipulation"
-                                        aria-label={`Delete ${course.title}`}
-                                      >
-                                        <Trash2
-                                          className="h-4 w-4"
-                                          strokeWidth={1.75}
-                                        />
-                                      </button>
+                                    {/* DC-14: inline delete confirmation — no window.confirm() */}
+                                    <div className="flex items-center shrink-0">
+                                      {confirmDeleteId === course.id ? (
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-xs text-muted-foreground mr-1">Delete?</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setConfirmDeleteId(null)}
+                                            className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground touch-manipulation"
+                                          >
+                                            Cancel
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteConfirm(course.id)}
+                                            className="rounded-md px-2 py-1 text-xs bg-red-500/15 text-red-400 hover:bg-red-500/25 touch-manipulation"
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleEdit(course)}
+                                            className="rounded-lg p-2 text-muted-foreground active:bg-white/[0.08] active:text-foreground touch-manipulation"
+                                            aria-label={`Edit ${course.title}`}
+                                          >
+                                            <Edit2 className="h-4 w-4" strokeWidth={1.75} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteClick(course.id)}
+                                            className="rounded-lg p-2 ml-1 text-muted-foreground active:bg-red-500/15 active:text-red-400 touch-manipulation"
+                                            aria-label={`Delete ${course.title}`}
+                                          >
+                                            <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                                          </button>
+                                        </>
+                                      )}
                                     </div>
                                   </div>
                                 ))}

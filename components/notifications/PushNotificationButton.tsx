@@ -162,47 +162,5 @@ export function PushNotificationButton() {
     return outputArray
   }
 
-  // Don't show if not supported
-  if (!isSupported || isLoading) {
-    return null
-  }
-
-  // If permission is denied, show a message
-  if (permission === 'denied') {
-    return (
-      <div className="text-xs text-muted-foreground">
-        Notifications blocked. Enable in browser settings.
-      </div>
-    )
-  }
-
-  // If already subscribed, show disable button
-  if (isSubscribed) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={unsubscribeFromPush}
-        disabled={isLoading}
-        className="flex items-center gap-2"
-      >
-        <BellOff className="h-4 w-4" />
-        Disable Notifications
-      </Button>
-    )
-  }
-
-  // Show enable button
-  return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={requestPermission}
-      disabled={isLoading}
-      className="flex items-center gap-2"
-    >
-      <Bell className="h-4 w-4" />
-      Enable Push Notifications
-    </Button>
-  )
+  return null
 }

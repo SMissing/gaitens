@@ -15,34 +15,20 @@ export function UnreadNoticesModal({ waitForAchievements = true }: UnreadNotices
   const [achievementsReady, setAchievementsReady] = useState(!waitForAchievements)
 
   useEffect(() => {
-    // Check if achievements are already done (in case component mounts after achievements finish)
-    const checkAchievementsStatus = () => {
-      // Check if there's an achievement notification visible
-      const achievementModal = document.querySelector('[style*="z-index: 99999"]')
-      if (!achievementModal && waitForAchievements) {
-        // No achievement modal visible, assume ready (or check localStorage)
-        setAchievementsReady(true)
-      }
+    if (!waitForAchievements) {
+      setAchievementsReady(true)
+      return
     }
 
-    // Listen for achievement completion event
-    const handleAchievementsReady = () => {
-      setAchievementsReady(true)
-    }
+    const handleAchievementsReady = () => setAchievementsReady(true)
+    window.addEventListener('achievements-ready', handleAchievementsReady)
 
-    if (waitForAchievements) {
-      // Check immediately
-      checkAchievementsStatus()
-      // Also listen for the event
-      window.addEventListener('achievements-ready', handleAchievementsReady)
-      // Check periodically in case we missed the event
-      const interval = setInterval(checkAchievementsStatus, 1000)
-      return () => {
-        window.removeEventListener('achievements-ready', handleAchievementsReady)
-        clearInterval(interval)
-      }
-    } else {
-      setAchievementsReady(true)
+    // Safety fallback — if the event never fires (e.g. component error), unblock after 30s
+    const fallback = setTimeout(() => setAchievementsReady(true), 30000)
+
+    return () => {
+      window.removeEventListener('achievements-ready', handleAchievementsReady)
+      clearTimeout(fallback)
     }
   }, [waitForAchievements])
 

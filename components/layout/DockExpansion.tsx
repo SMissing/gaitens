@@ -98,13 +98,6 @@ export function DockExpansion() {
           <div className="flex flex-col gap-2">
             <h3 className="text-sm font-semibold text-card-foreground mb-1 px-1">Community</h3>
             <Link
-              href="/social"
-              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
-            >
-              <MessageSquare className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
-              <div className="text-sm font-medium text-card-foreground">Social</div>
-            </Link>
-            <Link
               href="/notices"
               className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-yellow/50 sm:hover:bg-accent sm:hover:border-spirits-yellow/50 transition-all touch-manipulation min-h-[44px]"
             >

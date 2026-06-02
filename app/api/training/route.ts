@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth, requireManager } from '@/lib/auth'
-import { createServerClient } from '@/lib/db'
+import { createServerClient, createAdminClient } from '@/lib/db'
 import type { TrainingCourse } from '@/types/database'
 
 // GET - Get training modules (filtered by user's site for required ones)
@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get user's completions
-    const { data: completions } = await supabase
+    // Get user's completions — use admin client to bypass RLS (auth is verified above via requireAuth)
+    const adminSupabase = createAdminClient()
+    const { data: completions } = await adminSupabase
       .from('training_completions')
       .select('courseId, completedAt, expiresAt')
       .eq('userId', user.id)

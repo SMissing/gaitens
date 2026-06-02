@@ -78,7 +78,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Calendar className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
+              <Calendar className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Holidays</span>
             </Link>
             <Link
@@ -107,7 +107,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <GraduationCap className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <GraduationCap className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Training</span>
             </Link>
             <Link
@@ -115,7 +115,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <BookOpen className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <BookOpen className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Handbook</span>
             </Link>
             <Link
@@ -123,7 +123,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Building2 className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <Building2 className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Businesses</span>
             </Link>
           </div>
@@ -131,14 +131,6 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
       case 'community':
         return (
           <div className="grid gap-1">
-            <Link
-              href="/social"
-              onClick={() => setActiveItem(null)}
-              className={linkClass}
-            >
-              <MessageSquare className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
-              <span className="font-medium text-foreground">Social</span>
-            </Link>
             <Link
               href="/notices"
               onClick={() => setActiveItem(null)}
@@ -152,7 +144,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Award className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <Award className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Employee of the Month</span>
             </Link>
             <Link
@@ -181,7 +173,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Lightbulb className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <Lightbulb className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Ideas</span>
             </Link>
             <Link
@@ -199,14 +191,6 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
               <span className="font-medium text-foreground">Grievance</span>
-            </Link>
-            <Link
-              href="/anonymous-report"
-              onClick={() => setActiveItem(null)}
-              className={linkClass}
-            >
-              <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
-              <span className="font-medium text-foreground">Anonymous Report</span>
             </Link>
           </div>
         )
@@ -371,7 +355,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Trophy className="h-5 w-5 text-spirits-yellow flex-shrink-0" />
+              <Trophy className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Employee of the Month</span>
             </Link>
           </div>

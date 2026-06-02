@@ -67,7 +67,7 @@ export default function RootLayout({
               if ('serviceWorker' in navigator) {
                 // Version the SW script URL in dev so Chrome fetches the new script.
                 // This avoids being stuck with an older cached SW that throws at runtime.
-                const SW_SCRIPT_URL = '/sw.js?swver=20260318_1'
+                const SW_SCRIPT_URL = '/sw.js?swver=20260602_1'
                 navigator.serviceWorker.register(SW_SCRIPT_URL)
                   .then(function(registration) {
                     console.log('ServiceWorker registration successful');

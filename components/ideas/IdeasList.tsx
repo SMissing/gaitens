@@ -118,8 +118,29 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
     const idea = ideas.find(i => i.id === ideaId)
     if (!idea) return
 
+    const prevVote = idea.userVote
+    const prevTotal = idea.voteTotal
+
     // If clicking the same vote, remove it
     const newVote = idea.userVote === (voteType === 'up' ? 1 : -1) ? 'remove' : voteType
+
+    // Optimistic update — reflect immediately before server confirms
+    setIdeas(prev => prev.map(i => {
+      if (i.id !== ideaId) return i
+      let delta = 0
+      if (newVote === 'remove') {
+        delta = prevVote === 1 ? -1 : 1
+      } else if (newVote === 'up') {
+        delta = prevVote === -1 ? 2 : 1
+      } else {
+        delta = prevVote === 1 ? -2 : -1
+      }
+      return {
+        ...i,
+        voteTotal: i.voteTotal + delta,
+        userVote: newVote === 'remove' ? null : newVote === 'up' ? 1 : -1,
+      }
+    }))
 
     setVotingIdeas(prev => new Set(prev).add(ideaId))
 
@@ -136,7 +157,7 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
         throw new Error('Failed to vote')
       }
 
-      // Refresh ideas list
+      // Reconcile with server state
       const refreshResponse = await fetchWithAuth('/api/ideas')
       const data = await refreshResponse.json()
       if (data.ideas) {
@@ -155,6 +176,10 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
         }, 900)
       }
     } catch (error) {
+      // Revert optimistic update on failure
+      setIdeas(prev => prev.map(i =>
+        i.id === ideaId ? { ...i, voteTotal: prevTotal, userVote: prevVote } : i
+      ))
       console.error('Failed to vote:', error)
     } finally {
       setVotingIdeas(prev => {

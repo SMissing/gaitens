@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy } from 'lucide-react'
+import { Flame, Star, MapPin } from 'lucide-react'
+import { motion, AnimatePresence } from 'motion/react'
 import type { TrainingCourse } from '@/types/database'
-import { CategoryList } from './CategoryList'
-import { CourseList } from './CourseList'
+import { TrainingPath } from './TrainingPath'
 import { CoursePage } from './CoursePage'
+import { getStreak, getTotalXP } from '@/lib/training-xp'
 
 interface TrainingCourseWithStatus extends TrainingCourse {
   completed: boolean
@@ -21,133 +21,190 @@ interface TrainingContentProps {
   onRefresh?: () => void
 }
 
-type ViewMode = 'categories' | 'courses' | 'course'
-
-export function TrainingContent({ courses, userSite, selectedBusiness, onRefresh }: TrainingContentProps) {
-  const [viewMode, setViewMode] = useState<ViewMode>('categories')
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+export function TrainingContent({ courses, userSite, onRefresh }: TrainingContentProps) {
   const [currentCourseId, setCurrentCourseId] = useState<string | null>(null)
   const [completedModules, setCompletedModules] = useState<Set<string>>(new Set())
 
-  // Initialize completed modules
+  // Gamification stats (localStorage — client only)
+  const [streak, setStreak] = useState(0)
+  const [xp, setXp] = useState(0)
+
+  // F-07: first-use onboarding hint
+  const [showHint, setShowHint] = useState(false)
+
   useEffect(() => {
-    const completed = new Set(
-      courses.filter(c => c.completed).map(c => c.id)
-    )
-    setCompletedModules(completed)
+    setStreak(getStreak())
+    setXp(getTotalXP())
+  }, [])
+
+  useEffect(() => {
+    setCompletedModules(new Set(courses.filter(c => c.completed).map(c => c.id)))
   }, [courses])
 
-  // Calculate progress
+  // F-07: show once, 1.8 s after path renders, only if never dismissed
+  useEffect(() => {
+    if (typeof window === 'undefined' || courses.length === 0) return
+    if (!localStorage.getItem('gl_training_onboarded')) {
+      const t = setTimeout(() => setShowHint(true), 1800)
+      return () => clearTimeout(t)
+    }
+  }, [courses.length])
+
+  const dismissHint = () => {
+    setShowHint(false)
+    if (typeof window !== 'undefined') localStorage.setItem('gl_training_onboarded', '1')
+  }
+
   const requiredCourses = courses.filter(c => c.required)
   const totalRequired = requiredCourses.length
-  const completedRequired = requiredCourses.filter(c => c.completed).length
-  const progressPercentage = totalRequired > 0 ? (completedRequired / totalRequired) * 100 : 0
-
-  const handleSelectCategory = (category: string | null) => {
-    setSelectedCategory(category)
-    setViewMode('courses')
-  }
-
-  const handleSelectCourse = (courseId: string) => {
-    setCurrentCourseId(courseId)
-    setViewMode('course')
-  }
+  const completedRequired = requiredCourses.filter(c => completedModules.has(c.id)).length
+  const progressPct = totalRequired > 0 ? (completedRequired / totalRequired) * 100 : 0
+  const allDone = totalRequired > 0 && progressPct === 100
 
   const handleCourseComplete = () => {
-    if (currentCourseId) {
-      setCompletedModules(prev => new Set([...prev, currentCourseId]))
-    }
-    setViewMode('courses')
+    if (currentCourseId) setCompletedModules(prev => new Set([...prev, currentCourseId]))
     setCurrentCourseId(null)
-    // Refresh courses data after a short delay to avoid race conditions
-    if (onRefresh) {
-      setTimeout(() => {
-        onRefresh()
-      }, 100)
-    }
+    setStreak(getStreak())
+    setXp(getTotalXP())
+    if (onRefresh) setTimeout(() => onRefresh(), 100)
   }
 
-  const handleBackToCourses = () => {
-    setViewMode('courses')
-    setCurrentCourseId(null)
-  }
-
-  const handleBackToCategories = () => {
-    setViewMode('categories')
-    setSelectedCategory(null)
-    setCurrentCourseId(null)
-  }
-
-  // Show course page if in course mode
-  if (viewMode === 'course' && currentCourseId) {
+  // Lesson view — CoursePage handles its own full-screen portal
+  if (currentCourseId) {
     const currentCourse = courses.find(c => c.id === currentCourseId)
-    if (!currentCourse) {
-      handleBackToCourses()
-      return null
-    }
+    if (!currentCourse) { setCurrentCourseId(null); return null }
     return (
       <CoursePage
         course={currentCourse}
         onComplete={handleCourseComplete}
-        onBack={handleBackToCourses}
+        onBack={() => setCurrentCourseId(null)}
       />
     )
   }
 
-  // Show course list if in courses mode
-  if (viewMode === 'courses' && selectedCategory !== null) {
-    const categoryCourses = courses.filter(c => {
-      const courseCategory = c.category || 'General'
-      return courseCategory === selectedCategory
-    })
-    return (
-      <CourseList
-        category={selectedCategory}
-        courses={categoryCourses}
-        onSelectCourse={handleSelectCourse}
-        onBack={handleBackToCategories}
-      />
-    )
-  }
-
-  // Show category list (default)
   return (
-    <div className="space-y-6">
-      {/* Progress Section */}
-      {totalRequired > 0 && (
-        <Card className="border-2">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-yellow-500" />
-                Your Progress
-              </CardTitle>
-              <span className="text-sm text-muted-foreground">
-                {completedRequired} of {totalRequired} required completed
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-500 rounded-full"
-                style={{ width: `${progressPercentage}%` }}
+    <div>
+      {/* ── Hero header — sits on the page gradient ──────────────── */}
+      <div className="px-5 pt-6 pb-10">
+
+        {/* Top row: branding + stat chips */}
+        <div className="flex items-start justify-between gap-3 mb-6">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/35 mb-1">
+              Gaitens Leisure
+            </p>
+            <h1 className="text-4xl font-black text-white leading-none tracking-tight">
+              Training
+              <br />
+              <span className="text-white/90">Hub</span>
+            </h1>
+          </div>
+
+          {/* Gamification chips */}
+          <div className="flex flex-col items-end gap-2 pt-1 flex-shrink-0">
+            {streak > 0 && (
+              <div className="flex items-center gap-1.5 bg-orange-500/20 text-orange-300 rounded-2xl px-3 py-1.5 border border-orange-500/20">
+                <Flame className="h-4 w-4" />
+                <span className="font-black text-sm tabular-nums">{streak}</span>
+                <span className="text-xs text-orange-300/70 font-medium">day streak</span>
+              </div>
+            )}
+            {xp > 0 && (
+              <div className="flex items-center gap-1.5 bg-yellow-500/15 text-yellow-300 rounded-2xl px-3 py-1.5 border border-yellow-500/20">
+                <Star className="h-3.5 w-3.5 fill-yellow-300" />
+                <span className="font-black text-sm tabular-nums">{xp.toLocaleString()}</span>
+                <span className="text-xs text-yellow-300/60 font-medium">XP</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Venue chip */}
+        {userSite && (
+          <div className="flex items-center gap-1.5 mb-5">
+            <MapPin className="h-3.5 w-3.5 text-white/35" />
+            <span className="text-sm text-white/55 font-medium">{userSite}</span>
+          </div>
+        )}
+
+        {/* Progress — only if required modules exist */}
+        {totalRequired > 0 && (
+          <div className="space-y-2">
+            {/* Bar */}
+            <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5">
+              <motion.div
+                className="h-full rounded-full"
+                style={{
+                  background: allDone
+                    ? 'linear-gradient(90deg, #10B981, #059669)'
+                    : 'linear-gradient(90deg, #f59e0b, #f97316)',
+                }}
+                initial={{ width: '0%' }}
+                animate={{ width: `${progressPct}%` }}
+                transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              {userSite
-                ? `Required training for ${userSite}. Complete all required modules to stay up to date.`
-                : 'Complete all required training modules.'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Category List */}
-      <CategoryList
-        courses={courses}
-        onSelectCategory={handleSelectCategory}
-      />
+            {/* Labels */}
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-white/45 font-medium">
+                {completedRequired} of {totalRequired} required
+              </span>
+              <span className={`text-xs font-black tabular-nums ${allDone ? 'text-green-400' : 'text-white/60'}`}>
+                {Math.round(progressPct)}%
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* All-done celebration */}
+        {allDone && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.4 }}
+            className="mt-5 rounded-2xl px-4 py-3.5 flex items-center gap-3 relative overflow-hidden"
+            style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(5,150,105,0.15))', border: '1px solid rgba(16,185,129,0.3)' }}
+          >
+            <span className="text-2xl leading-none flex-shrink-0">🎉</span>
+            <div>
+              <p className="text-sm font-black text-green-300">All required training complete!</p>
+              {userSite && (
+                <p className="text-xs text-green-400/60 mt-0.5">You&apos;re fully up to date for {userSite}</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </div>
+
+      {/* F-07: First-use hint — shown once, disappears after tap */}
+      <AnimatePresence>
+        {showHint && (
+          <motion.button
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25 }}
+            onClick={dismissHint}
+            className="mx-5 mb-4 w-[calc(100%-2.5rem)] text-left rounded-2xl border border-white/15 bg-white/[0.06] px-4 py-3.5 flex items-center gap-3 active:bg-white/10 transition-colors"
+          >
+            <span className="text-2xl leading-none">👆</span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white">Tap a glowing module to begin</p>
+              <p className="text-xs text-white/40">Tap anywhere on this card to dismiss</p>
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* ── Path — renders below the hero on the dark background ─── */}
+      <div className="px-4">
+        <TrainingPath
+          courses={courses}
+          onStartCourse={setCurrentCourseId}
+          userSite={userSite}
+        />
+      </div>
     </div>
   )
 }

@@ -90,7 +90,8 @@ export function CourseList({ category, courses, onSelectCourse, onBack }: Course
             <Card
               key={course.id}
               className={cn(
-                "border-2 cursor-pointer",
+                // DC-12: hover affordance
+                "border-2 cursor-pointer transition-all duration-150 hover:bg-accent/50 hover:shadow-md active:scale-95",
                 isCompleted && "border-green-500/50",
                 isNext && "ring-2 ring-primary shadow-md"
               )}
