@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, CheckCircle, XCircle, Star, Flame, ArrowRight } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -31,6 +31,11 @@ export function PracticeSession({ questions, existingXP, onComplete, onBack }: P
   const [streak, setStreak]     = useState(() => getStreak())
   const [showExitSheet, setShowExitSheet] = useState(false)
   const isMountedRef            = useRef(true)
+
+  useEffect(() => {
+    SFX.preloadAll() // fetch all sounds immediately while portal mounts
+    return () => { isMountedRef.current = false }
+  }, [])
 
   const currentQ   = questions[quizIdx]
   const currentAns = answers[quizIdx]

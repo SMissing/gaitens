@@ -173,6 +173,7 @@ export function CoursePage({ course, onComplete, onBack, existingXP = 0 }: Cours
     setMounted(true)
     isMountedRef.current = true
     setStreak(getStreak())
+    SFX.preloadAll() // fetch all sounds in parallel while user reads content
     if (hasResumeState(course.id) && hasQuiz) {
       setStep(totalContent > 0 ? 'choice' : 'quiz')
     }
