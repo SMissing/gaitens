@@ -11,8 +11,9 @@ import { cn } from '@/lib/utils'
 import type { TrainingCourse, QuizQuestion } from '@/types/database'
 import {
   hasResumeState, saveResumeState, clearResumeState,
-  calculateCourseXP, addXP, updateStreak, getTotalXP, getStreak,
+  calculateCourseXP, updateStreak, getStreak, recordTrainingActivity,
 } from '@/lib/training-xp'
+import { SFX } from '@/lib/training-sfx'
 
 interface CoursePageProps {
   course: TrainingCourse & {
@@ -22,6 +23,7 @@ interface CoursePageProps {
   }
   onComplete: () => void
   onBack: () => void
+  existingXP?: number
 }
 
 type LessonStep = 'content' | 'choice' | 'quiz' | 'results' | 'review' | 'completed'
@@ -31,7 +33,7 @@ const CONFETTI = Array.from({ length: 20 }, (_, i) => ({
   id: i,
   color: ['#ffd700','#ff6b6b','#4ecdc4','#45b7d1','#a29bfe','#fd79a8','#00b894'][i % 7],
   angle: (i / 20) * 360,
-  dist: 70 + (i % 4) * 25,
+  dist: 160 + (i % 4) * 20,
   size: 6 + (i % 4) * 2,
 }))
 
@@ -55,6 +57,57 @@ function ConfettiBurst() {
   )
 }
 
+// ── Exit confirmation sheet ───────────────────────────────────────────────────
+function ExitConfirmSheet({ isOpen, onConfirm, onCancel }: {
+  isOpen: boolean
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="absolute inset-0 z-10 flex flex-col justify-end"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{ background: 'rgba(0,0,0,0.65)' }}
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+            className="rounded-t-3xl px-5 pb-10 pt-6 space-y-3"
+            style={{ background: '#1a1a2e' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-xl font-black">Leave this lesson?</h3>
+            <p className="text-sm text-muted-foreground pb-2">
+              Your progress is saved — you can resume where you left off.
+            </p>
+            <button
+              onClick={onCancel}
+              className="w-full h-14 rounded-2xl text-white text-lg font-black shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
+              style={{ background: 'linear-gradient(135deg, #3B82F6, #2563EB)' }}
+            >
+              Keep Learning
+            </button>
+            <button
+              onClick={onConfirm}
+              className="w-full h-12 rounded-2xl text-muted-foreground text-base font-semibold border border-border/30 hover:bg-accent/20 transition-colors"
+            >
+              Leave
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function paginateHTML(html: string | null | undefined): string[] {
   if (!html?.trim()) return []
@@ -72,35 +125,35 @@ function getModuleColor(type: string): [string, string] {
 const OPTION_LABELS = ['A', 'B', 'C', 'D']
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
-  const questions   = (course.quizQuestions ?? []) as QuizQuestion[]
-  const hasQuiz     = questions.length > 0
-  const hasVideo    = !!(course.videoUrl && course.moduleType === 'video')
-  const textPages   = useMemo(() => paginateHTML(course.content), [course.content])
+export function CoursePage({ course, onComplete, onBack, existingXP = 0 }: CoursePageProps) {
+  const questions    = (course.quizQuestions ?? []) as QuizQuestion[]
+  const hasQuiz      = questions.length > 0
+  const hasVideo     = !!(course.videoUrl && (course.moduleType === 'video' || course.moduleType === 'guide'))
+  const textPages    = useMemo(() => paginateHTML(course.content), [course.content])
   const totalContent = (hasVideo ? 1 : 0) + textPages.length
-  const [from, to]  = getModuleColor(course.moduleType)
+  const [from, to]   = getModuleColor(course.moduleType)
 
   // ── Step & content paging ─────────────────────────────────────────────────
-  const [step, setStep]           = useState<LessonStep>('content')
+  const [step, setStep]               = useState<LessonStep>('content')
   const [contentPage, setContentPage] = useState(0)
 
   // ── Quiz state ────────────────────────────────────────────────────────────
-  const [quizIdx, setQuizIdx]         = useState(0)
-  const [answers, setAnswers]         = useState<(number | undefined)[]>(
+  const [quizIdx, setQuizIdx]     = useState(0)
+  const [answers, setAnswers]     = useState<(number | undefined)[]>(
     new Array(questions.length).fill(undefined),
   )
-  const [quizPhase, setQuizPhase]     = useState<'question' | 'checking'>('question')
-  const [quizScore, setQuizScore]     = useState(0)
-  const [reviewMode, setReviewMode]   = useState(false)
+  const [quizPhase, setQuizPhase] = useState<'question' | 'checking'>('question')
+  const [quizScore, setQuizScore] = useState(0)
+  const [reviewMode, setReviewMode] = useState(false)
 
   // ── Celebration ───────────────────────────────────────────────────────────
-  const [earnedXP, setEarnedXP]   = useState(0)
-  const [streak, setStreak]       = useState(0)
-  const [totalXP, setTotalXP]     = useState(0)
-  const [loading, setLoading]     = useState(false)
-  const isMountedRef              = useRef(true)
-  // Portal guard — document.body is not available during SSR
-  const [mounted, setMounted]     = useState(false)
+  const [earnedXP, setEarnedXP] = useState(0)
+  const [streak, setStreak]     = useState(0)
+  const [totalXP, setTotalXP]   = useState(0)
+  const [loading, setLoading]   = useState(false)
+  const isMountedRef            = useRef(true)
+  const [mounted, setMounted]   = useState(false)
+  const [showExitSheet, setShowExitSheet] = useState(false)
 
   const isVideoPage = hasVideo && contentPage === 0
   const textIdx     = hasVideo ? contentPage - 1 : contentPage
@@ -109,44 +162,37 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
   const currentAns  = answers[quizIdx]
   const isLastQ     = quizIdx === questions.length - 1
 
-  // Progress bar value (0-100)
   const progressPct = useMemo(() => {
     if (step === 'completed') return 100
-    if (step === 'quiz' || step === 'results' || step === 'review') {
-      const base = totalContent > 0 ? 100 : 0
-      if (questions.length === 0) return base
-      return base + 0 // keep at 100 during quiz (full bar)
-    }
+    if (step === 'quiz' || step === 'results' || step === 'review') return 100
     if (totalContent === 0) return 50
     return Math.round(((contentPage + 1) / totalContent) * 100)
-  }, [step, contentPage, totalContent, questions.length])
+  }, [step, contentPage, totalContent])
 
-  // Mount portal + resume state + seed streak from localStorage.
-  // All localStorage reads must live here — the server has no localStorage,
-  // so any read during render produces a hydration mismatch.
   useEffect(() => {
     setMounted(true)
     isMountedRef.current = true
-    setStreak(getStreak())   // seed TopBar streak from localStorage on mount
+    setStreak(getStreak())
     if (hasResumeState(course.id) && hasQuiz) {
       setStep(totalContent > 0 ? 'choice' : 'quiz')
     }
     return () => { isMountedRef.current = false }
   }, [course.id, hasQuiz, totalContent])
 
-  // Save resume state on last content page
   useEffect(() => {
     if (isLastPage && totalContent > 0 && hasQuiz) saveResumeState(course.id)
   }, [isLastPage, totalContent, course.id, hasQuiz])
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const celebrate = () => {
-    const xp  = calculateCourseXP(course.duration)
-    const nxp = addXP(xp)
-    const str = updateStreak()
+    const xp          = calculateCourseXP(course.duration)
+    const nxp         = existingXP + xp
+    const localStreak = updateStreak()
     clearResumeState(course.id)
-    setEarnedXP(xp); setTotalXP(nxp); setStreak(str)
+    setEarnedXP(xp); setTotalXP(nxp); setStreak(localStreak)
     setLoading(false); setStep('completed')
+    SFX.complete()
+    recordTrainingActivity().then(s => { if (isMountedRef.current) setStreak(s) }).catch(() => {})
   }
 
   const markComplete = async () => {
@@ -186,20 +232,25 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
     }
   }
 
-  // Content navigation
   const goNextContent = () => {
     if (!isLastPage) { setContentPage(p => p + 1) }
     else if (hasQuiz) { setStep('quiz') }
     else { markComplete() }
   }
 
-  // Quiz actions
-  const handleCheck = () => { if (currentAns !== undefined) setQuizPhase('checking') }
+  const handleCheck = () => {
+    if (currentAns === undefined) return
+    setQuizPhase('checking')
+    if (currentAns === currentQ.correctAnswer) SFX.correct()
+    else SFX.wrong()
+  }
   const handleContinue = () => {
     if (isLastQ) {
       const correct = questions.reduce((n, q, i) => n + (answers[i] === q.correctAnswer ? 1 : 0), 0)
       setQuizScore(correct)
       setStep('results')
+      if (correct === questions.length) SFX.victory()
+      else SFX.fail()
     } else {
       setQuizIdx(i => i + 1)
       setQuizPhase('question')
@@ -216,20 +267,20 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
 
   const passed = quizScore === questions.length
 
-  // ── Layout helpers ────────────────────────────────────────────────────────
-
-  // Top bar shown in all lesson steps
+  // ── Top bar (shared across content / quiz / review) ───────────────────────
   const TopBar = ({ progress = progressPct }: { progress?: number }) => (
-    <div className="flex-shrink-0 flex items-center gap-3 px-4 pt-4 pb-3">
+    <div
+      className="flex-shrink-0 flex items-center gap-3 px-4 pb-3"
+      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 1rem)' }}
+    >
       <button
-        onClick={onBack}
+        onClick={() => setShowExitSheet(true)}
         className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/50 transition-colors flex-shrink-0"
         aria-label="Exit lesson"
       >
         <X className="h-5 w-5" />
       </button>
 
-      {/* Progress bar */}
       <div className="flex-1 h-3.5 bg-muted/60 rounded-full overflow-hidden">
         <motion.div
           className="h-full rounded-full"
@@ -239,7 +290,6 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
         />
       </div>
 
-      {/* Streak chip — uses state value seeded from localStorage on mount */}
       {streak > 0 && (
         <div className="flex items-center gap-1 text-orange-400 flex-shrink-0">
           <Flame className="h-4 w-4" />
@@ -249,19 +299,24 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
     </div>
   )
 
-  // ── CHOICE SCREEN (resume — let user decide to rewatch or jump to quiz) ──
   if (!mounted) return null
 
+  // ── CHOICE SCREEN ─────────────────────────────────────────────────────────
   if (step === 'choice') {
     return createPortal(
-      <div
+      <motion.div
         className="fixed inset-0 z-[200] flex flex-col"
         style={{ background: '#0f0f1a' }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* X exit */}
-        <div className="flex-shrink-0 px-4 pt-4 pb-2">
+        <div
+          className="flex-shrink-0 px-4 pb-2"
+          style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 1rem)' }}
+        >
           <button
-            onClick={onBack}
+            onClick={() => setShowExitSheet(true)}
             className="w-9 h-9 flex items-center justify-center rounded-full text-muted-foreground hover:bg-accent/50 transition-colors"
             aria-label="Back to training path"
           >
@@ -269,7 +324,6 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
           </button>
         </div>
 
-        {/* Choice content — vertically centred */}
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="w-full max-w-sm space-y-8 text-center">
             <div className="space-y-2">
@@ -283,7 +337,6 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
             </div>
 
             <div className="space-y-3">
-              {/* Start content from beginning */}
               <button
                 onClick={() => {
                   clearResumeState(course.id)
@@ -292,16 +345,13 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
                 }}
                 className="w-full h-14 rounded-2xl border border-border/50 font-bold text-base flex items-center justify-center gap-3 transition-colors hover:bg-accent/20 active:bg-accent/40"
               >
-                {hasVideo
-                  ? <Play className="h-5 w-5" />
-                  : <FileText className="h-5 w-5" />}
+                {hasVideo ? <Play className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                 {hasVideo ? 'Watch video again' : 'Read again'}
               </button>
 
-              {/* Go straight to quiz */}
               <button
                 onClick={() => setStep('quiz')}
-                className="w-full h-14 rounded-2xl text-white text-base font-black flex items-center justify-center gap-2 shadow-lg"
+                className="w-full h-14 rounded-2xl text-white text-base font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
                 style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
               >
                 Continue to Quiz
@@ -310,14 +360,22 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
             </div>
           </div>
         </div>
-      </div>
+
+        <ExitConfirmSheet isOpen={showExitSheet} onConfirm={onBack} onCancel={() => setShowExitSheet(false)} />
+      </motion.div>
     , document.body)
   }
 
   // ── COMPLETED SCREEN ──────────────────────────────────────────────────────
   if (step === 'completed') {
     return createPortal(
-      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6" style={{ background: '#0f0f1a' }}>
+      <motion.div
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
+        style={{ background: '#0f0f1a' }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      >
         <ConfettiBurst />
         <div className="relative z-10 text-center space-y-6 max-w-sm w-full">
           <motion.div
@@ -367,14 +425,20 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
             </button>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     , document.body)
   }
 
-  // ── REVIEW SCREEN (quiz failure review) ───────────────────────────────────
+  // ── REVIEW SCREEN ─────────────────────────────────────────────────────────
   if (step === 'review') {
     return createPortal(
-      <div className="fixed inset-0 z-[200] flex flex-col" style={{ background: '#0f0f1a' }}>
+      <motion.div
+        className="fixed inset-0 z-[200] flex flex-col"
+        style={{ background: '#0f0f1a' }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      >
         <TopBar progress={100} />
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
           <div>
@@ -413,20 +477,28 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
         <div className="flex-shrink-0 px-5 pb-10 pt-4 border-t border-border/10">
           <button
             onClick={handleRetry}
-            className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2"
+            className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
             style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
           >
             <RotateCcw className="h-5 w-5" /> Try Again
           </button>
         </div>
-      </div>
+
+        <ExitConfirmSheet isOpen={showExitSheet} onConfirm={onBack} onCancel={() => setShowExitSheet(false)} />
+      </motion.div>
     , document.body)
   }
 
   // ── RESULTS SCREEN ────────────────────────────────────────────────────────
   if (step === 'results') {
     return createPortal(
-      <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6" style={{ background: '#0f0f1a' }}>
+      <motion.div
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center px-6"
+        style={{ background: '#0f0f1a' }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="text-center space-y-6 max-w-sm w-full">
           <div className={cn(
             'mx-auto w-24 h-24 rounded-full flex items-center justify-center',
@@ -448,7 +520,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
           {passed ? (
             <button
               onClick={() => completeWithScore(quizScore)}
-              className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2"
+              className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
               style={{ background: 'linear-gradient(135deg, #10B981, #047857)' }}
             >
               <CheckCircle className="h-5 w-5" /> Complete
@@ -463,7 +535,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
               </button>
               <button
                 onClick={handleRetry}
-                className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2"
+                className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
                 style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
               >
                 <RotateCcw className="h-5 w-5" /> Try Again
@@ -471,7 +543,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     , document.body)
   }
 
@@ -480,17 +552,21 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
     const quizProgress = Math.round(((quizIdx + (quizPhase === 'checking' ? 1 : 0)) / questions.length) * 100)
 
     return createPortal(
-      <div className="fixed inset-0 z-[200] flex flex-col" style={{ background: '#0f0f1a' }}>
+      <motion.div
+        className="fixed inset-0 z-[200] flex flex-col"
+        style={{ background: '#0f0f1a' }}
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      >
         <TopBar progress={quizProgress} />
 
-        {/* Question counter */}
         <div className="flex-shrink-0 px-5 pt-2 pb-1">
           <p className="text-xs text-muted-foreground font-bold uppercase tracking-wide">
             Question {quizIdx + 1} of {questions.length}
           </p>
         </div>
 
-        {/* Scrollable question + options */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -501,10 +577,8 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
               transition={{ duration: 0.2 }}
               className="space-y-4"
             >
-              {/* Question */}
               <h2 className="text-xl sm:text-2xl font-bold leading-snug">{currentQ.question}</h2>
 
-              {/* Options */}
               <div className="space-y-3">
                 {currentQ.options.map((opt, oi) => {
                   const isSelected = currentAns === oi
@@ -514,9 +588,9 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
                   let border = 'border-border/60'
                   let bg     = 'bg-transparent'
                   let textCl = ''
-                  if (!checking && isSelected) { border = 'border-primary'; bg = 'bg-primary/30' }
-                  if (checking && isCorrect)   { border = 'border-green-500'; bg = 'bg-green-500/15'; textCl = 'text-green-300' }
-                  if (checking && isSelected && !isCorrect) { border = 'border-red-500'; bg = 'bg-red-500/15'; textCl = 'text-red-300' }
+                  if (!checking && isSelected)              { border = 'border-primary'; bg = 'bg-primary/30' }
+                  if (checking && isCorrect)                { border = 'border-green-500'; bg = 'bg-green-500/15'; textCl = 'text-green-300' }
+                  if (checking && isSelected && !isCorrect) { border = 'border-red-500';  bg = 'bg-red-500/15';   textCl = 'text-red-300' }
 
                   return (
                     <button
@@ -529,11 +603,10 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
                       className={cn(
                         'w-full flex items-center gap-4 rounded-2xl border-2 px-4 py-4 text-left transition-all duration-150',
                         border, bg, textCl,
-                        !checking && 'active:scale-[0.98] cursor-pointer',
+                        !checking && 'cursor-pointer shadow-[0_4px_0_rgba(0,0,0,0.3)] active:shadow-none active:translate-y-1',
                         checking && 'cursor-default',
                       )}
                     >
-                      {/* Letter label */}
                       <div className={cn(
                         'w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 transition-colors',
                         !checking && isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
@@ -549,16 +622,11 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
                       <span className={cn('text-base font-medium leading-snug flex-1', isSelected && !checking && 'font-bold')}>
                         {opt}
                       </span>
-                      {/* Selected signifier — radio dot on trailing edge */}
                       <div className={cn(
                         'flex-shrink-0 w-5 h-5 rounded-full border-2 transition-all duration-150 flex items-center justify-center',
-                        !checking && isSelected
-                          ? 'border-primary bg-primary'
-                          : 'border-border/40 bg-transparent',
+                        !checking && isSelected ? 'border-primary bg-primary' : 'border-border/40 bg-transparent',
                       )}>
-                        {isSelected && !checking && (
-                          <div className="w-2 h-2 rounded-full bg-white" />
-                        )}
+                        {isSelected && !checking && <div className="w-2 h-2 rounded-full bg-white" />}
                       </div>
                     </button>
                   )
@@ -568,7 +636,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
           </AnimatePresence>
         </div>
 
-        {/* Pinned action button */}
+        {/* Pinned action — fixed-height feedback container prevents button from jumping */}
         <div className={cn(
           'flex-shrink-0 px-5 pb-10 pt-4 border-t transition-colors duration-300',
           quizPhase === 'checking' && currentAns === currentQ.correctAnswer
@@ -577,14 +645,18 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
             ? 'border-red-500/30 bg-red-500/5'
             : 'border-border/10',
         )}>
-          {quizPhase === 'checking' && (
-            <p className={cn(
-              'text-sm font-bold mb-3',
-              currentAns === currentQ.correctAnswer ? 'text-green-400' : 'text-red-400',
-            )}>
-              {currentAns === currentQ.correctAnswer ? '✓ Correct!' : `✗ The answer is: ${currentQ.options[currentQ.correctAnswer]}`}
-            </p>
-          )}
+          <div className="min-h-[1.5rem] mb-3">
+            {quizPhase === 'checking' && (
+              <p className={cn(
+                'text-sm font-bold',
+                currentAns === currentQ.correctAnswer ? 'text-green-400' : 'text-red-400',
+              )}>
+                {currentAns === currentQ.correctAnswer
+                  ? '✓ Correct!'
+                  : `✗ The answer is: ${currentQ.options[currentQ.correctAnswer]}`}
+              </p>
+            )}
+          </div>
           <button
             disabled={currentAns === undefined && quizPhase === 'question'}
             onClick={quizPhase === 'question' ? handleCheck : handleContinue}
@@ -593,7 +665,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
               'flex items-center justify-center gap-2',
               currentAns === undefined && quizPhase === 'question'
                 ? 'opacity-40 cursor-not-allowed'
-                : 'active:scale-[0.98] shadow-lg',
+                : 'shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1',
             )}
             style={{
               background: quizPhase === 'checking' && currentAns === currentQ.correctAnswer
@@ -603,21 +675,26 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
                 : `linear-gradient(135deg, ${from}, ${to})`,
             }}
           >
-            {quizPhase === 'question'
-              ? 'Check Answer'
-              : isLastQ ? 'See Results' : 'Continue'}
+            {quizPhase === 'question' ? 'Check Answer' : isLastQ ? 'See Results' : 'Continue'}
           </button>
         </div>
-      </div>
+
+        <ExitConfirmSheet isOpen={showExitSheet} onConfirm={onBack} onCancel={() => setShowExitSheet(false)} />
+      </motion.div>
     , document.body)
   }
 
   // ── CONTENT SCREEN ────────────────────────────────────────────────────────
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex flex-col" style={{ background: '#0f0f1a' }}>
+    <motion.div
+      className="fixed inset-0 z-[200] flex flex-col"
+      style={{ background: '#0f0f1a' }}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+    >
       <TopBar />
 
-      {/* Scrollable content area */}
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
@@ -628,12 +705,11 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className="px-5 pt-4 pb-6 min-h-full"
           >
-            {/* ── Video page ──────────────────────────────────────── */}
             {isVideoPage && (
               <div className="space-y-4">
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground font-bold uppercase tracking-wide">
-                    {course.moduleType === 'video' ? 'Video' : 'Guide'}
+                    {course.moduleType === 'video' ? 'Video' : course.moduleType === 'guide' ? 'Video + Reading' : 'Reading'}
                   </p>
                   <h1 className="text-2xl sm:text-3xl font-black leading-tight">{course.title}</h1>
                   {course.description && (
@@ -663,10 +739,8 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
               </div>
             )}
 
-            {/* ── Text section page ────────────────────────────────── */}
             {!isVideoPage && textPages[textIdx] && (
               <div className="space-y-4">
-                {/* Section number pill */}
                 {textPages.length > 1 && (
                   <span
                     className="inline-flex items-center text-xs font-black uppercase tracking-widest text-white rounded-full px-3 py-1"
@@ -686,7 +760,6 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
               </div>
             )}
 
-            {/* ── Empty state ──────────────────────────────────────── */}
             {!hasVideo && textPages.length === 0 && (
               <div className="flex flex-col items-center justify-center min-h-[50vh] text-center gap-3">
                 <FileText className="h-12 w-12 text-muted-foreground/30" />
@@ -697,9 +770,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
         </AnimatePresence>
       </div>
 
-      {/* Pinned bottom action */}
       <div className="flex-shrink-0 px-5 pb-10 pt-4 border-t border-border/10 space-y-3">
-        {/* Page dots */}
         {totalContent > 1 && (
           <div className="flex items-center justify-center gap-1.5">
             {Array.from({ length: totalContent }).map((_, i) => (
@@ -731,7 +802,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
           {!isLastPage ? (
             <button
               onClick={() => setContentPage(p => p + 1)}
-              className="flex-1 h-14 rounded-2xl text-white text-lg font-black shadow-lg flex items-center justify-center gap-2"
+              className="flex-1 h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
               style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
             >
               Continue →
@@ -739,7 +810,7 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
           ) : hasQuiz ? (
             <button
               onClick={() => setStep('quiz')}
-              className="flex-1 h-14 rounded-2xl text-white text-lg font-black shadow-xl flex items-center justify-center gap-2"
+              className="flex-1 h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
               style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
             >
               Go to Quiz <ArrowRight className="h-5 w-5" />
@@ -749,8 +820,10 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
               onClick={markComplete}
               disabled={loading}
               className={cn(
-                'flex-1 h-14 rounded-2xl text-white text-lg font-black shadow-xl flex items-center justify-center gap-2',
-                loading && 'opacity-70 cursor-not-allowed',
+                'flex-1 h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 transition-all duration-150',
+                loading
+                  ? 'opacity-70 cursor-not-allowed'
+                  : 'shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1',
               )}
               style={{ background: 'linear-gradient(135deg, #10B981, #047857)' }}
             >
@@ -761,6 +834,8 @@ export function CoursePage({ course, onComplete, onBack }: CoursePageProps) {
           )}
         </div>
       </div>
-    </div>
+
+      <ExitConfirmSheet isOpen={showExitSheet} onConfirm={onBack} onCancel={() => setShowExitSheet(false)} />
+    </motion.div>
   , document.body)
 }

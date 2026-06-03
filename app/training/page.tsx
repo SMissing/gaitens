@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { requireAuth } from '@/lib/auth'
 import { TrainingContentClient } from '@/components/training/TrainingContentClient'
 
@@ -15,13 +16,13 @@ export default async function TrainingPage() {
         }}
       />
 
-      {/* Decorative watermark */}
+      {/* Gaitens logo watermark */}
       <div
-        className="absolute top-0 right-0 text-[220px] leading-none select-none pointer-events-none"
-        style={{ opacity: 0.035 }}
+        className="absolute top-0 right-0 w-52 h-52 select-none pointer-events-none"
+        style={{ opacity: 0.09 }}
         aria-hidden
       >
-        🎓
+        <Image src="/logos/gaitens-logo-white.png" alt="" fill className="object-contain object-right-top" />
       </div>
 
       {/* Subtle star field — a few hand-placed dots */}

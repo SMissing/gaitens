@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Flame, Star, MapPin } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Flame, Star, MapPin, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
-import type { TrainingCourse } from '@/types/database'
+import type { TrainingCourse, QuizQuestion } from '@/types/database'
 import { TrainingPath } from './TrainingPath'
 import { CoursePage } from './CoursePage'
-import { getStreak, getTotalXP } from '@/lib/training-xp'
+import { PracticeSession } from './PracticeSession'
+import { getStreak, calculateCourseXP, PRACTICE_XP } from '@/lib/training-xp'
 
 interface TrainingCourseWithStatus extends TrainingCourse {
   completed: boolean
@@ -24,17 +25,22 @@ interface TrainingContentProps {
 export function TrainingContent({ courses, userSite, onRefresh }: TrainingContentProps) {
   const [currentCourseId, setCurrentCourseId] = useState<string | null>(null)
   const [completedModules, setCompletedModules] = useState<Set<string>>(new Set())
+  const [practiceOpen, setPracticeOpen] = useState(false)
 
-  // Gamification stats (localStorage — client only)
+  // Streak — still localStorage (day-based, less critical)
   const [streak, setStreak] = useState(0)
-  const [xp, setXp] = useState(0)
+
+  // XP — derived from completed courses (database-backed, persists across sessions)
+  const xp = useMemo(
+    () => courses.filter(c => c.completed).reduce((sum, c) => sum + calculateCourseXP(c.duration), 0),
+    [courses],
+  )
 
   // F-07: first-use onboarding hint
   const [showHint, setShowHint] = useState(false)
 
   useEffect(() => {
     setStreak(getStreak())
-    setXp(getTotalXP())
   }, [])
 
   useEffect(() => {
@@ -55,6 +61,20 @@ export function TrainingContent({ courses, userSite, onRefresh }: TrainingConten
     if (typeof window !== 'undefined') localStorage.setItem('gl_training_onboarded', '1')
   }
 
+  // Practice — sample up to 10 questions from completed quiz modules (stable across re-renders)
+  const practiceQuestions = useMemo(() => {
+    const pool = courses
+      .filter(c => c.completed && Array.isArray((c as any).quizQuestions) && (c as any).quizQuestions.length > 0)
+      .flatMap(c => (c as any).quizQuestions as QuizQuestion[])
+    if (pool.length === 0) return []
+    // Deterministic shuffle seeded by today's date so questions change daily
+    const seed = new Date().toDateString()
+    const sorted = [...pool].sort((a, b) =>
+      (a.question + seed).localeCompare(b.question + seed),
+    )
+    return sorted.slice(0, 10)
+  }, [courses])
+
   const requiredCourses = courses.filter(c => c.required)
   const totalRequired = requiredCourses.length
   const completedRequired = requiredCourses.filter(c => completedModules.has(c.id)).length
@@ -65,8 +85,26 @@ export function TrainingContent({ courses, userSite, onRefresh }: TrainingConten
     if (currentCourseId) setCompletedModules(prev => new Set([...prev, currentCourseId]))
     setCurrentCourseId(null)
     setStreak(getStreak())
-    setXp(getTotalXP())
     if (onRefresh) setTimeout(() => onRefresh(), 100)
+  }
+
+  const handlePracticeComplete = (earnedXP: number) => {
+    setPracticeOpen(false)
+    setStreak(getStreak())
+    // Refresh so XP and streak chips update
+    if (onRefresh) setTimeout(() => onRefresh(), 100)
+  }
+
+  // Practice session — full-screen portal, rendered at body level
+  if (practiceOpen && practiceQuestions.length > 0) {
+    return (
+      <PracticeSession
+        questions={practiceQuestions}
+        existingXP={xp}
+        onComplete={handlePracticeComplete}
+        onBack={() => setPracticeOpen(false)}
+      />
+    )
   }
 
   // Lesson view — CoursePage handles its own full-screen portal
@@ -78,6 +116,7 @@ export function TrainingContent({ courses, userSite, onRefresh }: TrainingConten
         course={currentCourse}
         onComplete={handleCourseComplete}
         onBack={() => setCurrentCourseId(null)}
+        existingXP={xp}
       />
     )
   }
@@ -205,6 +244,53 @@ export function TrainingContent({ courses, userSite, onRefresh }: TrainingConten
           userSite={userSite}
         />
       </div>
+
+      {/* ── Practice button — shown when there are completed quiz modules ── */}
+      {practiceQuestions.length >= 3 && (
+        <div className="px-4 pt-4 pb-8">
+          {/* Divider */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Practice</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-white/15 via-white/15 to-transparent" />
+          </div>
+
+          <button
+            onClick={() => setPracticeOpen(true)}
+            className="w-full group"
+          >
+            <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-orange-500/5">
+              {/* Glow */}
+              <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%)' }} />
+
+              <div className="relative flex items-center gap-4 px-5 py-4">
+                <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+                  <Zap className="h-6 w-6 text-amber-400" />
+                </div>
+
+                <div className="flex-1 text-left min-w-0">
+                  <p className="text-base font-black text-white leading-tight">Practice</p>
+                  <p className="text-xs text-white/45 mt-0.5">
+                    {practiceQuestions.length} questions · keeps your streak going
+                  </p>
+                </div>
+
+                <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1 bg-yellow-500/15 text-yellow-400 rounded-full px-2 py-0.5 border border-yellow-500/20">
+                    <Star className="h-2.5 w-2.5 fill-yellow-400" />
+                    <span className="text-[10px] font-black">+{PRACTICE_XP} XP</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-400/50 group-hover:text-amber-400 transition-colors group-hover:translate-x-0.5 transition-transform">
+                    <span className="text-[10px] font-bold">Start</span>
+                    <span className="text-sm">→</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   )
 }

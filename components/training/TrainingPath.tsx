@@ -155,11 +155,6 @@ export function TrainingPath({ courses, onStartCourse }: TrainingPathProps) {
               className="rounded-2xl p-5 mb-8 relative overflow-hidden"
               style={{ background: `linear-gradient(135deg, ${theme.from}, ${theme.to})` }}
             >
-              {/* Watermark emoji */}
-              <div className="absolute -right-3 -top-3 text-[96px] opacity-[0.12] select-none pointer-events-none leading-none">
-                {emoji}
-              </div>
-
               <div className="relative">
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">

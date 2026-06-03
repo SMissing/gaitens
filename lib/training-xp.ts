@@ -3,6 +3,8 @@ const STREAK_KEY = 'gl_training_streak'
 const LAST_ACTIVITY_KEY = 'gl_training_last_activity'
 const RESUME_PREFIX = 'gl_training_resume_'
 
+export const PRACTICE_XP = 25
+
 export function calculateCourseXP(duration: number | null | undefined): number {
   return Math.max(50, (duration ?? 0) * 10)
 }
@@ -49,4 +51,25 @@ export function hasResumeState(courseId: string): boolean {
 export function clearResumeState(courseId: string): void {
   if (typeof window === 'undefined') return
   localStorage.removeItem(`${RESUME_PREFIX}${courseId}`)
+}
+
+/**
+ * Records a training activity (module completion or practice).
+ * Updates localStorage immediately for instant UI feedback, then syncs to the
+ * database via /api/checkin so both streak systems stay in lockstep.
+ * Returns the authoritative streak (database value if reachable, localStorage fallback).
+ */
+export async function recordTrainingActivity(): Promise<number> {
+  const localStreak = updateStreak() // sync, instant — keeps UI responsive
+  try {
+    const res = await fetch('/api/checkin', { method: 'POST' })
+    if (res.ok) {
+      const data = await res.json()
+      if (typeof data.currentStreak === 'number') {
+        localStorage.setItem(STREAK_KEY, String(data.currentStreak))
+        return data.currentStreak
+      }
+    }
+  } catch {}
+  return localStreak
 }

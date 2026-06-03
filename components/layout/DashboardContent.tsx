@@ -29,44 +29,6 @@ interface DashboardContentProps {
 export default async function DashboardContent({ user }: DashboardContentProps) {
   const supabase = createServerClient()
 
-  // Training progress is handled client-side by DashboardTrainingBar (uses /api/training
-  // which has correct session context; direct Supabase queries from server components
-  // use an unauthenticated client that can't read RLS-protected training_completions).
-  // We keep a lightweight server-side course count only to drive hasActionRequired.
-  let trainingQuery = supabase
-    .from('training_courses')
-    .select('id')
-    .eq('active', true)
-
-  if (user.site) {
-    trainingQuery = trainingQuery.or(`site.is.null,site.eq.${user.site}`)
-  } else {
-    trainingQuery = trainingQuery.is('site', null)
-  }
-
-  const { data: trainingCourses } = await trainingQuery
-  const remainingCount = trainingCourses?.length || 0
-
-  // Pending holiday requests
-  const { data: holidayRequests } = await supabase
-    .from('holiday_requests')
-    .select('*')
-    .eq('userId', user.id)
-    .eq('status', 'pending')
-    .order('createdAt', { ascending: false })
-    .limit(5)
-
-  // Rejected holiday requests from the last 7 days only (dashboard); up to 3 most recent
-  const rejectedSinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: rejectedRequests } = await supabase
-    .from('holiday_requests')
-    .select('*')
-    .eq('userId', user.id)
-    .eq('status', 'rejected')
-    .gte('updatedAt', rejectedSinceIso)
-    .order('updatedAt', { ascending: false })
-    .limit(3)
-
   // Upcoming approved holidays - only for the current user
   const today = new Date().toISOString().split('T')[0]
   const { data: upcomingHolidays } = await supabase
@@ -207,11 +169,6 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     console.error('Error fetching accepted meetings:', error)
   }
 
-  const hasActionRequired =
-    remainingCount > 0 ||
-    (rejectedRequests?.length ?? 0) > 0 ||
-    (holidayRequests?.length ?? 0) > 0
-
   const hasWhatsOn =
     dashboardNotices.length > 0 ||
     nextEvent !== null ||
@@ -230,59 +187,8 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
         <MeetingNotificationCard userId={user.id} />
       </div>
 
-      {/* Action Required Zone — urgency items only */}
-      {hasActionRequired && (
-        <div className="mb-4 sm:mb-6 rounded-xl border-l-2 border-spirits-yellow/60 bg-spirits-yellow/5 px-4 py-3 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-spirits-yellow/80">
-            Action Required
-          </p>
-
-          {/* Training progress — client component so it can read completions with a real session */}
-          <DashboardTrainingBar />
-
-          {/* Pending holiday requests — summary link */}
-          {holidayRequests && holidayRequests.length > 0 && (
-            <Link href="/holidays" className="flex items-center justify-between group">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-spirits-yellow flex-shrink-0" />
-                <span className="text-sm font-medium text-foreground">
-                  {holidayRequests.length} pending holiday {holidayRequests.length === 1 ? 'request' : 'requests'}
-                </span>
-              </div>
-              <ChevronRight className="h-4 w-4 text-spirits-yellow opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-            </Link>
-          )}
-
-          {/* Rejected holidays — shown inline because they're urgent */}
-          {rejectedRequests && rejectedRequests.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar className="h-4 w-4 text-red-500 flex-shrink-0" />
-                <span className="text-sm font-medium text-foreground">Recently Rejected</span>
-              </div>
-              <ul className="space-y-1.5">
-                {rejectedRequests.map((request: any) => (
-                  <li key={request.id} className="pl-6">
-                    <div className="flex justify-between items-center gap-2 mb-0.5">
-                      <span className="text-xs text-foreground">
-                        {formatDate(request.startDate)} – {formatDate(request.endDate)}
-                      </span>
-                      <span className="px-2 py-0.5 bg-red-500/20 text-red-500 text-xs font-medium rounded border border-red-500/30 flex-shrink-0">
-                        Rejected
-                      </span>
-                    </div>
-                    {request.rejectionReason && (
-                      <p className="text-xs text-muted-foreground italic border-l-2 border-red-500/30 pl-2 line-clamp-2">
-                        {request.rejectionReason}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Training widget */}
+      <DashboardTrainingBar />
 
       {/* What's On — notices, events, confirmed meetings */}
       {hasWhatsOn && (

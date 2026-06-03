@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import { DockItem, DockIcon, useDockContext } from '@/components/core/dock'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import {
@@ -13,6 +14,7 @@ import {
   Briefcase,
   Shield,
   ArrowLeft,
+  ArrowRight,
   Plus,
   ListFilter,
   ArrowUpDown,
@@ -58,6 +60,8 @@ import {
   TRAINING_DOCK_SUBMIT_FORM,
   TRAINING_DOCK_REFRESH,
   TRAINING_DOCK_STATE,
+  TRAINING_DOCK_NEXT_STEP,
+  TRAINING_DOCK_PREV_STEP,
   type TrainingDockStateDetail,
 } from '@/lib/training-dock-bridge'
 import {
@@ -194,6 +198,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     listLoading: true,
     saving: false,
     editing: false,
+    formStep: 0,
+    onLastStep: false,
+    canAdvance: false,
   })
   const [staffDockMeta, setStaffDockMeta] = useState<StaffDockStateDetail>({
     formOpen: false,
@@ -2009,24 +2016,15 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
   }
 
   if (isModuleMakerPage) {
-    const refreshBusy =
-      moduleMakerMeta.listLoading || moduleMakerMeta.saving
+    const STEP_LABELS = ['Basics', 'Audience', 'Content', 'Quiz'] as const
+    const currentStep = moduleMakerMeta.formStep ?? 0
 
     return (
       <MotionConfig transition={transition}>
         <div ref={dockRowRef} className="relative w-full min-w-0 min-h-16 sm:min-h-20">
           <AnimatePresence mode="wait" initial={false}>
-            {!showModuleMakerDock ? (
-              <motion.div
-                key="module-maker-main"
-                transition={dockSwitchTransition}
-                initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.98 }}
-              >
-                {mainDockRow}
-              </motion.div>
-            ) : moduleMakerMeta.formOpen ? (
+            {moduleMakerMeta.formOpen ? (
+              /* Form mode — prev | step info | next/save */
               <motion.div
                 key="module-maker-form"
                 transition={dockSwitchTransition}
@@ -2035,52 +2033,58 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                 className={DOCK_ROW}
               >
+                {/* ← Previous step / cancel on step 0 */}
                 <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
                     disabled={moduleMakerMeta.saving}
-                    onClick={() =>
-                      window.dispatchEvent(
-                        new CustomEvent(TRAINING_DOCK_CLOSE_FORM)
-                      )
-                    }
+                    onClick={() => window.dispatchEvent(new CustomEvent(TRAINING_DOCK_PREV_STEP))}
                     className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
-                    aria-label="Cancel — discard changes"
+                    aria-label={currentStep === 0 ? 'Cancel — discard changes' : 'Previous step'}
                   >
-                    <X className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
+                    <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
                   </button>
                 </div>
 
+                {/* Step name + counter (non-interactive) */}
+                <div className={cn(DOCK_ACTION_SLOT, 'flex-[2] pointer-events-none')}>
+                  <p className="text-xs font-black text-spirits-yellow tabular-nums leading-tight">
+                    {STEP_LABELS[currentStep]}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground tabular-nums">
+                    {currentStep + 1} / 4
+                  </p>
+                </div>
+
+                {/* → Next step / ✓ save on last step */}
                 <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
-                    disabled={moduleMakerMeta.saving}
+                    disabled={!moduleMakerMeta.canAdvance || moduleMakerMeta.saving}
                     onClick={() =>
                       window.dispatchEvent(
-                        new CustomEvent(TRAINING_DOCK_SUBMIT_FORM)
+                        new CustomEvent(moduleMakerMeta.onLastStep ? TRAINING_DOCK_SUBMIT_FORM : TRAINING_DOCK_NEXT_STEP)
                       )
                     }
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15 disabled:opacity-40"
-                    aria-label={
-                      moduleMakerMeta.editing
-                        ? 'Save module changes'
-                        : 'Publish new module'
-                    }
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15 disabled:opacity-40"
+                    aria-label={moduleMakerMeta.onLastStep
+                      ? (moduleMakerMeta.editing ? 'Save changes' : 'Publish module')
+                      : 'Next step'}
                   >
                     {moduleMakerMeta.saving ? (
-                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-cyan" />
+                      <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-spirits-yellow" />
+                    ) : moduleMakerMeta.onLastStep ? (
+                      <Check className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors" strokeWidth={2.5} />
                     ) : (
-                      <Check
-                        className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors"
-                        strokeWidth={2.5}
-                      />
+                      <ArrowRight className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors" />
                     )}
                   </button>
                 </div>
               </motion.div>
             ) : (
+              /* List mode — ← back | refresh | + add */
               <motion.div
-                key="module-maker-dock"
+                key="module-maker-list"
                 transition={dockSwitchTransition}
                 initial={{ opacity: 0, y: 10, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2090,9 +2094,9 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
-                    onClick={() => setShowModuleMakerDock(false)}
+                    onClick={() => router.push('/dashboard')}
                     className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105"
-                    aria-label="Show main dock"
+                    aria-label="Back to dashboard"
                   >
                     <ArrowLeft className="h-6 w-6 sm:h-7 sm:w-7 text-foreground transition-colors" />
                   </button>
@@ -2101,12 +2105,8 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
-                    disabled={refreshBusy}
-                    onClick={() =>
-                      window.dispatchEvent(
-                        new CustomEvent(TRAINING_DOCK_REFRESH)
-                      )
-                    }
+                    disabled={moduleMakerMeta.listLoading || moduleMakerMeta.saving}
+                    onClick={() => window.dispatchEvent(new CustomEvent(TRAINING_DOCK_REFRESH))}
                     className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 disabled:opacity-40"
                     aria-label="Refresh modules"
                   >
@@ -2121,13 +2121,11 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                 <div className={DOCK_ACTION_SLOT}>
                   <button
                     type="button"
-                    onClick={() =>
-                      window.dispatchEvent(new CustomEvent(TRAINING_DOCK_ADD))
-                    }
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-cyan/15"
+                    onClick={() => window.dispatchEvent(new CustomEvent(TRAINING_DOCK_ADD))}
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-spirits-yellow/15"
                     aria-label="New training module"
                   >
-                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-cyan transition-colors" />
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-spirits-yellow transition-colors" />
                   </button>
                 </div>
               </motion.div>
