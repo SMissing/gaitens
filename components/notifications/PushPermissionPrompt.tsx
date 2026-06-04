@@ -16,7 +16,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output
 }
 
-type GateState = 'checking' | 'clear' | 'prompt' | 'loading' | 'denied' | 'success'
+type GateState = 'checking' | 'clear' | 'prompt' | 'loading' | 'denied' | 'success' | 'add-to-homescreen'
 
 const STARS = [
   { top: '12%', left: '7%',  size: 2,   opacity: 0.35 },
@@ -113,6 +113,18 @@ export function PushPermissionPrompt() {
   const [state, setState] = useState<GateState>('checking')
 
   useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    const isStandalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (navigator as any).standalone === true
+
+    // iOS Safari browser (not installed as PWA) — Push requires home screen install
+    if (isIOS && !isStandalone) {
+      setState('add-to-homescreen')
+      return
+    }
+
+    // Push not supported on this browser/device — let them through
     if (
       typeof window === 'undefined' ||
       !('Notification' in window) ||
@@ -178,7 +190,7 @@ export function PushPermissionPrompt() {
 
   return createPortal(
     <AnimatePresence>
-      {(state === 'prompt' || state === 'loading' || state === 'denied' || state === 'success') && (
+      {(state === 'prompt' || state === 'loading' || state === 'denied' || state === 'success' || state === 'add-to-homescreen') && (
         <motion.div
           key="gate"
           initial={{ opacity: 0 }}
@@ -231,6 +243,8 @@ export function PushPermissionPrompt() {
                 <div className="flex h-24 w-24 items-center justify-center rounded-[2rem] bg-orange-500/20 border border-orange-500/30 shadow-2xl shadow-orange-500/20">
                   {state === 'denied'
                     ? <BellOff className="h-12 w-12 text-white/40" />
+                    : state === 'add-to-homescreen'
+                    ? <span className="text-5xl leading-none select-none">📱</span>
                     : <Bell className="h-12 w-12 text-orange-300" />
                   }
                 </div>
@@ -245,7 +259,35 @@ export function PushPermissionPrompt() {
                   Gaitens Leisure
                 </p>
 
-                {state === 'success' ? (
+                {state === 'add-to-homescreen' ? (
+                  <>
+                    <h1 className="text-3xl font-black text-white leading-tight mb-3">
+                      Add to Home<br />Screen first
+                    </h1>
+                    <p className="text-sm text-white/50 leading-relaxed mb-6">
+                      To enable notifications, this app needs to be installed on your iPhone. It only takes a few seconds.
+                    </p>
+                    <div className="text-left space-y-3 mb-8">
+                      {[
+                        { step: '1', text: 'Tap the Share button at the bottom of Safari', icon: '⬆️' },
+                        { step: '2', text: 'Scroll down and tap "Add to Home Screen"', icon: '＋' },
+                        { step: '3', text: 'Tap "Add" in the top right corner', icon: '✓' },
+                        { step: '4', text: 'Open the app from your home screen', icon: '📱' },
+                      ].map(({ step, text, icon }) => (
+                        <div key={step} className="flex items-start gap-3">
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-500/20 border border-orange-500/30 text-xs font-black text-orange-300">
+                            {step}
+                          </div>
+                          <p className="text-sm text-white/60 leading-snug pt-1">{text}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-white/30 text-center">
+                      Requires iOS 16.4 or later
+                    </p>
+                  </>
+
+                ) : state === 'success' ? (
                   <>
                     <h1 className="text-3xl font-black text-white leading-tight mb-3">You&apos;re all set!</h1>
                     <p className="text-sm text-white/50">Notifications enabled. Taking you in…</p>
