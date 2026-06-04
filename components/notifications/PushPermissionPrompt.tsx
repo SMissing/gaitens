@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { Bell, BellOff, RefreshCw, Settings } from 'lucide-react'
+import { Bell, BellOff, RefreshCw } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Button } from '@/components/ui/button'
 
@@ -295,32 +295,73 @@ export function PushPermissionPrompt() {
 
                 ) : state === 'denied' ? (
                   <>
-                    <h1 className="text-3xl font-black text-white leading-tight mb-3">
-                      Notifications<br />blocked
+                    <h1 className="text-3xl font-black text-white leading-tight mb-2">
+                      Turn on<br />Notifications
                     </h1>
-                    <p className="text-sm text-white/50 leading-relaxed mb-2">
-                      This app requires push notifications to keep you updated on training, badges, and team updates.
+                    <p className="text-sm text-white/45 mb-6">
+                      You&apos;ve previously blocked notifications. Follow these steps on your iPhone:
                     </p>
-                    <p className="text-sm text-white/50 leading-relaxed mb-8">
-                      Go to <span className="text-white/80 font-semibold">Settings → Notifications</span> and enable notifications for this app, then come back and tap below.
-                    </p>
-                    <div className="flex flex-col gap-3">
-                      <button
-                        onClick={handleCheckAgain}
-                        disabled={state === 'loading' as any}
-                        className="flex items-center justify-center gap-2 w-full rounded-2xl bg-orange-500 py-4 text-sm font-black text-white active:opacity-80 disabled:opacity-60"
-                      >
-                        <RefreshCw className="h-4 w-4" />
-                        I&apos;ve enabled it — check again
-                      </button>
-                      <button
-                        onClick={() => { window.location.href = 'app-settings:' }}
-                        className="flex items-center justify-center gap-2 w-full rounded-2xl border border-white/15 py-4 text-sm font-semibold text-white/60 active:text-white"
-                      >
-                        <Settings className="h-4 w-4" />
-                        Open Settings
-                      </button>
+
+                    {/* Visual step-by-step — looks like iOS UI */}
+                    <div className="text-left space-y-2 mb-8 w-full">
+
+                      {/* Step 1 */}
+                      <div className="flex items-center gap-3 rounded-2xl bg-white/[0.06] border border-white/10 px-4 py-3">
+                        <span className="text-2xl leading-none">⚙️</span>
+                        <div className="min-w-0">
+                          <p className="text-xs text-white/35 font-semibold uppercase tracking-wide mb-0.5">Step 1</p>
+                          <p className="text-sm font-bold text-white">Open Settings</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-center">
+                        <div className="h-4 w-px bg-white/15" />
+                      </div>
+
+                      {/* Step 2 */}
+                      <div className="flex items-center gap-3 rounded-2xl bg-white/[0.06] border border-white/10 px-4 py-3">
+                        <span className="text-2xl leading-none">📜</span>
+                        <div className="min-w-0">
+                          <p className="text-xs text-white/35 font-semibold uppercase tracking-wide mb-0.5">Step 2</p>
+                          <p className="text-sm font-bold text-white">Scroll down — tap <span className="text-orange-300">Gaitens Portal</span></p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-center">
+                        <div className="h-4 w-px bg-white/15" />
+                      </div>
+
+                      {/* Step 3 */}
+                      <div className="flex items-center gap-3 rounded-2xl bg-white/[0.06] border border-white/10 px-4 py-3">
+                        <span className="text-2xl leading-none">🔔</span>
+                        <div className="min-w-0">
+                          <p className="text-xs text-white/35 font-semibold uppercase tracking-wide mb-0.5">Step 3</p>
+                          <p className="text-sm font-bold text-white">Tap <span className="text-orange-300">Notifications</span> → toggle <span className="text-green-400">ON</span></p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-center">
+                        <div className="h-4 w-px bg-white/15" />
+                      </div>
+
+                      {/* Step 4 */}
+                      <div className="flex items-center gap-3 rounded-2xl bg-white/[0.06] border border-white/10 px-4 py-3">
+                        <span className="text-2xl leading-none">↩️</span>
+                        <div className="min-w-0">
+                          <p className="text-xs text-white/35 font-semibold uppercase tracking-wide mb-0.5">Step 4</p>
+                          <p className="text-sm font-bold text-white">Come back here and tap below</p>
+                        </div>
+                      </div>
                     </div>
+
+                    <button
+                      onClick={handleCheckAgain}
+                      disabled={state === 'loading' as any}
+                      className="flex items-center justify-center gap-2 w-full rounded-2xl bg-orange-500 py-4 text-sm font-black text-white shadow-lg shadow-orange-500/25 active:opacity-80 disabled:opacity-60"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Done — check again
+                    </button>
                   </>
 
                 ) : (
