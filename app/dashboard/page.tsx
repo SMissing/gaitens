@@ -7,11 +7,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background w-full overflow-x-hidden">
-      <PageHeader 
+      <PageHeader
         logo="/logos/gaitens-text-logo.png"
         logoAlt="Gaitens Leisure Group"
         showLogout={true}
-        showAchievements={false}
       />
       <DashboardContent user={user} />
     </div>

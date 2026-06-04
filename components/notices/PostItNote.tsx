@@ -55,8 +55,8 @@ export function PostItNote({ notice, color, rotation = 0, onImageClick, isAdmin 
       className={cn(
         'relative p-6 rounded-xl border-2 transition-all hover:scale-105 hover:z-10',
         styles.bg,
-        styles.border,
-        styles.shadow,
+        notice.pinned ? 'border-amber-400/80 shadow-[0_0_0_1px_rgba(251,191,36,0.3),0_8px_24px_rgba(251,191,36,0.15)]' : styles.border,
+        notice.pinned ? '' : styles.shadow,
         'min-h-[200px]',
         isLongNotice 
           ? 'w-full max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-4rem)] lg:max-w-[calc(100vw-8rem)]' 

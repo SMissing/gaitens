@@ -3,6 +3,8 @@ import { Dock } from '@/components/core/dock'
 import { DockButtonRow } from './DockButtonRow'
 import { DockSwipeOverlay } from './DockSwipeOverlay'
 import { DockTooltipHint } from './DockTooltipHint'
+import { DockContextLabel } from './DockContextLabel'
+import { DockPageDots } from './DockPageDots'
 
 export async function GlobalDock() {
   const user = await getCurrentUser()
@@ -27,7 +29,12 @@ export async function GlobalDock() {
         className="fixed left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-2 sm:px-4"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 2px)' }}
       >
+        {/* Page indicator dots — shows when a context dock is available */}
+        <DockPageDots />
         <Dock className="relative h-16 min-w-0 max-w-full overflow-visible rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-md sm:h-20">
+          {/* Context label — shows above dock when in a non-main-nav state */}
+          <DockContextLabel />
+
           {/* First-session hint — one-time tooltip above dock */}
           <DockTooltipHint />
 

@@ -18,17 +18,18 @@ export default async function NoticesPage() {
     .order('pinned', { ascending: false })
     .order('createdAt', { ascending: false })
 
-  // Generate rotations and colors for each notice
+  // Assign semantic colours: pinned = cyan (informational), regular cycle yellow/magenta
+  let regularIndex = 0
   const noticesWithStyles = (notices || []).map((notice: Notice, index: number) => {
-    const colors: ('yellow' | 'magenta' | 'cyan')[] = ['yellow', 'magenta', 'cyan']
-    const color = colors[index % 3] // Cycle through colors
-    const rotation = (index % 5 - 2) * 2 // Rotate between -4 and 4 degrees
-    
-    return {
-      notice,
-      color,
-      rotation,
+    let color: 'yellow' | 'magenta' | 'cyan'
+    if (notice.pinned) {
+      color = 'cyan'
+    } else {
+      color = regularIndex % 2 === 0 ? 'yellow' : 'magenta'
+      regularIndex++
     }
+    const rotation = (index % 5 - 2) * 2
+    return { notice, color, rotation }
   })
 
   return (

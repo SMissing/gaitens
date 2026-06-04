@@ -158,22 +158,49 @@ export function DashboardTrainingBar() {
             {tagline}
           </p>
 
-          {/* ── Progress bar ────────────────────────────────────── */}
-          <div className="relative px-4 pb-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-white/40 font-medium">{progressLabel}</span>
-              <span className="text-[11px] font-black text-white/55 tabular-nums">
-                {Math.round(progressPct)}%
-              </span>
+          {/* ── Progress ring + bar ─────────────────────────────── */}
+          <div className="relative px-4 pb-3 flex items-center gap-4">
+            {/* Circular ring */}
+            <div className="flex-shrink-0 relative" style={{ width: 52, height: 52 }}>
+              <svg width="52" height="52" viewBox="0 0 52 52" className="-rotate-90">
+                <circle cx="26" cy="26" r="21" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="5" />
+                <motion.circle
+                  cx="26" cy="26" r="21"
+                  fill="none"
+                  stroke="url(#ringGrad)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray={`${2 * Math.PI * 21}`}
+                  initial={{ strokeDashoffset: 2 * Math.PI * 21 }}
+                  animate={{ strokeDashoffset: 2 * Math.PI * 21 * (1 - progressPct / 100) }}
+                  transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                />
+                <defs>
+                  <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#f59e0b" />
+                    <stop offset="100%" stopColor="#f97316" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-[11px] font-black text-white/80 tabular-nums leading-none">
+                  {Math.round(progressPct)}%
+                </span>
+              </div>
             </div>
-            <div className="h-3 bg-white/[0.1] rounded-full overflow-hidden">
-              <motion.div
-                className="h-full rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-                style={{ background: 'linear-gradient(90deg, #f59e0b 0%, #f97316 100%)' }}
-              />
+
+            {/* Bar + label */}
+            <div className="flex-1 min-w-0">
+              <span className="text-[11px] text-white/40 font-medium block mb-2">{progressLabel}</span>
+              <div className="h-3 bg-white/[0.1] rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                  style={{ background: 'linear-gradient(90deg, #f59e0b 0%, #f97316 100%)' }}
+                />
+              </div>
             </div>
           </div>
 

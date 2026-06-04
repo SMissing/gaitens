@@ -234,6 +234,12 @@ export function IdeasList({ initialIdeas, refreshKey, sortBy = 'recent', filterB
             ) : null}
             <div className="pointer-events-none absolute inset-[2px] z-0 rounded-[calc(1rem-2px)] bg-[#1e1e1e]" />
             <CardContent className="relative z-10 p-4 sm:p-6 pb-1">
+              {(idea as any)._pending && (
+                <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5">
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span className="text-[10px] font-semibold text-amber-300 uppercase tracking-wider">Pending review</span>
+                </div>
+              )}
               <div className="space-y-2">
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3">

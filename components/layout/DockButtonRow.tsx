@@ -698,22 +698,22 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
         )}
       </div>
 
-      {/* Time Off */}
-      <DockItem itemId="timeoff" hasSubmenu className={DOCK_ACTION_SLOT}>
-        <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
-          <Calendar className={`${iconSize} text-foreground transition-colors`} />
-        </DockIcon>
-        {activeCategory === 'timeoff' && (
-          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full z-10" />
-        )}
-      </DockItem>
-
       {/* Learning */}
       <DockItem itemId="learning" hasSubmenu className={DOCK_ACTION_SLOT}>
         <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
           <GraduationCap className={`${iconSize} text-foreground transition-colors`} />
         </DockIcon>
         {activeCategory === 'learning' && (
+          <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full z-10" />
+        )}
+      </DockItem>
+
+      {/* Time Off */}
+      <DockItem itemId="timeoff" hasSubmenu className={DOCK_ACTION_SLOT}>
+        <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
+          <Calendar className={`${iconSize} text-foreground transition-colors`} />
+        </DockIcon>
+        {activeCategory === 'timeoff' && (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full z-10" />
         )}
       </DockItem>

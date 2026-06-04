@@ -16,6 +16,8 @@ import { MeetingNotificationCard } from '@/components/meetings/MeetingNotificati
 import { MeetingCard } from '@/components/meetings/MeetingCard'
 import { DailyCheckInChip } from '@/components/streaks/DailyCheckInChip'
 import { DashboardTrainingBar } from '@/components/training/DashboardTrainingBar'
+import { DashboardHeroCard } from '@/components/layout/DashboardHeroCard'
+import { FirstLoginOnboarding } from '@/components/layout/FirstLoginOnboarding'
 import {
   Calendar,
   FileText,
@@ -39,6 +41,13 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     .gte('endDate', today)
     .order('startDate', { ascending: true })
     .limit(5)
+
+  // Pending holiday requests awaiting approval
+  const { data: pendingHolidays } = await supabase
+    .from('holiday_requests')
+    .select('id')
+    .eq('userId', user.id)
+    .eq('status', 'pending')
 
   // Dashboard: pinned notices when present; otherwise latest active notices
   const noticeExpiryOr = 'expiresAt.is.null,expiresAt.gt.' + new Date().toISOString()
@@ -174,6 +183,13 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
     nextEvent !== null ||
     acceptedMeetings.length > 0
 
+  const hasActionsNeeded = pendingHolidays && pendingHolidays.length > 0
+  const hasMyStuff =
+    (upcomingHolidays && upcomingHolidays.length > 0) ||
+    acceptedMeetings.length > 0 ||
+    (userGrievances && userGrievances.length > 0)
+  const hasCompanyNews = hasWhatsOn || eotmWinners.length > 0
+
   return (
     <div className="w-full max-w-md sm:max-w-2xl lg:max-w-4xl xl:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-28 sm:pb-24 relative z-10">
       {/* Welcome Message */}
@@ -182,42 +198,80 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
         <DailyCheckInChip />
       </div>
 
-      {/* Meeting Notification Card — pending invitations needing a response */}
-      <div className="mb-3 sm:mb-4">
-        <MeetingNotificationCard userId={user.id} />
-      </div>
+      {/* Hero card — personalised rotating highlight */}
+      <DashboardHeroCard
+        userName={user.name}
+        upcomingHolidayCount={upcomingHolidays?.length ?? 0}
+        pendingHolidayCount={pendingHolidays?.length ?? 0}
+      />
 
-      {/* Training widget */}
-      <DashboardTrainingBar />
-
-      {/* Achievements widget */}
-      <DashboardBadgeWidget userId={user.id} />
-
-      {/* What's On — notices, events, confirmed meetings */}
-      {hasWhatsOn && (
-        <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            What's On
+      {/* ── Actions Needed ─────────────────────────────────────── */}
+      {(hasActionsNeeded) && (
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+            Actions Needed
           </p>
+          <div className="space-y-2">
+            {/* Pending meeting invitations */}
+            <MeetingNotificationCard userId={user.id} />
 
-          {/* Notice highlights */}
-          {dashboardNotices.length > 0 && (
-            <div className="flex flex-col gap-3">
-              {dashboardNotices.map((n) => (
-                <DashboardNoticeCard key={n.id} notice={n as Notice} />
-              ))}
-            </div>
+            {/* Pending holiday requests */}
+            {pendingHolidays && pendingHolidays.length > 0 && (
+              <Link
+                href="/holidays"
+                className="flex items-center justify-between group px-4 py-3 rounded-xl bg-amber-500/5 backdrop-blur-md border border-amber-500/20 transition-colors hover:border-amber-500/40 touch-manipulation"
+              >
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-amber-300">
+                    {pendingHolidays.length} holiday {pendingHolidays.length === 1 ? 'request' : 'requests'} pending approval
+                  </span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-amber-400/60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Actions Needed — meeting card only (shown even if no pending holidays) */}
+      {!hasActionsNeeded && (
+        <div className="mb-3 sm:mb-4">
+          <MeetingNotificationCard userId={user.id} />
+        </div>
+      )}
+
+      {/* ── My Stuff ───────────────────────────────────────────── */}
+      <div className="mb-6 sm:mb-8">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+          My Stuff
+        </p>
+        <div className="space-y-3 sm:space-y-4">
+          {/* Training widget */}
+          <DashboardTrainingBar />
+
+          {/* Achievements widget */}
+          <DashboardBadgeWidget userId={user.id} />
+
+          {/* Upcoming approved holidays */}
+          {upcomingHolidays && upcomingHolidays.length > 0 && (
+            <Link
+              href="/holidays/upcoming"
+              className="flex items-center justify-between group px-4 py-3 rounded-xl bg-[#1e1e1e]/60 backdrop-blur-md border border-border/30 transition-colors hover:border-border/50 touch-manipulation"
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-green-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-foreground">
+                  {upcomingHolidays.length} upcoming approved {upcomingHolidays.length === 1 ? 'holiday' : 'holidays'}
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+            </Link>
           )}
 
-          {/* Next upcoming event */}
-          {nextEvent && (
-            <NextEventCard event={nextEvent as any} />
-          )}
-
-          {/* Accepted upcoming meetings */}
+          {/* Upcoming confirmed meetings */}
           {acceptedMeetings.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-muted-foreground mb-2">Upcoming Meetings</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {acceptedMeetings.map((meeting) => (
                   <MeetingCard
@@ -229,69 +283,71 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
               </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Upcoming approved holidays — informational summary */}
-      {upcomingHolidays && upcomingHolidays.length > 0 && (
-        <div className="mb-4 sm:mb-6">
-          <Link
-            href="/holidays/upcoming"
-            className="flex items-center justify-between group px-4 py-3 rounded-xl bg-[#1e1e1e]/60 backdrop-blur-md border border-border/30 transition-colors hover:border-border/50 touch-manipulation"
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-green-500 flex-shrink-0" />
-              <span className="text-sm font-medium text-foreground">
-                {upcomingHolidays.length} upcoming approved {upcomingHolidays.length === 1 ? 'holiday' : 'holidays'}
-              </span>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-          </Link>
+          {/* Grievances — compact status summary */}
+          {userGrievances && userGrievances.length > 0 && (
+            <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
+              <CardHeader className="p-3 sm:p-4">
+                <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-normal">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-garrison-orange flex-shrink-0" />
+                  Grievances
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                <ul className="space-y-1.5">
+                  {userGrievances.map((grievance: any) => (
+                    <li key={grievance.id} className="flex justify-between items-center py-1.5 border-b border-border/30 last:border-0 gap-2">
+                      <span className="text-xs sm:text-sm text-foreground flex-1 min-w-0">
+                        Submitted: {formatDate(grievance.createdAt)}
+                      </span>
+                      <span className={`px-2 py-0.5 text-xs font-medium rounded border flex-shrink-0 ${
+                        grievance.status === 'submitted'
+                          ? 'bg-spirits-yellow/20 text-spirits-yellow border-spirits-yellow/30'
+                          : grievance.status === 'in_review'
+                          ? 'bg-blue-500/20 text-blue-500 border-blue-500/30'
+                          : 'bg-green-500/20 text-green-500 border-green-500/30'
+                      }`}>
+                        {grievance.status === 'submitted' ? 'Submitted' : grievance.status === 'in_review' ? 'In Review' : 'Resolved'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Grievances — compact status summary */}
-      {userGrievances && userGrievances.length > 0 && (
-        <div className="mb-4 sm:mb-6">
-          <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
-            <CardHeader className="p-3 sm:p-4">
-              <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-normal">
-                <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-garrison-orange flex-shrink-0" />
-                Grievances
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <ul className="space-y-1.5">
-                {userGrievances.map((grievance: any) => (
-                  <li key={grievance.id} className="flex justify-between items-center py-1.5 border-b border-border/30 last:border-0 gap-2">
-                    <span className="text-xs sm:text-sm text-foreground flex-1 min-w-0">
-                      Submitted: {formatDate(grievance.createdAt)}
-                    </span>
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded border flex-shrink-0 ${
-                      grievance.status === 'submitted'
-                        ? 'bg-spirits-yellow/20 text-spirits-yellow border-spirits-yellow/30'
-                        : grievance.status === 'in_review'
-                        ? 'bg-blue-500/20 text-blue-500 border-blue-500/30'
-                        : 'bg-green-500/20 text-green-500 border-green-500/30'
-                    }`}>
-                      {grievance.status === 'submitted' ? 'Submitted' : grievance.status === 'in_review' ? 'In Review' : 'Resolved'}
-                    </span>
-                  </li>
+      {/* ── Company News ───────────────────────────────────────── */}
+      {hasCompanyNews && (
+        <div className="mb-6 sm:mb-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+            Company News
+          </p>
+          <div className="space-y-3 sm:space-y-4">
+            {/* Notice highlights */}
+            {dashboardNotices.length > 0 && (
+              <div className="flex flex-col gap-3">
+                {dashboardNotices.map((n) => (
+                  <DashboardNoticeCard key={n.id} notice={n as Notice} />
                 ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              </div>
+            )}
 
-      {/* Community — celebratory content at the bottom */}
-      {eotmWinners.length > 0 && (
-        <div className="mb-4 sm:mb-6">
-          <EotmDashboardCard
-            winners={eotmWinners as any}
-            formattedMonth={formatVotingMonth(latestMonth!)}
-            reasons={eotmReasons}
-          />
+            {/* Next upcoming event */}
+            {nextEvent && (
+              <NextEventCard event={nextEvent as any} />
+            )}
+
+            {/* Employee of the Month */}
+            {eotmWinners.length > 0 && (
+              <EotmDashboardCard
+                winners={eotmWinners as any}
+                formattedMonth={formatVotingMonth(latestMonth!)}
+                reasons={eotmReasons}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -303,6 +359,9 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
           className="h-12 sm:h-16 lg:h-20 w-auto opacity-60"
         />
       </div>
+
+      {/* First-login onboarding — shows once, dismissed to localStorage */}
+      <FirstLoginOnboarding />
 
       {/* Unread Notices Modal - Waits for achievements to finish */}
       <UnreadNoticesModal waitForAchievements={true} />

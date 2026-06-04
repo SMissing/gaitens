@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
-import { ArrowLeft, Award } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import LogoutButton from './LogoutButton'
 
 interface PageHeaderProps {
@@ -15,7 +15,6 @@ interface PageHeaderProps {
   showLogout?: boolean
   showBack?: boolean
   backHref?: string
-  showAchievements?: boolean
   /** e.g. achievements grid/list toggle — aligned top-right */
   rightSlot?: ReactNode
 }
@@ -29,7 +28,6 @@ export function PageHeader({
   showLogout = false,
   showBack = false,
   backHref = '/dashboard',
-  showAchievements = false,
   rightSlot,
 }: PageHeaderProps) {
   return (
@@ -55,15 +53,6 @@ export function PageHeader({
                   className="p-2 -ml-1 text-foreground hover:text-spirits-cyan transition-colors touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   <ArrowLeft className="h-5 w-5" />
-                </Link>
-              )}
-              {showAchievements && (
-                <Link
-                  href="/achievements"
-                  className="p-2 text-foreground hover:text-spirits-cyan transition-colors touch-manipulation active:scale-95 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  aria-label="View Achievements"
-                >
-                  <Award className="h-5 w-5" />
                 </Link>
               )}
             </div>

@@ -85,7 +85,15 @@ export default function IdeasPageClient() {
     }
   }, [])
 
-  const handleIdeaSubmitted = () => {
+  const handleIdeaSubmitted = (newIdea?: any) => {
+    if (newIdea && newIdea.id) {
+      // Optimistically prepend the new idea so it's immediately visible
+      setIdeas((prev) => {
+        const already = prev.some((i) => i.id === newIdea.id)
+        if (already) return prev
+        return [{ ...newIdea, _pending: true }, ...prev]
+      })
+    }
     setRefreshKey((prev) => prev + 1)
   }
 

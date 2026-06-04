@@ -13,7 +13,7 @@ import { fetchWithAuth } from '@/lib/fetch-with-auth'
 
 interface IdeaFormProps {
   onSuccess?: () => void
-  onIdeaSubmitted?: () => void
+  onIdeaSubmitted?: (idea?: any) => void
   onClose?: () => void
 }
 
@@ -121,7 +121,7 @@ export function IdeaForm({ onSuccess, onIdeaSubmitted, onClose }: IdeaFormProps)
       }
       setError(null)
       onSuccess?.()
-      onIdeaSubmitted?.()
+      onIdeaSubmitted?.(data.idea ?? data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit idea')
     } finally {
