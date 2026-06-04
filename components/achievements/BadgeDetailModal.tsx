@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Loader2, Send } from 'lucide-react'
+import { X, Loader2, Send, Lock } from 'lucide-react'
 import type { Achievement, UserAchievement } from '@/types/database'
 import { AchievementBadge } from './AchievementBadge'
 import { cn } from '@/lib/utils'
@@ -101,10 +101,12 @@ export function BadgeDetailModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-xl font-bold text-foreground">Badge Details</h2>
+          <h2 className="text-lg font-bold text-foreground leading-tight pr-2 truncate">
+            {achievement.name}
+          </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-accent rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+            className="shrink-0 p-2 hover:bg-accent rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -115,21 +117,24 @@ export function BadgeDetailModal({
         <div className="p-6 space-y-6">
           {/* Badge Display */}
           <div className="flex flex-col items-center">
-            <AchievementBadge
-              achievement={achievement}
-              userAchievement={userAchievement}
-              size="lg"
-              showProgress={true}
-            />
-          </div>
-
-          {/* Badge Name */}
-          <div className="text-center">
-            <h3 className="text-2xl font-bold text-foreground mb-2">
-              {achievement.name}
-            </h3>
+            <div className="relative">
+              <AchievementBadge
+                achievement={achievement}
+                userAchievement={userAchievement}
+                size="lg"
+                showProgress={true}
+              />
+              {/* Lock overlay for badges the user hasn't started */}
+              {!isUnlocked && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-full bg-background/70 p-2">
+                    <Lock className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                </div>
+              )}
+            </div>
             {rarity && (
-              <div className={cn('text-sm font-semibold', getRarityColor())}>
+              <div className={cn('mt-2 text-sm font-semibold', getRarityColor())}>
                 {rarity}
               </div>
             )}
@@ -194,12 +199,19 @@ export function BadgeDetailModal({
             </div>
           )}
 
-          {/* Request badge (staff) — not completed only */}
+          {/* Request badge (staff) — available for all non-completed badges including multi-step ones */}
           {!isCompleted && onRequestBadge && (
             <div className="space-y-3 pt-2 border-t border-border">
-              <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                Request from manager
-              </h4>
+              <div className="flex items-baseline justify-between">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Request from manager
+                </h4>
+                {achievement.requiresProgress && (
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {progress}/{achievement.requiredCount} steps
+                  </span>
+                )}
+              </div>
               {badgeRequestState.kind === 'pending' && (
                 <p className="text-sm text-amber-500/95 text-center py-2 rounded-lg bg-amber-500/10 border border-amber-500/25">
                   Your request is pending manager approval.
@@ -260,7 +272,9 @@ export function BadgeDetailModal({
                   ) : (
                     <Send className="h-4 w-4" />
                   )}
-                  Request this badge
+                  {achievement.requiresProgress
+                    ? `Request step ${progress + 1} of ${achievement.requiredCount}`
+                    : 'Request this badge'}
                 </Button>
               )}
               {requestError && (

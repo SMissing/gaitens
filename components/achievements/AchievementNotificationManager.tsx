@@ -162,7 +162,6 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
   const handleClose = useCallback(() => {
     if (!currentNotification) return
 
-    // Update the last viewed timestamp using this achievement's awardedAt
     const awardedAt = currentNotification.userAchievement.awardedAt
     if (awardedAt) {
       const currentLast = getLastViewedAt(userId)
@@ -172,14 +171,11 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
       }
     }
 
-    // Check if there are more in the queue
     if (achievementQueue.length > 1) {
-      // Remove current from queue and show next
       const remaining = achievementQueue.slice(1)
       setAchievementQueue(remaining)
       setCurrentNotification(remaining[0])
     } else {
-      // No more achievements, clear everything
       setCurrentNotification(null)
       setAchievementQueue([])
       setIsInitialLoad(false)
@@ -188,13 +184,41 @@ export function AchievementNotificationManager({ userId, onAllAchievementsShown 
     }
   }, [currentNotification, achievementQueue, onAllAchievementsShown, userId])
 
+  const handleSkipAll = useCallback(() => {
+    if (!achievementQueue.length) return
+
+    // Mark the newest awardedAt as viewed
+    const newest = achievementQueue[achievementQueue.length - 1]
+    const awardedAt = newest.userAchievement.awardedAt
+    if (awardedAt) {
+      const currentLast = getLastViewedAt(userId)
+      const ts = new Date(awardedAt)
+      if (!currentLast || ts.getTime() > currentLast.getTime()) {
+        setLastViewedAt(userId, ts)
+      }
+    }
+
+    setCurrentNotification(null)
+    setAchievementQueue([])
+    setIsInitialLoad(false)
+    onAllAchievementsShown?.()
+    fireReadyEvent()
+  }, [achievementQueue, userId, onAllAchievementsShown])
+
   if (!currentNotification) return null
+
+  const queuePosition = achievementQueue.findIndex(
+    (n) => n.userAchievement.id === currentNotification.userAchievement.id,
+  ) + 1 || 1
 
   return (
     <AchievementNotification
       achievement={currentNotification.achievement}
       userAchievement={currentNotification.userAchievement}
       onClose={handleClose}
+      queueLength={achievementQueue.length}
+      queuePosition={queuePosition}
+      onSkipAll={achievementQueue.length > 1 ? handleSkipAll : undefined}
     />
   )
 }

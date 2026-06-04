@@ -155,6 +155,15 @@ export function TrainingContent({ courses, userSite, onRefresh }: TrainingConten
                 <span className="text-xs text-yellow-300/60 font-medium">XP</span>
               </div>
             )}
+            {practiceQuestions.length >= 3 && (
+              <button
+                onClick={() => setPracticeOpen(true)}
+                className="flex items-center gap-1.5 bg-amber-500/15 text-amber-300 rounded-2xl px-3 py-1.5 border border-amber-500/20 hover:bg-amber-500/25 transition-colors"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span className="text-xs text-amber-300/70 font-medium">Practice</span>
+              </button>
+            )}
           </div>
         </div>
 

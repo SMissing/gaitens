@@ -28,7 +28,10 @@ import {
   Layers,
   Flame,
   Trophy,
+  Bell,
+  Loader2,
 } from 'lucide-react'
+import { useState } from 'react'
 import type { User } from '@/types/database'
 
 interface DockSwipeOverlayProps {
@@ -67,6 +70,23 @@ const linkClass =
 
 export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
   const { activeItem, setActiveItem } = useDockContext()
+  const [reminderSending, setReminderSending] = useState(false)
+  const [reminderResult, setReminderResult] = useState<{ sent: number } | null>(null)
+
+  const sendTrainingReminder = async () => {
+    setReminderSending(true)
+    setReminderResult(null)
+    try {
+      const res = await fetch('/api/push/training-reminder', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        setReminderResult({ sent: data.sent ?? 0 })
+        setTimeout(() => setReminderResult(null), 4000)
+      }
+    } catch { /* ignore */ } finally {
+      setReminderSending(false)
+    }
+  }
 
   const renderCategoryContent = () => {
     switch (activeItem) {
@@ -309,6 +329,28 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <ClipboardCheck className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
               <span className="font-medium text-foreground">Approve badge requests</span>
             </Link>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground px-1 pt-2 pb-0.5">
+              Notifications
+            </p>
+            <button
+              type="button"
+              onClick={sendTrainingReminder}
+              disabled={reminderSending}
+              className={`${linkClass} disabled:opacity-60`}
+            >
+              {reminderSending
+                ? <Loader2 className="h-5 w-5 text-orange-400 flex-shrink-0 animate-spin" />
+                : <Bell className="h-5 w-5 text-orange-400 flex-shrink-0" />
+              }
+              <span className="font-medium text-foreground flex-1">
+                {reminderSending ? 'Sending…' : 'Send Training Reminder'}
+              </span>
+              {reminderResult && (
+                <span className="text-xs text-orange-400 font-semibold">
+                  {reminderResult.sent} sent
+                </span>
+              )}
+            </button>
           </div>
         )
       case 'admin':

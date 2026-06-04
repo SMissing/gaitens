@@ -5,7 +5,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next"
 import './globals.css'
 import { GlobalDock } from '@/components/layout/GlobalDock'
 import { DockWrapper } from '@/components/layout/DockWrapper'
-import { GlobalAchievementNotification } from '@/components/achievements/GlobalAchievementNotification'
 import { SessionResumeRefresh } from '@/components/auth/SessionResumeRefresh'
 import { CalmPortalBackground } from '@/components/layout/CalmPortalBackground'
 
@@ -112,7 +111,7 @@ export default function RootLayout({
           <GlobalDock />
         </DockWrapper>
         {/* Global Achievement Notifications - Works on all pages */}
-        <GlobalAchievementNotification />
+        {/* Achievement card-pack animation disabled — to be rebuilt */}
         <Analytics />
         <SpeedInsights />
       </body>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AchievementBadge } from './AchievementBadge'
 import type { Achievement, UserAchievement } from '@/types/database'
@@ -10,9 +10,12 @@ interface AchievementNotificationProps {
   achievement: Achievement
   userAchievement: UserAchievement
   onClose: () => void
+  queueLength?: number
+  queuePosition?: number
+  onSkipAll?: () => void
 }
 
-type AnimationPhase = 
+type AnimationPhase =
   | 'initial' // Full sealed pack, full screen
   | 'enlarging' // Pack enlarges and moves down
   | 'revealing' // Sealed pack fades out, revealing ripped images behind
@@ -21,29 +24,30 @@ type AnimationPhase =
   | 'badgeLanded' // Badge in final position
   | 'textVisible' // Text faded in
 
-export function AchievementNotification({ 
-  achievement, 
+export function AchievementNotification({
+  achievement,
   userAchievement,
-  onClose 
+  onClose,
+  queueLength = 1,
+  queuePosition = 1,
+  onSkipAll,
 }: AchievementNotificationProps) {
   const [phase, setPhase] = useState<AnimationPhase>('initial')
   const [mounted, setMounted] = useState(false)
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  const skipToEnd = () => {
+    timeoutsRef.current.forEach(clearTimeout)
+    timeoutsRef.current = []
+    setPhase('textVisible')
+  }
+
   useEffect(() => {
     if (!mounted) return
-
-    // Animation timeline:
-    // 0ms: Initial - sealed pack full screen
-    // 1200ms: Start enlarging and moving down
-    // 2200ms: Start fading out sealed pack to reveal ripped images (fade is 0.2s, completes at 2400ms)
-    // 2600ms: Brief pause after reveal, then start ripping animation
-    // 3400ms: Badge starts flying out
-    // 4600ms: Badge lands
-    // 5400ms: Text fades in
 
     const timeline = [
       { delay: 1200, phase: 'enlarging' as AnimationPhase },
@@ -54,9 +58,13 @@ export function AchievementNotification({
       { delay: 5400, phase: 'textVisible' as AnimationPhase },
     ]
 
-    timeline.forEach(({ delay, phase }) => {
-      setTimeout(() => setPhase(phase), delay)
-    })
+    timeoutsRef.current = timeline.map(({ delay, phase }) =>
+      setTimeout(() => setPhase(phase), delay),
+    )
+
+    return () => {
+      timeoutsRef.current.forEach(clearTimeout)
+    }
   }, [mounted])
 
   const isCompleted = userAchievement.completed
@@ -145,7 +153,7 @@ export function AchievementNotification({
   const textTransition = showText ? 'opacity 0.5s ease-in' : 'none'
 
   const modalContent = (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center bg-black/95 backdrop-blur-md"
       style={{
         top: 0,
@@ -161,7 +169,31 @@ export function AchievementNotification({
       }}
       onClick={showText ? onClose : undefined}
     >
-      <div 
+      {/* Skip button — always visible */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation()
+          skipToEnd()
+        }}
+        className="absolute right-4 top-4 z-30 rounded-lg px-3 py-1.5 text-xs font-semibold text-white/60 transition-colors active:text-white sm:hover:text-white"
+        style={{ paddingTop: 'calc(0.375rem + env(safe-area-inset-top, 0px))' }}
+        aria-label="Skip animation"
+      >
+        Skip
+      </button>
+
+      {/* Queue counter — shown when more than one badge */}
+      {queueLength > 1 && (
+        <div
+          className="absolute left-4 top-4 z-30 rounded-lg px-2 py-1 text-xs font-semibold text-white/50"
+          style={{ paddingTop: 'calc(0.25rem + env(safe-area-inset-top, 0px))' }}
+        >
+          {queuePosition} of {queueLength}
+        </div>
+      )}
+
+      <div
         className="relative w-full h-full flex flex-col items-center justify-center px-4"
         style={{
           paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -380,7 +412,7 @@ export function AchievementNotification({
           </div>
 
           {/* Achievement Name and Description - Fade in */}
-          <div 
+          <div
             className="space-y-3 w-full"
             style={{
               opacity: textOpacity,
@@ -404,6 +436,24 @@ export function AchievementNotification({
               <p className="text-sm sm:text-base lg:text-lg text-spirits-yellow font-semibold mt-4">
                 ✓ Completed!
               </p>
+            )}
+          </div>
+
+          {/* Bottom actions — fade in with text */}
+          <div
+            className="flex flex-col items-center gap-3 w-full pt-2"
+            style={{ opacity: textOpacity, transition: textTransition }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-xs text-white/40 animate-pulse">Tap anywhere to continue</p>
+            {queueLength > 1 && onSkipAll && (
+              <button
+                type="button"
+                onClick={onSkipAll}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-white/50 transition-colors active:text-white sm:hover:text-white"
+              >
+                Skip all {queueLength} badges →
+              </button>
             )}
           </div>
 

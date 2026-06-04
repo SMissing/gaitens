@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { cn } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
+import Link from 'next/link'
 import {
   Loader2,
   Plus,
@@ -18,6 +19,7 @@ import {
   Play,
   BookOpen,
   FileText,
+  Users,
 } from 'lucide-react'
 import type { TrainingCourse } from '@/types/database'
 import { staffListFromApiResponse } from '@/lib/staff-permissions'
@@ -408,6 +410,23 @@ export function TrainingManagement() {
           </div>
         )}
 
+        {/* Step heading — outside AnimatePresence so it stays at top while scrolling long step content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`heading-${activeStep}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="px-5 pt-2 pb-6"
+          >
+            <h2 className="text-3xl sm:text-4xl font-black leading-tight text-white">
+              {STEP_META[activeStep].heading}
+            </h2>
+            <p className="text-sm text-white/45 mt-1.5">{STEP_META[activeStep].sub}</p>
+          </motion.div>
+        </AnimatePresence>
+
         <form ref={formRef} onSubmit={handleSubmit}>
           <AnimatePresence mode="wait">
             <motion.div
@@ -418,14 +437,6 @@ export function TrainingManagement() {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
               className="px-5 pb-8"
             >
-              {/* Step heading */}
-              <div className="mb-8">
-                <h2 className="text-3xl sm:text-4xl font-black leading-tight text-white">
-                  {STEP_META[activeStep].heading}
-                </h2>
-                <p className="text-sm text-white/45 mt-1.5">{STEP_META[activeStep].sub}</p>
-              </div>
-
               {/* ── Step 0: Basics ─────────────────────────────────── */}
               {activeStep === 0 && (
                 <div className="space-y-6">
@@ -458,11 +469,13 @@ export function TrainingManagement() {
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-white/35">Format</label>
                     <div className="grid grid-cols-3 gap-3">
-                      {([
-                        { value: 'video', icon: '🎬', label: 'Video only',          sub: 'A video link' },
-                        { value: 'text',  icon: '📄', label: 'Reading only',         sub: 'Text sections' },
-                        { value: 'guide', icon: '🎬', label: 'Video + Reading',      sub: 'Both combined', badge: '📄' },
-                      ] as const).map(opt => (
+                      {(
+                        [
+                          { value: 'video' as const, label: 'Video only',     sub: 'A video link',  Icon: Play     },
+                          { value: 'text'  as const, label: 'Reading only',   sub: 'Text sections', Icon: FileText },
+                          { value: 'guide' as const, label: 'Video + Reading', sub: 'Both combined', Icon: BookOpen },
+                        ]
+                      ).map(opt => (
                         <button
                           key={opt.value}
                           type="button"
@@ -474,12 +487,10 @@ export function TrainingManagement() {
                               : 'border-white/10 bg-white/[0.03] text-white/50 hover:border-white/20',
                           )}
                         >
-                          <div className="relative leading-none">
-                            <span className="text-2xl">{opt.icon}</span>
-                            {'badge' in opt && opt.badge && (
-                              <span className="absolute -right-2 -bottom-1 text-sm">{opt.badge}</span>
-                            )}
-                          </div>
+                          <opt.Icon className={cn(
+                            'h-7 w-7',
+                            formData.moduleType === opt.value ? 'text-spirits-yellow' : 'text-white/40',
+                          )} />
                           <span className="font-bold text-xs leading-tight text-center">{opt.label}</span>
                           <span className={cn(
                             'text-[10px] leading-tight text-center',
@@ -747,6 +758,13 @@ export function TrainingManagement() {
           <br />
           <span className="text-white/90">Maker</span>
         </h1>
+        <Link
+          href="/manager/staff-training"
+          className="inline-flex items-center gap-1.5 mt-3 text-xs text-white/35 hover:text-white/60 transition-colors"
+        >
+          <Users className="h-3.5 w-3.5" />
+          View staff progress →
+        </Link>
 
         {!loading && courses.length > 0 && (
           <div className="mt-4 flex items-center gap-3">

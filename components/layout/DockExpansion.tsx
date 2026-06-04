@@ -1,5 +1,8 @@
 'use client'
 
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   BookOpen,
@@ -26,11 +29,45 @@ import {
   Layers,
   Flame,
   Trophy,
+  Bell,
+  Loader2,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
 export function DockExpansion() {
   const { activeItem } = useDockContext()
+  const [pendingBadgeCount, setPendingBadgeCount] = useState<number | null>(null)
+  const [reminderSending, setReminderSending] = useState(false)
+  const [reminderResult, setReminderResult] = useState<{ sent: number; skipped: number } | null>(null)
+
+  const sendTrainingReminder = async () => {
+    setReminderSending(true)
+    setReminderResult(null)
+    try {
+      const res = await fetch('/api/push/training-reminder', { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        setReminderResult({ sent: data.sent ?? 0, skipped: data.skipped ?? 0 })
+        setTimeout(() => setReminderResult(null), 5000)
+      }
+    } catch { /* ignore */ } finally {
+      setReminderSending(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeItem !== 'manager') return
+    let cancelled = false
+    fetch('/api/achievements/badge-requests?status=pending')
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data.requests)) {
+          setPendingBadgeCount(data.requests.length)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [activeItem])
   const renderContent = () => {
     switch (activeItem) {
       case 'resources':
@@ -256,8 +293,40 @@ export function DockExpansion() {
               className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-spirits-cyan/50 sm:hover:bg-accent sm:hover:border-spirits-cyan/50 transition-all touch-manipulation min-h-[44px]"
             >
               <ClipboardCheck className="h-5 w-5 text-spirits-cyan flex-shrink-0" />
-              <div className="text-sm font-medium text-card-foreground">Approve badge requests</div>
+              <div className="flex flex-1 items-center justify-between gap-2">
+                <span className="text-sm font-medium text-card-foreground">Approve badge requests</span>
+                {pendingBadgeCount != null && pendingBadgeCount > 0 && (
+                  <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-spirits-cyan px-1.5 text-[11px] font-bold text-background">
+                    {pendingBadgeCount}
+                  </span>
+                )}
+              </div>
             </Link>
+
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mt-3 mb-1 px-1">
+              Notifications
+            </h3>
+            <button
+              type="button"
+              onClick={sendTrainingReminder}
+              disabled={reminderSending}
+              className="flex w-full items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-orange-500/50 sm:hover:bg-accent sm:hover:border-orange-500/50 transition-all touch-manipulation min-h-[44px] disabled:opacity-60"
+            >
+              {reminderSending
+                ? <Loader2 className="h-5 w-5 text-orange-400 flex-shrink-0 animate-spin" />
+                : <Bell className="h-5 w-5 text-orange-400 flex-shrink-0" />
+              }
+              <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
+                <span className="text-sm font-medium text-card-foreground">
+                  {reminderSending ? 'Sending…' : 'Send Training Reminder'}
+                </span>
+                {reminderResult && (
+                  <span className="text-xs text-orange-400 font-semibold shrink-0">
+                    {reminderResult.sent} sent
+                  </span>
+                )}
+              </div>
+            </button>
           </div>
         )
       case 'admin':

@@ -149,7 +149,14 @@ export function TrainingPath({ courses, onStartCourse }: TrainingPathProps) {
             : null
 
         return (
-          <div key={category.name}>
+          <div
+            key={category.name}
+            className={cn(
+              'transition-opacity duration-500',
+              category.isComplete && 'opacity-40',
+              !isUpNext && !category.isComplete && 'opacity-60',
+            )}
+          >
             {/* ── Unit banner ─────────────────────────────────────── */}
             <div
               className="rounded-2xl p-5 mb-8 relative overflow-hidden"
@@ -232,20 +239,23 @@ export function TrainingPath({ courses, onStartCourse }: TrainingPathProps) {
                           isLocked && 'cursor-not-allowed',
                           !isLocked && 'active:scale-95',
                         )}
-                        style={
-                          isLocked
-                            ? {
-                                background: 'linear-gradient(135deg, #374151, #1f2937)',
-                                boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
-                                outline: '2px dashed rgba(255,255,255,0.1)',
-                                outlineOffset: '2px',
-                              }
-                            : isCompleted
-                            ? { background: 'linear-gradient(135deg, #10B981, #047857)', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' }
-                            : isNext
-                            ? { background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, boxShadow: `0 8px 32px ${theme.from}55` }
-                            : { background: `linear-gradient(135deg, ${theme.from}bb, ${theme.to}bb)`, boxShadow: `0 2px 12px ${theme.from}33` }
-                        }
+                        style={{
+                          ...(
+                            isLocked
+                              ? {
+                                  background: 'linear-gradient(135deg, #374151, #1f2937)',
+                                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06)',
+                                  outline: '2px dashed rgba(255,255,255,0.1)',
+                                  outlineOffset: '2px',
+                                }
+                              : isCompleted
+                              ? { background: 'linear-gradient(135deg, #10B981, #047857)', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' }
+                              : isNext
+                              ? { background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, boxShadow: `0 8px 32px ${theme.from}55` }
+                              : { background: `linear-gradient(135deg, ${theme.from}bb, ${theme.to}bb)`, boxShadow: `0 2px 12px ${theme.from}33` }
+                          ),
+                          ...(hasResume && !isLocked ? { outline: '3px dashed hsl(var(--primary))', outlineOffset: '3px' } : {}),
+                        }}
                       >
                         {/* Animated ring on "next" node */}
                         {isNext && (
@@ -283,7 +293,6 @@ export function TrainingPath({ courses, onStartCourse }: TrainingPathProps) {
                         )}>
                           {course.title}
                         </p>
-                        {/* F-09: locked nodes show a clear reason, not just opacity */}
                         {isLocked ? (
                           <p className="text-[10px] text-muted-foreground/35 mt-0.5">
                             Complete previous to unlock
@@ -298,8 +307,10 @@ export function TrainingPath({ courses, onStartCourse }: TrainingPathProps) {
                                 <Clock className="h-2.5 w-2.5" />{course.duration}m
                               </span>
                             )}
-                            {hasResume && (
-                              <span className="text-[10px] text-primary font-bold">Resume</span>
+                            {isNext && (
+                              <span className="text-[10px] font-black text-white bg-primary/80 rounded-full px-2 py-0.5">
+                                {hasResume ? 'Resume →' : 'Start →'}
+                              </span>
                             )}
                           </div>
                         )}

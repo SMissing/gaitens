@@ -46,6 +46,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Only send to active users
+    const { data: targetUser } = await supabase
+      .from('users')
+      .select('active')
+      .eq('id', userId)
+      .single()
+
+    if (!targetUser?.active) {
+      return NextResponse.json(
+        { message: 'User is inactive — notification suppressed', sent: 0 },
+        { status: 200 }
+      )
+    }
+
     // Get user's push subscriptions
     const { data: subscriptions, error: subsError } = await supabase
       .from('push_subscriptions')

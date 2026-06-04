@@ -11,7 +11,7 @@ export default async function DashboardPage() {
         logo="/logos/gaitens-text-logo.png"
         logoAlt="Gaitens Leisure Group"
         showLogout={true}
-        showAchievements={true}
+        showAchievements={false}
       />
       <DashboardContent user={user} />
     </div>

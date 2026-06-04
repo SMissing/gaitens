@@ -232,39 +232,47 @@ export function CreateAchievementForm() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="name">Badge Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Clean the ice machine"
-            disabled={loading}
-            required
-          />
+        {/* ── Identity ─────────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Identity</p>
+          <div className="space-y-2">
+            <Label htmlFor="name">Badge Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Clean the ice machine"
+              disabled={loading}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Short description of what this badge is for"
+              disabled={loading}
+            />
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Short description of what this badge is for"
-            disabled={loading}
-          />
-        </div>
+        <div className="border-t border-border/40" />
 
-        <div className="space-y-2">
-          <Label>Rarity</Label>
-          <Select
-            options={RARITY_OPTIONS}
-            value={rarity}
-            onChange={(value) => setRarity(value)}
-            disabled={loading}
-            placeholder="Choose rarity"
-          />
-        </div>
+        {/* ── Appearance ───────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Appearance</p>
+          <div className="space-y-2">
+            <Label>Rarity</Label>
+            <Select
+              options={RARITY_OPTIONS}
+              value={rarity}
+              onChange={(value) => setRarity(value)}
+              disabled={loading}
+              placeholder="Choose rarity"
+            />
+          </div>
 
         <div className="space-y-3">
           <Label>Badge Image (optional)</Label>
@@ -358,6 +366,13 @@ export function CreateAchievementForm() {
             </div>
           )}
         </div>
+        </div>{/* end Appearance */}
+
+        <div className="border-t border-border/40" />
+
+        {/* ── Behaviour ────────────────────────────────── */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Behaviour</p>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-4">
@@ -395,6 +410,7 @@ export function CreateAchievementForm() {
             </div>
           )}
         </div>
+        </div>{/* end Behaviour */}
 
         {error && (
           <div className="p-3 rounded-xl border border-destructive/40 bg-destructive/10 text-destructive flex items-center gap-2 text-sm">

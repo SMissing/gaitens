@@ -141,7 +141,7 @@ export function DashboardTrainingBar() {
               {stats.xp > 0 && (
                 <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-300 rounded-full px-2.5 py-1 border border-yellow-400/25">
                   <Star className="h-3 w-3 fill-yellow-300 flex-shrink-0" />
-                  <span className="text-xs font-black tabular-nums">{stats.xp.toLocaleString()} XP</span>
+                  <span className="text-xs font-black tabular-nums">{stats.xp.toLocaleString()}<span className="hidden sm:inline"> XP</span></span>
                 </div>
               )}
               {streak > 0 && (

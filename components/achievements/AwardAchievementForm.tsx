@@ -1,13 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Select } from '@/components/ui/select'
+import { Select, type SelectOption } from '@/components/ui/select'
 import { Award, CheckCircle2, AlertCircle } from 'lucide-react'
 import type { Achievement, User } from '@/types/database'
 import { formatStaffNameAndVenue } from '@/lib/staff-display'
+
+const RARITY_ORDER = ['Legendary', 'Epic', 'Rare', 'Common'] as const
 
 interface AwardAchievementFormProps {
   achievements: Achievement[]
@@ -18,6 +20,29 @@ export function AwardAchievementForm({ achievements, users }: AwardAchievementFo
   const router = useRouter()
   const [selectedUserId, setSelectedUserId] = useState<string>('')
   const [selectedAchievementId, setSelectedAchievementId] = useState<string>('')
+
+  const groupedAchievementOptions = useMemo((): SelectOption[] => {
+    const byRarity: Record<string, Achievement[]> = {}
+    for (const a of achievements) {
+      const r = a.rarity && RARITY_ORDER.includes(a.rarity as typeof RARITY_ORDER[number])
+        ? a.rarity
+        : 'Common'
+      ;(byRarity[r] ??= []).push(a)
+    }
+    const result: SelectOption[] = []
+    for (const rarity of RARITY_ORDER) {
+      const group = byRarity[rarity]
+      if (!group?.length) continue
+      result.push({ value: '', label: rarity, isHeader: true })
+      for (const a of group.sort((x, y) => x.name.localeCompare(y.name))) {
+        result.push({
+          value: a.id,
+          label: a.requiresProgress ? `${a.name} (${a.requiredCount} required)` : a.name,
+        })
+      }
+    }
+    return result
+  }, [achievements])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -108,12 +133,7 @@ export function AwardAchievementForm({ achievements, users }: AwardAchievementFo
             onChange={(value) => setSelectedAchievementId(value)}
             placeholder="Choose an achievement..."
             disabled={loading}
-            options={achievements.map((achievement) => ({
-              value: achievement.id,
-              label: achievement.requiresProgress 
-                ? `${achievement.name} (${achievement.requiredCount} required)`
-                : achievement.name,
-            }))}
+            options={groupedAchievementOptions}
           />
         </div>
 

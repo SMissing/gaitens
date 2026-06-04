@@ -8,8 +8,8 @@ import { DockButtonRow } from './DockButtonRow'
 import { DockSwipeOverlay } from './DockSwipeOverlay'
 import { DashboardNoticeCard } from '@/components/notices/DashboardNoticeCard'
 import { UnreadNoticesModal } from '@/components/notices/UnreadNoticesModal'
-import { AchievementNotificationManager } from '@/components/achievements/AchievementNotificationManager'
-import { PushNotificationManager } from '@/components/notifications/PushNotificationManager'
+import { DashboardBadgeWidget } from '@/components/achievements/DashboardBadgeWidget'
+import { PushPermissionPrompt } from '@/components/notifications/PushPermissionPrompt'
 import { NextEventCard } from '@/components/upcoming-events/NextEventCard'
 import { EotmDashboardCard } from './EotmDashboardCard'
 import { MeetingNotificationCard } from '@/components/meetings/MeetingNotificationCard'
@@ -190,6 +190,9 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
       {/* Training widget */}
       <DashboardTrainingBar />
 
+      {/* Achievements widget */}
+      <DashboardBadgeWidget userId={user.id} />
+
       {/* What's On — notices, events, confirmed meetings */}
       {hasWhatsOn && (
         <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
@@ -304,11 +307,10 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
       {/* Unread Notices Modal - Waits for achievements to finish */}
       <UnreadNoticesModal waitForAchievements={true} />
 
-      {/* Achievement Notification Manager */}
-      <AchievementNotificationManager userId={user.id} />
+      {/* Achievement animations run on the /achievements page */}
 
-      {/* Push Notification Manager */}
-      <PushNotificationManager />
+      {/* Push permission prompt — slides up if user hasn't enabled notifications */}
+      <PushPermissionPrompt />
     </div>
   )
 }

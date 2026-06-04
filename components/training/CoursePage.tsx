@@ -530,14 +530,14 @@ export function CoursePage({ course, onComplete, onBack, existingXP = 0 }: Cours
             <div className="space-y-3">
               <button
                 onClick={() => setStep('review')}
-                className="w-full h-14 rounded-2xl border border-border text-base font-bold flex items-center justify-center gap-2"
+                className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
+                style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
               >
                 <Eye className="h-5 w-5" /> Review Answers
               </button>
               <button
                 onClick={handleRetry}
-                className="w-full h-14 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-2 shadow-[0_4px_0_rgba(0,0,0,0.4)] active:shadow-none active:translate-y-1 transition-all duration-150"
-                style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}
+                className="w-full h-14 rounded-2xl border border-border text-base font-bold flex items-center justify-center gap-2 transition-colors hover:bg-accent/20"
               >
                 <RotateCcw className="h-5 w-5" /> Try Again
               </button>
@@ -731,9 +731,13 @@ export function CoursePage({ course, onComplete, onBack, existingXP = 0 }: Cours
                   )}
                 </div>
 
-                {course.duration && (
+                {(course.duration || textPages.length > 0 || hasQuiz) && (
                   <p className="text-xs text-muted-foreground text-center">
-                    {course.duration} min
+                    {[
+                      course.duration ? `${course.duration} min` : null,
+                      textPages.length > 0 ? `${textPages.length} reading ${textPages.length === 1 ? 'page' : 'pages'}` : null,
+                      hasQuiz ? 'quiz' : null,
+                    ].filter(Boolean).join(' · ')}
                     {(textPages.length > 0 || hasQuiz) && ' · press Continue when ready'}
                   </p>
                 )}

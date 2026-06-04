@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils'
 export interface SelectOption {
   value: string
   label: string
+  /** When true this item is rendered as a non-interactive group header */
+  isHeader?: boolean
 }
 
 export interface SelectProps {
@@ -39,7 +41,8 @@ export function Select({
   const dropdownRef = React.useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = React.useState(false)
 
-  const selectedOption = options.find(opt => opt.value === value)
+  const selectableOptions = options.filter((o) => !o.isHeader)
+  const selectedOption = selectableOptions.find(opt => opt.value === value)
 
   // Ensure component is mounted before using portal
   React.useEffect(() => {
@@ -111,7 +114,7 @@ export function Select({
         e.preventDefault()
         if (!isOpen) {
           setIsOpen(true)
-        } else if (focusedIndex !== null) {
+        } else if (focusedIndex !== null && !options[focusedIndex]?.isHeader) {
           handleSelect(options[focusedIndex].value)
         }
         break
@@ -120,24 +123,30 @@ export function Select({
         setFocusedIndex(null)
         buttonRef.current?.focus()
         break
-      case 'ArrowDown':
+      case 'ArrowDown': {
         e.preventDefault()
         if (!isOpen) {
           setIsOpen(true)
         } else {
-          setFocusedIndex(prev => 
-            prev === null ? 0 : Math.min(prev + 1, options.length - 1)
-          )
+          setFocusedIndex((prev) => {
+            let next = prev === null ? 0 : prev + 1
+            while (next < options.length && options[next]?.isHeader) next++
+            return Math.min(next, options.length - 1)
+          })
         }
         break
-      case 'ArrowUp':
+      }
+      case 'ArrowUp': {
         e.preventDefault()
         if (isOpen) {
-          setFocusedIndex(prev => 
-            prev === null ? options.length - 1 : Math.max(prev - 1, 0)
-          )
+          setFocusedIndex((prev) => {
+            let next = prev === null ? options.length - 1 : prev - 1
+            while (next >= 0 && options[next]?.isHeader) next--
+            return Math.max(next, 0)
+          })
         }
         break
+      }
     }
   }
 
@@ -222,34 +231,43 @@ export function Select({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="max-h-60 overflow-auto p-1">
-              {options.length === 0 ? (
+              {selectableOptions.length === 0 ? (
                 <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   No options available
                 </div>
               ) : (
-                options.map((option, index) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    role="option"
-                    aria-selected={value === option.value}
-                    onClick={() => handleSelect(option.value)}
-                    onMouseEnter={() => setFocusedIndex(index)}
-                    className={cn(
-                      'relative flex w-full cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-sm',
-                      'outline-none transition-colors',
-                      'hover:bg-accent hover:text-accent-foreground',
-                      'focus:bg-accent focus:text-accent-foreground',
-                      value === option.value && 'bg-accent text-accent-foreground',
-                      focusedIndex === index && 'bg-accent text-accent-foreground'
-                    )}
-                  >
-                    <span className="flex-1 truncate">{option.label}</span>
-                    {value === option.value && (
-                      <Check className="ml-2 h-4 w-4 shrink-0" />
-                    )}
-                  </button>
-                ))
+                options.map((option, index) =>
+                  option.isHeader ? (
+                    <div
+                      key={`header-${option.label}-${index}`}
+                      className="px-2 pb-0.5 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground first:pt-1"
+                    >
+                      {option.label}
+                    </div>
+                  ) : (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={value === option.value}
+                      onClick={() => handleSelect(option.value)}
+                      onMouseEnter={() => setFocusedIndex(index)}
+                      className={cn(
+                        'relative flex w-full cursor-pointer select-none items-center rounded-lg px-2 py-1.5 text-sm',
+                        'outline-none transition-colors',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        'focus:bg-accent focus:text-accent-foreground',
+                        value === option.value && 'bg-accent text-accent-foreground',
+                        focusedIndex === index && 'bg-accent text-accent-foreground',
+                      )}
+                    >
+                      <span className="flex-1 truncate">{option.label}</span>
+                      {value === option.value && (
+                        <Check className="ml-2 h-4 w-4 shrink-0" />
+                      )}
+                    </button>
+                  ),
+                )
               )}
             </div>
           </div>
