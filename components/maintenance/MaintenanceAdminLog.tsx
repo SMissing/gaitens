@@ -1,0 +1,239 @@
+'use client'
+
+import { useCallback, useEffect, useState } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { ChevronLeft, ChevronRight, MapPin, Loader2, StickyNote } from 'lucide-react'
+import type { MaintenanceShift } from '@/types/database'
+import { toYyyyMmDdLocal, parseYyyyMmDdLocal } from '@/lib/date-utils'
+
+function formatDuration(startIso: string, endIso: string | null): string {
+  const start = new Date(startIso).getTime()
+  const end = endIso ? new Date(endIso).getTime() : Date.now()
+  const totalMinutes = Math.max(0, Math.round((end - start) / 60000))
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) return `${minutes}m`
+  return `${hours}h ${minutes}m`
+}
+
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+function mapUrl(lat: number | null, lng: number | null): string | null {
+  if (lat == null || lng == null) return null
+  return `https://www.google.com/maps?q=${lat},${lng}`
+}
+
+export function MaintenanceAdminLog() {
+  const [date, setDate] = useState(() => toYyyyMmDdLocal(new Date()))
+  const [shifts, setShifts] = useState<MaintenanceShift[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [closingId, setClosingId] = useState<string | null>(null)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+
+  const load = useCallback(async (forDate: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await fetch(`/api/maintenance/shifts?date=${forDate}`)
+      if (!res.ok) throw new Error('Failed to load maintenance log')
+      const data = await res.json()
+      setShifts(data.shifts ?? [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load(date)
+  }, [date, load])
+
+  const shiftDate = (deltaDays: number) => {
+    const d = parseYyyyMmDdLocal(date)
+    d.setDate(d.getDate() + deltaDays)
+    setDate(toYyyyMmDdLocal(d))
+  }
+
+  const forceClockOut = async (shiftId: string) => {
+    setClosingId(shiftId)
+    try {
+      const res = await fetch('/api/maintenance/shifts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shiftId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to close shift')
+      }
+      await load(date)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to close shift')
+    } finally {
+      setClosingId(null)
+    }
+  }
+
+  const isToday = date === toYyyyMmDdLocal(new Date())
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="outline" size="icon" onClick={() => shiftDate(-1)} aria-label="Previous day">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => e.target.value && setDate(e.target.value)}
+          className="h-10 rounded-xl border border-input bg-background px-3 text-sm text-foreground"
+        />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => shiftDate(1)}
+          disabled={isToday}
+          aria-label="Next day"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-xl text-sm">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : shifts.length === 0 ? (
+        <Card className="border-border/40">
+          <CardContent className="p-10 text-center text-muted-foreground">
+            No maintenance shifts recorded on this day
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {shifts.map((shift) => {
+            const clockInMap = mapUrl(shift.clockInLat, shift.clockInLng)
+            const clockOutMap = mapUrl(shift.clockOutLat, shift.clockOutLng)
+            return (
+              <Card key={shift.id} className="bg-[#1e1e1e]/80 border-border/40">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {shift.user?.name ?? 'Unknown'}
+                      </p>
+                      {shift.venue && (
+                        <p className="text-xs text-muted-foreground">{shift.venue}</p>
+                      )}
+                    </div>
+                    <span className="text-sm font-semibold text-amber-300 tabular-nums shrink-0">
+                      {formatDuration(shift.clockInAt, shift.clockOutAt)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Clock in</p>
+                      <p className="text-foreground">{formatTime(shift.clockInAt)}</p>
+                      {clockInMap && (
+                        <a
+                          href={clockInMap}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-spirits-cyan"
+                        >
+                          <MapPin className="h-3 w-3" /> View location
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Clock out</p>
+                      {shift.clockOutAt ? (
+                        <>
+                          <p className="text-foreground">
+                            {formatTime(shift.clockOutAt)}
+                            {shift.closedByAdmin && (
+                              <span className="ml-1 text-[10px] uppercase text-muted-foreground">(force closed)</span>
+                            )}
+                          </p>
+                          {clockOutMap && (
+                            <a
+                              href={clockOutMap}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-spirits-cyan"
+                            >
+                              <MapPin className="h-3 w-3" /> View location
+                            </a>
+                          )}
+                        </>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <p className="text-amber-300 text-xs font-medium">Still clocked in</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => forceClockOut(shift.id)}
+                            disabled={closingId === shift.id}
+                          >
+                            {closingId === shift.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              'Force clock out'
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {shift.notes && (
+                    <div className="flex gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-sm text-foreground">
+                      <StickyNote className="h-4 w-4 shrink-0 text-muted-foreground mt-0.5" />
+                      <p className="whitespace-pre-wrap">{shift.notes}</p>
+                    </div>
+                  )}
+
+                  {shift.photos && shift.photos.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {shift.photos.map((url) => (
+                        <button
+                          key={url}
+                          type="button"
+                          onClick={() => setLightboxUrl(url)}
+                          className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-border/40"
+                        >
+                          <img src={url} alt="Shift photo" className="h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <img src={lightboxUrl} alt="Shift photo" className="max-h-full max-w-full rounded-lg object-contain" />
+        </div>
+      )}
+    </div>
+  )
+}

@@ -8,9 +8,14 @@ import { DockPageDots } from './DockPageDots'
 
 export async function GlobalDock() {
   const user = await getCurrentUser()
-  
+
   // Don't show dock on login page
   if (!user) {
+    return null
+  }
+
+  // Maintenance accounts are bare-bones — no bottom nav, just the dashboard
+  if (user.role === 'maintenance') {
     return null
   }
 

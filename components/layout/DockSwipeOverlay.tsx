@@ -30,6 +30,8 @@ import {
   Trophy,
   Bell,
   Loader2,
+  Wrench,
+  CalendarClock,
 } from 'lucide-react'
 import { useState } from 'react'
 import type { User } from '@/types/database'
@@ -255,6 +257,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <span className="font-medium text-foreground">Manage Staff</span>
             </Link>
             <Link
+              href="/manager/maintenance"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Wrench className="h-5 w-5 text-amber-400 flex-shrink-0" />
+              <span className="font-medium text-foreground">Maintenance Log</span>
+            </Link>
+            <Link
               href="/manager/barred"
               onClick={() => setActiveItem(null)}
               className={linkClass}
@@ -399,6 +409,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
             >
               <Trophy className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Employee of the Month</span>
+            </Link>
+            <Link
+              href="/admin/maintenance-rota"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <CalendarClock className="h-5 w-5 text-amber-400 flex-shrink-0" />
+              <span className="font-medium text-foreground">Maintenance Rota</span>
             </Link>
           </div>
         )

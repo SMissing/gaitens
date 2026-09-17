@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create session
-    await createSession(userId)
+    await createSession(userId, user.role)
 
     // Track last login (best-effort)
     try {

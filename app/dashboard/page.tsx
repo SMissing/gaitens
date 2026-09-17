@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth'
 import DashboardContent from '@/components/layout/DashboardContent'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { MaintenanceDashboard } from '@/components/maintenance/MaintenanceDashboard'
 
 export default async function DashboardPage() {
   const user = await requireAuth()
@@ -12,7 +13,11 @@ export default async function DashboardPage() {
         logoAlt="Gaitens Leisure Group"
         showLogout={true}
       />
-      <DashboardContent user={user} />
+      {user.role === 'maintenance' ? (
+        <MaintenanceDashboard user={user} />
+      ) : (
+        <DashboardContent user={user} />
+      )}
     </div>
   )
 }

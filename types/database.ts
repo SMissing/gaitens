@@ -1,6 +1,6 @@
 // Database type definitions for Gaitens Leisure Portal
 
-export type UserRole = 'staff' | 'manager' | 'admin'
+export type UserRole = 'staff' | 'manager' | 'admin' | 'maintenance'
 
 export interface User {
   id: string
@@ -287,6 +287,46 @@ export interface UserStreak {
   longestStreak: number
   lastCheckInDate: string | null
   updatedAt: string
+}
+
+export type MaintenanceVenue = 'Garrison' | 'Spirits' | 'Bassment' | 'Other'
+export type MaintenanceShiftStatus = 'open' | 'closed'
+
+export interface MaintenanceShift {
+  id: string
+  userId: string
+  /** No longer asked at clock-in — GPS location is the source of truth. Kept for old rows. */
+  venue: MaintenanceVenue | null
+  clockInAt: string
+  clockInLat: number | null
+  clockInLng: number | null
+  clockInAccuracy: number | null
+  clockOutAt: string | null
+  clockOutLat: number | null
+  clockOutLng: number | null
+  clockOutAccuracy: number | null
+  notes: string | null
+  photos: string[]
+  status: MaintenanceShiftStatus
+  closedByAdmin: boolean
+  createdAt: string
+  updatedAt: string
+  /** Present on admin log responses (joined from users). */
+  user?: { id: string; name: string } | null
+}
+
+export interface MaintenanceRotaShift {
+  id: string
+  userId: string
+  date: string
+  startTime: string | null
+  endTime: string | null
+  notes: string | null
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+  /** Present on admin responses (joined from users). */
+  user?: { id: string; name: string } | null
 }
 
 export interface BlogPost {

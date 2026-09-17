@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate role
-    if (!['staff', 'manager', 'admin'].includes(role)) {
+    if (!['staff', 'manager', 'admin', 'maintenance'].includes(role)) {
       return NextResponse.json(
         { error: 'Invalid role' },
         { status: 400 }
@@ -128,12 +128,15 @@ export async function POST(request: NextRequest) {
         {
           error:
             currentUser.role === 'manager'
-              ? 'Managers can only create staff accounts'
+              ? 'Managers can only create staff or maintenance accounts'
               : 'You cannot create accounts with this role',
         },
         { status: 403 }
       )
     }
+
+    // Maintenance accounts roam between venues — fixed site label instead of a specific venue
+    const resolvedSite = role === 'maintenance' ? 'Maintenance' : site || null
 
     const { data, error } = await supabase
       .from('users')
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
         name,
         staffCode,
         role,
-        site: site || null,
+        site: resolvedSite,
         active: true,
       })
       .select()

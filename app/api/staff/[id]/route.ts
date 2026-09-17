@@ -51,7 +51,7 @@ export async function PUT(
       updates.staffCode = staffCode
     }
     if (role !== undefined) {
-      if (!['staff', 'manager', 'admin'].includes(role)) {
+      if (!['staff', 'manager', 'admin', 'maintenance'].includes(role)) {
         return NextResponse.json(
           { error: 'Invalid role' },
           { status: 400 }
@@ -59,16 +59,23 @@ export async function PUT(
       }
       if (
         currentUser.role === 'manager' &&
-        (role as UserRole) !== 'staff'
+        !['staff', 'maintenance'].includes(role)
       ) {
         return NextResponse.json(
-          { error: 'Managers cannot change role away from staff' },
+          { error: 'Managers can only set the staff or maintenance role' },
           { status: 403 }
         )
       }
       updates.role = role as UserRole
     }
-    if (site !== undefined) updates.site = site || null
+    const effectiveRole = (role !== undefined ? role : target.role) as UserRole
+    if (site !== undefined) {
+      // Maintenance accounts roam between venues — fixed site label instead of a specific venue
+      updates.site = effectiveRole === 'maintenance' ? 'Maintenance' : (site || null)
+    } else if (effectiveRole === 'maintenance' && target.site !== 'Maintenance') {
+      // Role just changed to maintenance without an explicit site in this request
+      updates.site = 'Maintenance'
+    }
     if (active !== undefined) updates.active = active
 
     const { data, error } = await supabase

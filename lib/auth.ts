@@ -1,8 +1,8 @@
 import { createServerClient } from './db'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import type { User } from '@/types/database'
-import { SESSION_COOKIE_NAME } from './session-constants'
+import type { User, UserRole } from '@/types/database'
+import { SESSION_COOKIE_NAME, ROLE_COOKIE_NAME } from './session-constants'
 
 // Session duration: 8 hours
 const SESSION_DURATION = 8 * 60 * 60 * 1000
@@ -98,12 +98,21 @@ export async function getUserByStaffCode(staffCode: string): Promise<User | null
 /**
  * Create a session for the user
  */
-export async function createSession(userId: string): Promise<void> {
+export async function createSession(userId: string, role: UserRole): Promise<void> {
   const cookieStore = cookies()
   const expiresAt = new Date(Date.now() + SESSION_DURATION)
 
   // Store session in cookie
   cookieStore.set(SESSION_COOKIE_NAME, userId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    expires: expiresAt,
+  })
+
+  // Mirror the role for middleware route-gating (not an auth boundary — see session-constants.ts)
+  cookieStore.set(ROLE_COOKIE_NAME, role, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -145,6 +154,13 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function clearSession(): Promise<void> {
   const cookieStore = cookies()
   cookieStore.set(SESSION_COOKIE_NAME, '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
+  cookieStore.set(ROLE_COOKIE_NAME, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -195,6 +211,19 @@ export async function requireAdmin(): Promise<User> {
   const user = await requireAuth()
 
   if (user.role !== 'admin') {
+    redirect('/dashboard')
+  }
+
+  return user
+}
+
+/**
+ * Require maintenance role — for the clock in/out endpoints
+ */
+export async function requireMaintenance(): Promise<User> {
+  const user = await requireAuth()
+
+  if (user.role !== 'maintenance') {
     redirect('/dashboard')
   }
 

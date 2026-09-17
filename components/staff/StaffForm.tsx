@@ -13,6 +13,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'staff', label: 'Staff' },
   { value: 'manager', label: 'Manager' },
   { value: 'admin', label: 'Admin' },
+  { value: 'maintenance', label: 'Maintenance' },
 ]
 
 interface StaffFormProps {
@@ -45,7 +46,8 @@ export function StaffForm({
 
   const isEdit = Boolean(staff)
   const managerEditingStaff =
-    viewerRole === 'manager' && staff?.role === 'staff'
+    viewerRole === 'manager' && (staff?.role === 'staff' || staff?.role === 'maintenance')
+  const isMaintenance = formData.role === 'maintenance'
 
   useEffect(() => {
     if (staff) {
@@ -89,7 +91,7 @@ export function StaffForm({
       const payload: Record<string, unknown> = {
         name: formData.name,
         staffCode: formData.staffCode,
-        site: formData.site || null,
+        site: isMaintenance ? 'Maintenance' : formData.site || null,
       }
 
       if (viewerRole === 'admin') {
@@ -97,7 +99,7 @@ export function StaffForm({
       } else if (!isEdit) {
         payload.role = formData.role
       } else if (managerEditingStaff) {
-        payload.role = 'staff'
+        payload.role = staff?.role ?? 'staff'
       }
 
       if (isEdit) {
@@ -189,11 +191,11 @@ export function StaffForm({
             <p className="text-xs text-muted-foreground">Exactly 4 digits</p>
           </div>
 
-          {isEdit && viewerRole === 'manager' && staff?.role === 'staff' ? (
+          {managerEditingStaff ? (
             <div className="space-y-2">
               <Label>Role</Label>
               <p className="text-sm text-muted-foreground rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-                Staff — managers cannot promote to manager or admin
+                {staff?.role === 'maintenance' ? 'Maintenance' : 'Staff'} — managers cannot promote to manager or admin
               </p>
             </div>
           ) : (
@@ -203,16 +205,21 @@ export function StaffForm({
                 id="role"
                 options={roleSelectOptions}
                 value={formData.role}
-                onChange={(value) =>
-                  setFormData({ ...formData, role: value as UserRole })
-                }
+                onChange={(value) => {
+                  const nextRole = value as UserRole
+                  setFormData({
+                    ...formData,
+                    role: nextRole,
+                    site: nextRole === 'maintenance' ? 'Maintenance' : formData.site,
+                  })
+                }}
                 placeholder="Select role"
                 required
                 disabled={loading || (!isEdit && roleSelectOptions.length <= 1)}
               />
               {!isEdit && viewerRole === 'manager' && (
                 <p className="text-xs text-muted-foreground">
-                  You can only create staff accounts.
+                  You can only create staff or maintenance accounts.
                 </p>
               )}
             </div>
@@ -223,13 +230,19 @@ export function StaffForm({
             <Input
               id="site"
               type="text"
-              value={formData.site}
+              value={isMaintenance ? 'Maintenance' : formData.site}
               onChange={(e) =>
                 setFormData({ ...formData, site: e.target.value })
               }
               placeholder="Optional"
+              disabled={isMaintenance}
               className="bg-background/60"
             />
+            {isMaintenance && (
+              <p className="text-xs text-muted-foreground">
+                Maintenance staff roam between venues — the venue worked is recorded per shift instead.
+              </p>
+            )}
           </div>
 
           {isEdit && (

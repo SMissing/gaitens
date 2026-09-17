@@ -22,7 +22,7 @@ export function parseStaffDirectoryGet(data: unknown): {
     const raw = (data as { allowedCreateRoles?: unknown }).allowedCreateRoles
     const allowedCreateRoles = Array.isArray(raw)
       ? (raw as UserRole[]).filter((r): r is UserRole =>
-          ['staff', 'manager', 'admin'].includes(r as string)
+          ['staff', 'manager', 'admin', 'maintenance'].includes(r as string)
         )
       : []
     return { staff, allowedCreateRoles }
@@ -40,19 +40,19 @@ export function canViewTargetStaffCode(
   return false
 }
 
-/** Admins may change anyone; managers may change only staff. */
+/** Admins may change anyone; managers may change only staff and maintenance. */
 export function canModifyTargetUser(
   viewerRole: UserRole,
   targetRole: UserRole
 ): boolean {
   if (viewerRole === 'admin') return true
-  if (viewerRole === 'manager') return targetRole === 'staff'
+  if (viewerRole === 'manager') return targetRole === 'staff' || targetRole === 'maintenance'
   return false
 }
 
 export function allowedCreateRoles(viewerRole: UserRole): UserRole[] {
-  if (viewerRole === 'admin') return ['staff', 'manager', 'admin']
-  if (viewerRole === 'manager') return ['staff']
+  if (viewerRole === 'admin') return ['staff', 'manager', 'admin', 'maintenance']
+  if (viewerRole === 'manager') return ['staff', 'maintenance']
   return []
 }
 

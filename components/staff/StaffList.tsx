@@ -19,12 +19,13 @@ import {
   Shield,
   UserCog,
   Settings,
+  Wrench,
 } from 'lucide-react'
 import type { User, UserRole } from '@/types/database'
 import { formatStaffNameAndVenue } from '@/lib/staff-display'
 import { StaffForm } from './StaffForm'
 
-const ROLE_ORDER: UserRole[] = ['admin', 'manager', 'staff']
+const ROLE_ORDER: UserRole[] = ['admin', 'manager', 'staff', 'maintenance']
 
 const SECTION_META: Record<
   UserRole,
@@ -33,6 +34,7 @@ const SECTION_META: Record<
   admin: { title: 'Admins', icon: Shield },
   manager: { title: 'Managers', icon: UserCog },
   staff: { title: 'Staff', icon: Users },
+  maintenance: { title: 'Maintenance', icon: Wrench },
 }
 
 /**
@@ -57,6 +59,12 @@ function getRoleSectionSurface(role: UserRole): {
         border: 'border-violet-500/40',
         tint: 'bg-violet-500/[0.1]',
         iconClass: 'text-violet-300/85',
+      }
+    case 'maintenance':
+      return {
+        border: 'border-amber-500/35',
+        tint: 'bg-amber-500/[0.09]',
+        iconClass: 'text-amber-300/85',
       }
     case 'staff':
     default:
@@ -145,6 +153,7 @@ export function StaffList({ currentUser }: StaffListProps) {
       admin: [],
       manager: [],
       staff: [],
+      maintenance: [],
     }
     for (const m of staff) {
       map[m.role].push(m)
