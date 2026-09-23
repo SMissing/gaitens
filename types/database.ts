@@ -315,7 +315,7 @@ export interface MaintenanceShift {
   createdAt: string
   updatedAt: string
   /** Present on admin log responses (joined from users). */
-  user?: { id: string; name: string } | null
+  user?: { id: string; name: string; role?: UserRole } | null
   editor?: { id: string; name: string } | null
   /** Joined from maintenance_breaks. */
   breaks?: MaintenanceBreak[]
@@ -341,7 +341,7 @@ export interface MaintenanceRotaShift {
   createdAt: string
   updatedAt: string
   /** Present on admin responses (joined from users). */
-  user?: { id: string; name: string } | null
+  user?: { id: string; name: string; role?: UserRole } | null
 }
 
 export interface BlogPost {

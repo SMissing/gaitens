@@ -11,7 +11,7 @@ export default async function MaintenanceRotaPage() {
       <PageHeader
         title="Maintenance Rota"
         icon={<CalendarClock className="h-6 w-6 text-amber-400" />}
-        description="Schedule which maintenance staff are expected where, and when"
+        description="Rota maintenance staff, or anyone helping out, onto maintenance jobs"
         showBack={true}
         backHref="/dashboard"
       />

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireMaintenance } from '@/lib/auth'
+import { requireAuth } from '@/lib/auth'
 import { createAdminClient, createServerClient } from '@/lib/db'
 
-// POST - Upload a single end-of-shift photo (maintenance role only)
+// POST - Upload a single end-of-shift photo (anyone clocking maintenance hours)
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireMaintenance()
+    const user = await requireAuth()
 
     let supabase
     try {

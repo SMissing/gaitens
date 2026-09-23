@@ -119,6 +119,14 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               <History className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <span className="font-medium text-foreground">Past Events</span>
             </Link>
+            <Link
+              href="/maintenance-shifts"
+              onClick={() => setActiveItem(null)}
+              className={linkClass}
+            >
+              <Wrench className="h-5 w-5 text-amber-400 flex-shrink-0" />
+              <span className="font-medium text-foreground">Maintenance Shifts</span>
+            </Link>
           </div>
         )
       case 'learning':

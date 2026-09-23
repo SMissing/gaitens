@@ -206,6 +206,11 @@ export function MaintenanceAdminLog() {
                     <div>
                       <p className="font-semibold text-foreground">
                         {shift.user?.name ?? 'Unknown'}
+                        {shift.user?.role && shift.user.role !== 'maintenance' && (
+                          <span className="ml-1.5 rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground align-middle">
+                            {shift.user.role.charAt(0).toUpperCase() + shift.user.role.slice(1)}
+                          </span>
+                        )}
                       </p>
                       {shift.venue && (
                         <p className="text-xs text-muted-foreground">{shift.venue}</p>

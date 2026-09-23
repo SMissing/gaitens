@@ -14,7 +14,7 @@ const createRotaSchema = z.object({
   notes: z.string().trim().max(1000).nullable().optional(),
 })
 
-// GET - Maintenance: caller's own upcoming shifts.
+// GET - Maintenance, or anyone with ?mine=1: caller's own upcoming shifts.
 //       Admin: everyone's rota within a date range (defaults to today .. +60 days).
 export async function GET(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const today = new Date().toISOString().split('T')[0]
 
-    if (user.role === 'maintenance') {
+    if (user.role === 'maintenance' || searchParams.get('mine') === '1') {
       const { data, error } = await supabase
         .from('maintenance_rota')
         .select('*')
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('maintenance_rota')
-      .select('*, user:userId (id, name)')
+      .select('*, user:userId (id, name, role)')
       .gte('date', from)
       .lte('date', to)
       .order('date', { ascending: true })
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Schedule a shift for a maintenance staff member (admin only)
+// POST - Schedule a maintenance job for any active staff member (admin only)
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireAdmin()
@@ -86,16 +86,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
 
-    // Only allow scheduling active maintenance accounts
+    // Maintenance accounts and regular staff can both be rota'd for maintenance work
     const { data: targetUser, error: userError } = await supabase
       .from('users')
-      .select('id, role, active')
+      .select('id, active')
       .eq('id', parsed.data.userId)
       .maybeSingle()
 
-    if (userError || !targetUser || targetUser.role !== 'maintenance' || !targetUser.active) {
+    if (userError || !targetUser || !targetUser.active) {
       return NextResponse.json(
-        { error: 'That account is not an active maintenance account' },
+        { error: 'That account is not an active staff account' },
         { status: 400 }
       )
     }
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
         notes: parsed.data.notes || null,
         createdBy: admin.id,
       })
-      .select('*, user:userId (id, name)')
+      .select('*, user:userId (id, name, role)')
       .single()
 
     if (error) {

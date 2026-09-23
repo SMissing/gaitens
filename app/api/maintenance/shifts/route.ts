@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth, requireMaintenance, requireManager } from '@/lib/auth'
+import { requireAuth, requireManager } from '@/lib/auth'
 import { createServerClient } from '@/lib/db'
 import { z } from 'zod'
 
@@ -55,7 +55,7 @@ const editSchema = z
 
 const MAX_SHIFT_MS = 24 * 60 * 60 * 1000
 
-// GET - Maintenance: caller's own open shift + recent history.
+// GET - Maintenance, or anyone with ?mine=1: caller's own open shift + recent history.
 //       Manager/Admin: all shifts clocked in on a given calendar date (defaults to today).
 export async function GET(request: NextRequest) {
   try {
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient()
     const { searchParams } = new URL(request.url)
 
-    if (user.role === 'maintenance') {
+    if (user.role === 'maintenance' || searchParams.get('mine') === '1') {
       const { data: openShift } = await supabase
         .from('maintenance_shifts')
         .select(SHIFT_WITH_BREAKS)
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('maintenance_shifts')
-      .select(`${SHIFT_WITH_BREAKS}, user:userId (id, name), editor:editedById (id, name)`)
+      .select(`${SHIFT_WITH_BREAKS}, user:userId (id, name, role), editor:editedById (id, name)`)
       .gte('clockInAt', dayStart)
       .lte('clockInAt', dayEnd)
       .order('clockInAt', { ascending: true })
@@ -112,10 +112,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Clock in / clock out (maintenance role only)
+// POST - Clock in / clock out. Maintenance accounts, plus any staff member picking up
+//        extra maintenance hours from the Calendar > Maintenance Shifts page.
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireMaintenance()
+    const user = await requireAuth()
     const supabase = createServerClient()
 
     const body = await request.json()

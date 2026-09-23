@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, Trash2, Loader2, CalendarClock } from 'lucide-react'
-import type { MaintenanceRotaShift, User } from '@/types/database'
+import type { MaintenanceRotaShift, User, UserRole } from '@/types/database'
 import { staffListFromApiResponse } from '@/lib/staff-permissions'
 
 function formatDay(dateStr: string): string {
@@ -15,6 +15,12 @@ function formatDay(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
   const date = new Date(y, m - 1, d)
   return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** Maintenance accounts are the default; flag everyone else so the rota shows who's helping out. */
+function roleTag(role: UserRole | undefined): string | null {
+  if (!role || role === 'maintenance') return null
+  return role.charAt(0).toUpperCase() + role.slice(1)
 }
 
 function formatTimeRange(start: string | null, end: string | null): string {
@@ -45,7 +51,7 @@ export function MaintenanceRotaAdmin() {
       setLoading(true)
       setError(null)
       const [staffRes, rotaRes] = await Promise.all([
-        fetch('/api/staff?role=maintenance&active=true'),
+        fetch('/api/staff?active=true'),
         fetch('/api/maintenance/rota'),
       ])
       if (!staffRes.ok || !rotaRes.ok) throw new Error('Failed to load rota')
@@ -64,8 +70,19 @@ export function MaintenanceRotaAdmin() {
     load()
   }, [load])
 
+  // Maintenance team first, then everyone else alphabetically
   const staffOptions = useMemo(
-    () => staff.map((s) => ({ value: s.id, label: s.name })),
+    () =>
+      [...staff]
+        .sort((a, b) => {
+          const am = a.role === 'maintenance' ? 0 : 1
+          const bm = b.role === 'maintenance' ? 0 : 1
+          return am - bm || a.name.localeCompare(b.name)
+        })
+        .map((s) => {
+          const tag = s.role === 'maintenance' ? 'Maintenance' : s.site || roleTag(s.role)
+          return { value: s.id, label: tag ? `${s.name} · ${tag}` : s.name }
+        }),
     [staff]
   )
 
@@ -148,7 +165,7 @@ export function MaintenanceRotaAdmin() {
         <Card className="bg-[#1e1e1e]/80 border-border/40">
           <CardContent className="p-4 space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="rota-staff">Maintenance staff</Label>
+              <Label htmlFor="rota-staff">Staff member</Label>
               <Select
                 id="rota-staff"
                 options={staffOptions}
@@ -190,7 +207,7 @@ export function MaintenanceRotaAdmin() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rota-notes">Notes (optional)</Label>
+              <Label htmlFor="rota-notes">Job (optional)</Label>
               <Textarea
                 id="rota-notes"
                 value={notes}
@@ -218,7 +235,7 @@ export function MaintenanceRotaAdmin() {
       ) : staff.length === 0 ? (
         <Card className="border-border/40">
           <CardContent className="p-10 text-center text-muted-foreground">
-            No active maintenance accounts yet — create one from Manage Staff first.
+            No active staff accounts found.
           </CardContent>
         </Card>
       ) : grouped.length === 0 ? (
@@ -243,6 +260,11 @@ export function MaintenanceRotaAdmin() {
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">
                             {shift.user?.name ?? 'Unknown'}
+                            {roleTag(shift.user?.role) && (
+                              <span className="ml-1.5 rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground align-middle">
+                                {roleTag(shift.user?.role)}
+                              </span>
+                            )}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {formatTimeRange(shift.startTime, shift.endTime)}

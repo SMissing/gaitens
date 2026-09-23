@@ -31,6 +31,7 @@ import {
   Trophy,
   Bell,
   Loader2,
+  Wrench,
 } from 'lucide-react'
 import { useDockContext } from '@/components/core/dock'
 
@@ -114,6 +115,13 @@ export function DockExpansion() {
             >
               <History className="h-5 w-5 text-spirits-magenta flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Past Events</div>
+            </Link>
+            <Link
+              href="/maintenance-shifts"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-amber-400/50 sm:hover:bg-accent sm:hover:border-amber-400/50 transition-all touch-manipulation min-h-[44px]"
+            >
+              <Wrench className="h-5 w-5 text-amber-400 flex-shrink-0" />
+              <div className="text-sm font-medium text-card-foreground">Maintenance Shifts</div>
             </Link>
           </div>
         )

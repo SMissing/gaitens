@@ -11,7 +11,7 @@ export default async function MaintenanceLogPage() {
       <PageHeader
         title="Maintenance Log"
         icon={<Wrench className="h-6 w-6 text-amber-400" />}
-        description="Clock in/out history for maintenance staff, by day"
+        description="Clock in/out history for everyone doing maintenance, by day"
         showBack={true}
         backHref="/dashboard"
       />

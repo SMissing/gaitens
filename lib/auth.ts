@@ -216,16 +216,3 @@ export async function requireAdmin(): Promise<User> {
 
   return user
 }
-
-/**
- * Require maintenance role — for the clock in/out endpoints
- */
-export async function requireMaintenance(): Promise<User> {
-  const user = await requireAuth()
-
-  if (user.role !== 'maintenance') {
-    redirect('/dashboard')
-  }
-
-  return user
-}

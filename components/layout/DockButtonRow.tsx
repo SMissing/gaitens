@@ -594,7 +594,8 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
     if (
       pathname.startsWith('/holidays') ||
       pathname.startsWith('/upcoming-events') ||
-      pathname.startsWith('/past-events')
+      pathname.startsWith('/past-events') ||
+      pathname.startsWith('/maintenance-shifts')
     )
       return 'timeoff'
     if (pathname.startsWith('/training') || pathname.startsWith('/handbook') || pathname.startsWith('/businesses')) return 'learning'

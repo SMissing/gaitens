@@ -11,6 +11,8 @@ import { formatMs, openBreak, shiftBreakMs, shiftWorkedMs } from '@/lib/maintena
 
 interface MaintenanceDashboardProps {
   user: User
+  /** Off on the Maintenance Shifts page, where the page header already says where you are. */
+  showWelcome?: boolean
 }
 
 interface Coords {
@@ -64,7 +66,7 @@ function formatTimeRange(start: string | null, end: string | null): string {
   return 'All day'
 }
 
-export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
+export function MaintenanceDashboard({ user, showWelcome = true }: MaintenanceDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [openShift, setOpenShift] = useState<MaintenanceShift | null>(null)
   const [recent, setRecent] = useState<MaintenanceShift[]>([])
@@ -87,8 +89,8 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
     try {
       setError(null)
       const [shiftsRes, rotaRes] = await Promise.all([
-        fetch('/api/maintenance/shifts'),
-        fetch('/api/maintenance/rota'),
+        fetch('/api/maintenance/shifts?mine=1'),
+        fetch('/api/maintenance/rota?mine=1'),
       ])
       if (!shiftsRes.ok) throw new Error('Failed to load shift data')
       const data = await shiftsRes.json()
@@ -226,7 +228,7 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
 
   return (
     <div className="w-full max-w-md mx-auto px-4 pt-4 pb-16 relative z-10">
-      <p className="text-muted-foreground text-sm mb-4">Welcome, {user.name}</p>
+      {showWelcome && <p className="text-muted-foreground text-sm mb-4">Welcome, {user.name}</p>}
 
       {error && (
         <div className="mb-4 bg-destructive/10 border border-destructive/50 text-destructive px-4 py-3 rounded-xl text-sm">
