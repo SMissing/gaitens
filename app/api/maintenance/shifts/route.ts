@@ -19,7 +19,41 @@ const clockOutSchema = z.object({
   accuracy: z.number().nullable().optional(),
 })
 
-const postSchema = z.discriminatedUnion('action', [clockInSchema, clockOutSchema])
+const postSchema = z.discriminatedUnion('action', [
+  clockInSchema,
+  clockOutSchema,
+  z.object({ action: z.literal('start_break') }),
+  z.object({ action: z.literal('end_break') }),
+])
+
+const SHIFT_WITH_BREAKS = '*, breaks:maintenance_breaks (*)'
+
+type ServerClient = ReturnType<typeof createServerClient>
+
+/** End the shift's in-progress break (if any) at `atIso`, never before the break started. */
+async function closeOpenBreak(supabase: ServerClient, shiftId: string, atIso: string) {
+  const { data: open } = await supabase
+    .from('maintenance_breaks')
+    .select('*')
+    .eq('shiftId', shiftId)
+    .is('endAt', null)
+    .maybeSingle()
+  if (!open) return null
+
+  const endAt =
+    new Date(atIso).getTime() < new Date(open.startAt).getTime() ? open.startAt : atIso
+  return supabase.from('maintenance_breaks').update({ endAt }).eq('id', open.id)
+}
+
+const editSchema = z
+  .object({
+    shiftId: z.string().uuid(),
+    clockInAt: z.string().datetime({ offset: true }).optional(),
+    clockOutAt: z.string().datetime({ offset: true }).optional(),
+  })
+  .refine((v) => v.clockInAt || v.clockOutAt, { message: 'Nothing to update' })
+
+const MAX_SHIFT_MS = 24 * 60 * 60 * 1000
 
 // GET - Maintenance: caller's own open shift + recent history.
 //       Manager/Admin: all shifts clocked in on a given calendar date (defaults to today).
@@ -32,14 +66,14 @@ export async function GET(request: NextRequest) {
     if (user.role === 'maintenance') {
       const { data: openShift } = await supabase
         .from('maintenance_shifts')
-        .select('*')
+        .select(SHIFT_WITH_BREAKS)
         .eq('userId', user.id)
         .eq('status', 'open')
         .maybeSingle()
 
       const { data: recent } = await supabase
         .from('maintenance_shifts')
-        .select('*')
+        .select(SHIFT_WITH_BREAKS)
         .eq('userId', user.id)
         .eq('status', 'closed')
         .order('clockInAt', { ascending: false })
@@ -61,7 +95,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('maintenance_shifts')
-      .select('*, user:userId (id, name)')
+      .select(`${SHIFT_WITH_BREAKS}, user:userId (id, name), editor:editedById (id, name)`)
       .gte('clockInAt', dayStart)
       .lte('clockInAt', dayEnd)
       .order('clockInAt', { ascending: true })
@@ -125,15 +159,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ shift: data }, { status: 201 })
     }
 
-    // clock_out
     if (!existingOpen) {
       return NextResponse.json({ error: 'Not currently clocked in' }, { status: 400 })
+    }
+
+    if (parsed.data.action === 'start_break') {
+      const { error } = await supabase
+        .from('maintenance_breaks')
+        .insert({ shiftId: existingOpen.id, startAt: new Date().toISOString() })
+
+      if (error) {
+        // Unique partial index rejects a second in-progress break
+        if (error.code === '23505') {
+          return NextResponse.json({ error: 'Already on a break' }, { status: 400 })
+        }
+        console.error('Error starting break:', error)
+        return NextResponse.json({ error: 'Failed to start break' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true }, { status: 201 })
+    }
+
+    if (parsed.data.action === 'end_break') {
+      const result = await closeOpenBreak(supabase, existingOpen.id, new Date().toISOString())
+      if (!result) {
+        return NextResponse.json({ error: 'Not currently on a break' }, { status: 400 })
+      }
+      if (result.error) {
+        console.error('Error ending break:', result.error)
+        return NextResponse.json({ error: 'Failed to end break' }, { status: 500 })
+      }
+      return NextResponse.json({ ok: true })
+    }
+
+    // clock_out — clocking out while on break ends the break too
+    const clockOutAt = new Date().toISOString()
+    const breakResult = await closeOpenBreak(supabase, existingOpen.id, clockOutAt)
+    if (breakResult?.error) {
+      console.error('Error ending break on clock out:', breakResult.error)
+      return NextResponse.json({ error: 'Failed to clock out' }, { status: 500 })
     }
 
     const { data, error } = await supabase
       .from('maintenance_shifts')
       .update({
-        clockOutAt: new Date().toISOString(),
+        clockOutAt,
         clockOutLat: parsed.data.lat ?? null,
         clockOutLng: parsed.data.lng ?? null,
         clockOutAccuracy: parsed.data.accuracy ?? null,
@@ -158,17 +227,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH - Manager/Admin force-close a stuck open shift
+// PATCH - Manager/Admin correct a shift's clock in/out times.
+//         Setting clockOutAt on an open shift closes it (staff who forgot to clock out).
 export async function PATCH(request: NextRequest) {
   try {
-    await requireManager()
+    const manager = await requireManager()
     const supabase = createServerClient()
 
     const body = await request.json()
-    const shiftId = typeof body?.shiftId === 'string' ? body.shiftId : null
-    if (!shiftId) {
-      return NextResponse.json({ error: 'shiftId is required' }, { status: 400 })
+    const parsed = editSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
     }
+    const { shiftId } = parsed.data
 
     const { data: shift, error: fetchError } = await supabase
       .from('maintenance_shifts')
@@ -180,25 +251,55 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Shift not found' }, { status: 404 })
     }
 
-    if (shift.status !== 'open') {
-      return NextResponse.json({ error: 'Shift is already closed' }, { status: 400 })
+    const clockInAt = parsed.data.clockInAt ?? shift.clockInAt
+    const clockOutAt = parsed.data.clockOutAt ?? shift.clockOutAt
+
+    if (!clockOutAt) {
+      return NextResponse.json({ error: 'A clock out time is required' }, { status: 400 })
     }
 
+    const inMs = new Date(clockInAt).getTime()
+    const outMs = new Date(clockOutAt).getTime()
+    // Small allowance for clock skew between the manager's device and the server
+    const latestAllowed = Date.now() + 5 * 60 * 1000
+
+    if (inMs > latestAllowed || outMs > latestAllowed) {
+      return NextResponse.json({ error: 'Times cannot be in the future' }, { status: 400 })
+    }
+    if (outMs <= inMs) {
+      return NextResponse.json({ error: 'Clock out must be after clock in' }, { status: 400 })
+    }
+    if (outMs - inMs > MAX_SHIFT_MS) {
+      return NextResponse.json({ error: 'Shift cannot be longer than 24 hours' }, { status: 400 })
+    }
+
+    if (shift.status === 'open') {
+      const breakResult = await closeOpenBreak(supabase, shiftId, new Date(outMs).toISOString())
+      if (breakResult?.error) {
+        console.error('Error ending break on edit:', breakResult.error)
+        return NextResponse.json({ error: 'Failed to update shift' }, { status: 500 })
+      }
+    }
+
+    const now = new Date().toISOString()
     const { data, error } = await supabase
       .from('maintenance_shifts')
       .update({
-        clockOutAt: new Date().toISOString(),
+        clockInAt: new Date(inMs).toISOString(),
+        clockOutAt: new Date(outMs).toISOString(),
         status: 'closed',
-        closedByAdmin: true,
-        updatedAt: new Date().toISOString(),
+        closedByAdmin: shift.status === 'open' ? true : shift.closedByAdmin,
+        editedById: manager.id,
+        editedAt: now,
+        updatedAt: now,
       })
       .eq('id', shiftId)
       .select()
       .single()
 
     if (error) {
-      console.error('Error force-closing shift:', error)
-      return NextResponse.json({ error: 'Failed to close shift' }, { status: 500 })
+      console.error('Error editing shift:', error)
+      return NextResponse.json({ error: 'Failed to update shift' }, { status: 500 })
     }
 
     return NextResponse.json({ shift: data })

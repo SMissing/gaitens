@@ -309,10 +309,25 @@ export interface MaintenanceShift {
   photos: string[]
   status: MaintenanceShiftStatus
   closedByAdmin: boolean
+  /** Manager/admin who last corrected this shift's times. */
+  editedById: string | null
+  editedAt: string | null
   createdAt: string
   updatedAt: string
   /** Present on admin log responses (joined from users). */
   user?: { id: string; name: string } | null
+  editor?: { id: string; name: string } | null
+  /** Joined from maintenance_breaks. */
+  breaks?: MaintenanceBreak[]
+}
+
+export interface MaintenanceBreak {
+  id: string
+  shiftId: string
+  startAt: string
+  /** Null while the break is in progress. */
+  endAt: string | null
+  createdAt: string
 }
 
 export interface MaintenanceRotaShift {

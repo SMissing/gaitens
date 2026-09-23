@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { MapPin, Clock, Wrench, Image as ImageIcon, X, Loader2, CalendarClock } from 'lucide-react'
+import { MapPin, Clock, Wrench, Image as ImageIcon, X, Loader2, CalendarClock, Coffee } from 'lucide-react'
 import type { MaintenanceShift, MaintenanceRotaShift, User } from '@/types/database'
+import { formatMs, openBreak, shiftBreakMs, shiftWorkedMs } from '@/lib/maintenance-hours'
 
 interface MaintenanceDashboardProps {
   user: User
@@ -35,16 +36,6 @@ function getLocation(): Promise<Coords> {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   })
-}
-
-function formatDuration(startIso: string, endIso: string | null): string {
-  const start = new Date(startIso).getTime()
-  const end = endIso ? new Date(endIso).getTime() : Date.now()
-  const totalMinutes = Math.max(0, Math.round((end - start) / 60000))
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  if (hours === 0) return `${minutes}m`
-  return `${hours}h ${minutes}m`
 }
 
 function formatTime(iso: string): string {
@@ -81,6 +72,7 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
   const [error, setError] = useState<string | null>(null)
 
   const [clockingIn, setClockingIn] = useState(false)
+  const [togglingBreak, setTogglingBreak] = useState(false)
 
   const [showClockOutForm, setShowClockOutForm] = useState(false)
   const [notes, setNotes] = useState('')
@@ -146,6 +138,27 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
     }
   }
 
+  const handleBreak = async (action: 'start_break' | 'end_break') => {
+    setTogglingBreak(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/maintenance/shifts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update break')
+      }
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update break')
+    } finally {
+      setTogglingBreak(false)
+    }
+  }
+
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     e.target.value = ''
@@ -200,6 +213,9 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
     }
   }
 
+  const currentBreak = openBreak(openShift)
+  const breakTakenMs = openShift ? shiftBreakMs(openShift) : 0
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -245,25 +261,72 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
           </CardContent>
         </Card>
       ) : (
-        <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-amber-500/30 shadow-lg">
+        <Card
+          className={`bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border shadow-lg ${
+            currentBreak ? 'border-sky-500/40' : 'border-amber-500/30'
+          }`}
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-normal">
-              <Wrench className="h-5 w-5 text-amber-400" />
-              Clocked in
+              {currentBreak ? (
+                <>
+                  <Coffee className="h-5 w-5 text-sky-400" />
+                  On break
+                </>
+              ) : (
+                <>
+                  <Wrench className="h-5 w-5 text-amber-400" />
+                  Clocked in
+                </>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-baseline justify-between rounded-xl border border-border/40 bg-background/40 px-3 py-2.5">
-              <span className="text-sm text-muted-foreground">Since {formatTime(openShift.clockInAt)}</span>
-              <span className="text-sm font-semibold text-amber-300 tabular-nums">
-                {formatDuration(openShift.clockInAt, null)}
-              </span>
+            <div className="rounded-xl border border-border/40 bg-background/40 px-3 py-2.5 space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground">Since {formatTime(openShift.clockInAt)}</span>
+                <span className="text-sm font-semibold text-amber-300 tabular-nums">
+                  {formatMs(shiftWorkedMs(openShift))} worked
+                </span>
+              </div>
+              {breakTakenMs > 0 && (
+                <div className="flex items-baseline justify-between text-xs text-muted-foreground">
+                  <span>Breaks</span>
+                  <span className="tabular-nums">{formatMs(breakTakenMs)}</span>
+                </div>
+              )}
             </div>
 
-            {!showClockOutForm ? (
-              <Button onClick={() => setShowClockOutForm(true)} className="w-full" variant="outline">
-                Clock Out
-              </Button>
+            {currentBreak ? (
+              <div className="space-y-2">
+                <p className="text-sm text-sky-300 text-center">
+                  Break started {formatTime(currentBreak.startAt)} ·{' '}
+                  {formatMs(Date.now() - new Date(currentBreak.startAt).getTime())}
+                </p>
+                <Button onClick={() => handleBreak('end_break')} disabled={togglingBreak} className="w-full">
+                  {togglingBreak ? <Loader2 className="h-4 w-4 animate-spin" /> : 'End Break — Clock Back In'}
+                </Button>
+              </div>
+            ) : !showClockOutForm ? (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleBreak('start_break')}
+                  disabled={togglingBreak}
+                  className="flex-1"
+                  variant="outline"
+                >
+                  {togglingBreak ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Coffee className="h-4 w-4" /> Start Break
+                    </>
+                  )}
+                </Button>
+                <Button onClick={() => setShowClockOutForm(true)} className="flex-1" variant="outline">
+                  Clock Out
+                </Button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <div className="space-y-2">
@@ -384,9 +447,16 @@ export function MaintenanceDashboard({ user }: MaintenanceDashboardProps) {
                       {shift.clockOutAt ? ` – ${formatTime(shift.clockOutAt)}` : ''}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold text-muted-foreground tabular-nums shrink-0">
-                    {formatDuration(shift.clockInAt, shift.clockOutAt)}
-                  </span>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                      {formatMs(shiftWorkedMs(shift))}
+                    </span>
+                    {shiftBreakMs(shift) > 0 && (
+                      <p className="text-[11px] text-muted-foreground/70 tabular-nums">
+                        {formatMs(shiftBreakMs(shift))} break
+                      </p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             ))}

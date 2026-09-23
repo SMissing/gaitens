@@ -3,22 +3,22 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, MapPin, Loader2, StickyNote } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { ChevronLeft, ChevronRight, MapPin, Loader2, StickyNote, Pencil, Coffee } from 'lucide-react'
 import type { MaintenanceShift } from '@/types/database'
 import { toYyyyMmDdLocal, parseYyyyMmDdLocal } from '@/lib/date-utils'
-
-function formatDuration(startIso: string, endIso: string | null): string {
-  const start = new Date(startIso).getTime()
-  const end = endIso ? new Date(endIso).getTime() : Date.now()
-  const totalMinutes = Math.max(0, Math.round((end - start) / 60000))
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  if (hours === 0) return `${minutes}m`
-  return `${hours}h ${minutes}m`
-}
+import { formatMs, openBreak, shiftBreakMs, shiftWorkedMs } from '@/lib/maintenance-hours'
 
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+}
+
+/** ISO timestamp -> value for a datetime-local input, in the viewer's local time. */
+function toDateTimeLocal(iso: string): string {
+  const d = new Date(iso)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${toYyyyMmDdLocal(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function mapUrl(lat: number | null, lng: number | null): string | null {
@@ -31,7 +31,11 @@ export function MaintenanceAdminLog() {
   const [shifts, setShifts] = useState<MaintenanceShift[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [closingId, setClosingId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<MaintenanceShift | null>(null)
+  const [editClockIn, setEditClockIn] = useState('')
+  const [editClockOut, setEditClockOut] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   const load = useCallback(async (forDate: string) => {
@@ -59,27 +63,73 @@ export function MaintenanceAdminLog() {
     setDate(toYyyyMmDdLocal(d))
   }
 
-  const forceClockOut = async (shiftId: string) => {
-    setClosingId(shiftId)
+  const openEditor = (shift: MaintenanceShift) => {
+    setEditing(shift)
+    setEditClockIn(toDateTimeLocal(shift.clockInAt))
+    // Forgotten clock-outs have no time yet — start from the clock-in so the manager
+    // picks the real finish time rather than accidentally saving "now".
+    setEditClockOut(toDateTimeLocal(shift.clockOutAt ?? shift.clockInAt))
+    setEditError(null)
+  }
+
+  const saveEdit = async () => {
+    if (!editing) return
+    if (!editClockIn || !editClockOut) {
+      setEditError('Both times are required')
+      return
+    }
+    const clockInAt = new Date(editClockIn)
+    const clockOutAt = new Date(editClockOut)
+    if (clockOutAt <= clockInAt) {
+      setEditError('Clock out must be after clock in')
+      return
+    }
+
+    setSaving(true)
+    setEditError(null)
     try {
       const res = await fetch('/api/maintenance/shifts', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shiftId }),
+        body: JSON.stringify({
+          shiftId: editing.id,
+          clockInAt: clockInAt.toISOString(),
+          clockOutAt: clockOutAt.toISOString(),
+        }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to close shift')
+        throw new Error(data.error || 'Failed to update shift')
       }
+      setEditing(null)
       await load(date)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to close shift')
+      setEditError(err instanceof Error ? err.message : 'Failed to update shift')
     } finally {
-      setClosingId(null)
+      setSaving(false)
     }
   }
 
   const isToday = date === toYyyyMmDdLocal(new Date())
+
+  // Per-person totals for the day, with breaks taken off
+  const dailyTotals = Object.values(
+    shifts.reduce<Record<string, { name: string; workedMs: number; breakMs: number; open: boolean }>>(
+      (acc, shift) => {
+        const entry = (acc[shift.userId] ??= {
+          name: shift.user?.name ?? 'Unknown',
+          workedMs: 0,
+          breakMs: 0,
+          open: false,
+        })
+        entry.workedMs += shiftWorkedMs(shift)
+        entry.breakMs += shiftBreakMs(shift)
+        entry.open ||= !shift.clockOutAt
+        return acc
+      },
+      {}
+    )
+  ).sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <div className="space-y-4">
@@ -122,9 +172,33 @@ export function MaintenanceAdminLog() {
         </Card>
       ) : (
         <div className="space-y-3">
+          <Card className="bg-[#1e1e1e]/80 border-amber-500/30">
+            <CardContent className="p-4 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Hours worked
+              </p>
+              {dailyTotals.map((t) => (
+                <div key={t.name} className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="text-foreground truncate">
+                    {t.name}
+                    {t.open && <span className="ml-1.5 text-[10px] uppercase text-amber-300">in progress</span>}
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    <span className="font-semibold text-amber-300">{formatMs(t.workedMs)}</span>
+                    {t.breakMs > 0 && (
+                      <span className="ml-1.5 text-xs text-muted-foreground">({formatMs(t.breakMs)} break)</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
           {shifts.map((shift) => {
             const clockInMap = mapUrl(shift.clockInLat, shift.clockInLng)
             const clockOutMap = mapUrl(shift.clockOutLat, shift.clockOutLng)
+            const breakMs = shiftBreakMs(shift)
+            const onBreak = openBreak(shift)
             return (
               <Card key={shift.id} className="bg-[#1e1e1e]/80 border-border/40">
                 <CardContent className="p-4 space-y-3">
@@ -137,9 +211,22 @@ export function MaintenanceAdminLog() {
                         <p className="text-xs text-muted-foreground">{shift.venue}</p>
                       )}
                     </div>
-                    <span className="text-sm font-semibold text-amber-300 tabular-nums shrink-0">
-                      {formatDuration(shift.clockInAt, shift.clockOutAt)}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm font-semibold text-amber-300 tabular-nums">
+                        {formatMs(shiftWorkedMs(shift))} worked
+                      </span>
+                      {shift.clockOutAt && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          onClick={() => openEditor(shift)}
+                          aria-label="Edit shift times"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -181,22 +268,45 @@ export function MaintenanceAdminLog() {
                       ) : (
                         <div className="space-y-1.5">
                           <p className="text-amber-300 text-xs font-medium">Still clocked in</p>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => forceClockOut(shift.id)}
-                            disabled={closingId === shift.id}
-                          >
-                            {closingId === shift.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              'Force clock out'
-                            )}
+                          <Button size="sm" variant="outline" onClick={() => openEditor(shift)}>
+                            Set clock out
                           </Button>
                         </div>
                       )}
                     </div>
                   </div>
+
+                  {(shift.breaks?.length ?? 0) > 0 && (
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <Coffee className="h-3.5 w-3.5 shrink-0 mt-px" />
+                      <div className="space-y-0.5">
+                        {[...(shift.breaks ?? [])]
+                          .sort((a, b) => a.startAt.localeCompare(b.startAt))
+                          .map((b) => (
+                            <p key={b.id} className="tabular-nums">
+                              Break {formatTime(b.startAt)} – {b.endAt ? formatTime(b.endAt) : 'now'}
+                              {!b.endAt && <span className="ml-1 text-sky-300">(on break)</span>}
+                            </p>
+                          ))}
+                        <p>
+                          Total break {formatMs(breakMs)}
+                          {onBreak ? '' : ` · shift length ${formatMs(shiftWorkedMs(shift) + breakMs)}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {shift.editedAt && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Times edited by {shift.editor?.name ?? 'a manager'} on{' '}
+                      {new Date(shift.editedAt).toLocaleString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  )}
 
                   {shift.notes && (
                     <div className="flex gap-2 rounded-lg border border-border/40 bg-background/40 px-3 py-2 text-sm text-foreground">
@@ -225,6 +335,71 @@ export function MaintenanceAdminLog() {
           })}
         </div>
       )}
+
+      <Dialog open={editing !== null} onOpenChange={(open) => !open && !saving && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editing?.clockOutAt ? 'Edit shift' : 'Set clock out'} — {editing?.user?.name ?? 'Unknown'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 px-4 pb-6 sm:px-6">
+            {editing && !editing.clockOutAt && (
+              <p className="text-sm text-muted-foreground">
+                They didn&apos;t clock out. Enter the time they actually finished.
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-clock-in">Clock in</Label>
+              <input
+                id="edit-clock-in"
+                type="datetime-local"
+                value={editClockIn}
+                onChange={(e) => setEditClockIn(e.target.value)}
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-clock-out">Clock out</Label>
+              <input
+                id="edit-clock-out"
+                type="datetime-local"
+                value={editClockOut}
+                onChange={(e) => setEditClockOut(e.target.value)}
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground"
+              />
+            </div>
+            {editing && editClockIn && editClockOut && new Date(editClockOut) > new Date(editClockIn) && (() => {
+              const preview = {
+                ...editing,
+                clockInAt: new Date(editClockIn).toISOString(),
+                clockOutAt: new Date(editClockOut).toISOString(),
+              }
+              const previewBreakMs = shiftBreakMs(preview)
+              return (
+                <p className="text-sm text-muted-foreground">
+                  Hours worked:{' '}
+                  <span className="font-semibold text-amber-300">{formatMs(shiftWorkedMs(preview))}</span>
+                  {previewBreakMs > 0 && ` (after ${formatMs(previewBreakMs)} break)`}
+                </p>
+              )
+            })()}
+            {editError && (
+              <div className="bg-destructive/10 border border-destructive/50 text-destructive px-3 py-2 rounded-xl text-sm">
+                {editError}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditing(null)} disabled={saving}>
+                Cancel
+              </Button>
+              <Button onClick={saveEdit} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {lightboxUrl && (
         <div
