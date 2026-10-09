@@ -33,7 +33,7 @@ export default async function AdminBarDiscPage() {
     <div className="min-h-screen bg-background">
       <PageHeader
         title="Barred Disclaimers"
-        icon={<FileWarning className="h-6 w-6 text-garrison-orange" />}
+        icon={<FileWarning className="h-6 w-6 text-garrison-pink" />}
         description="Managers & admins — each time they accepted the Barred List terms before viewing the list"
         showBack={true}
         backHref="/dashboard"

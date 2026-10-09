@@ -35,8 +35,8 @@ export function GrievanceDecision() {
         href="/grievance?confirmed=true"
         className="group flex items-start gap-4 rounded-2xl border border-border/40 bg-[#1a1a1a] px-5 py-4 transition-colors hover:border-border/70 hover:bg-[#222] active:scale-[0.99] touch-manipulation"
       >
-        <div className="flex-shrink-0 mt-0.5 p-2 rounded-xl bg-garrison-orange/10">
-          <FileText className="h-5 w-5 text-garrison-orange" />
+        <div className="flex-shrink-0 mt-0.5 p-2 rounded-xl bg-garrison-pink/10">
+          <FileText className="h-5 w-5 text-garrison-pink" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">File a formal grievance</p>

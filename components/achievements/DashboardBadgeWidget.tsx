@@ -97,7 +97,7 @@ export function DashboardBadgeWidget({ userId }: Props) {
     return (
       <div
         className="mb-4 sm:mb-6 rounded-2xl overflow-hidden animate-pulse"
-        style={{ background: 'linear-gradient(160deg, #4a3800 0%, #221a00 55%, #0e0c00 100%)' }}
+        style={{ background: 'var(--glow-garrison), var(--card)' }}
       >
         <div className="px-4 pt-4 pb-4 space-y-3">
           <div className="flex justify-between items-center">
@@ -122,7 +122,7 @@ export function DashboardBadgeWidget({ userId }: Props) {
       <Link href="/achievements" className="block group focus:outline-none">
         <motion.div
           className="relative overflow-hidden rounded-2xl"
-          style={{ background: 'linear-gradient(160deg, #4a3800 0%, #221a00 55%, #0e0c00 100%)' }}
+          style={{ background: 'var(--glow-garrison), var(--card)' }}
           whileHover={{ scale: 1.01 }}
           transition={{ duration: 0.18 }}
         >
@@ -189,7 +189,7 @@ export function DashboardBadgeWidget({ userId }: Props) {
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
                 transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.3 }}
-                style={{ background: 'linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%)' }}
+                style={{ background: 'var(--garrison-mint)' }}
               />
             </div>
           </div>

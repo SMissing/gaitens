@@ -289,7 +289,7 @@ export default async function DashboardContent({ user }: DashboardContentProps) 
             <Card className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-2xl border border-border/30 shadow-lg">
               <CardHeader className="p-3 sm:p-4">
                 <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-normal">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-garrison-orange flex-shrink-0" />
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-garrison-pink flex-shrink-0" />
                   Grievances
                 </CardTitle>
               </CardHeader>

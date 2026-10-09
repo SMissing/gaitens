@@ -219,7 +219,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <FileText className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <span className="font-medium text-foreground">Grievance</span>
             </Link>
           </div>
@@ -380,7 +380,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <CheckCircle className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <CheckCircle className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <span className="font-medium text-foreground">Approve Holidays</span>
             </Link>
             <Link
@@ -407,7 +407,7 @@ export function DockSwipeOverlay({ user }: DockSwipeOverlayProps) {
               onClick={() => setActiveItem(null)}
               className={linkClass}
             >
-              <Scale className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <Scale className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <span className="font-medium text-foreground">Barred Disclaimers</span>
             </Link>
             <Link

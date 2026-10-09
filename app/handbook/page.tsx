@@ -417,8 +417,8 @@ export default async function HandbookPage({
           <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">Maintenance</h3>
           <p>The stones will need to be lubricated from time to time. This is done with a microfibre cloth and DRY-PTFE WD40. Spray and wipe the liquid onto each of the ball bearings underneath the stones.</p>
           
-          <div className="mt-4 p-4 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-            <p className="font-semibold text-garrison-orange mb-2">⚠️ DO NOT USE SILICONE:</p>
+          <div className="mt-4 p-4 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+            <p className="font-semibold text-garrison-pink mb-2">⚠️ DO NOT USE SILICONE:</p>
             <p className="text-muted-foreground">WD40 Silicone is used for waterproofing, rust protection and lubricating seals, not ballbearings. If used on the curling stones, they will not move as well, leave black grease marks on the lanes and result in a poor experience.</p>
           </div>
           
@@ -453,8 +453,8 @@ export default async function HandbookPage({
           <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">The software</h3>
           <p>To start you will get the players to enter their names onto the tablet in their lane. Then show the game mode options. Advice to start with classic, then select 5 rings and stationary. Show that players can sit out of a game by tapping their name, this will turn it red with a cross on the box. Then start the game for them. After this do regular checks on how they are doing and make sure they are not being dangerous with the axe.</p>
           
-          <div className="mt-4 p-4 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-            <p className="font-semibold text-garrison-orange mb-2">⚠️ COLLECT THE AXE!</p>
+          <div className="mt-4 p-4 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+            <p className="font-semibold text-garrison-pink mb-2">⚠️ COLLECT THE AXE!</p>
             <p className="text-muted-foreground">After the guests are done, the axe must be collected, the axe must not be left unattended for obvious reasons.</p>
           </div>
           
@@ -537,12 +537,12 @@ export default async function HandbookPage({
           
           <div className="mt-4 space-y-4">
             <div>
-              <h4 className="text-lg font-semibold text-garrison-orange mb-2">No sound</h4>
+              <h4 className="text-lg font-semibold text-garrison-pink mb-2">No sound</h4>
               <p className="text-muted-foreground">There are 4 buttons on the back of the speaker in the cupboard under the tablet. Reach over and press your farthest right's button will switch from bluetooth to aux which will in turn play the audio.</p>
             </div>
             
             <div>
-              <h4 className="text-lg font-semibold text-garrison-orange mb-2">Songs not loading</h4>
+              <h4 className="text-lg font-semibold text-garrison-pink mb-2">Songs not loading</h4>
               <p className="text-muted-foreground">This is usually down to a connection to internet issue. This can happen if there has been drop outs in the venue or if someone has connected the tablet to a wifi of any kind. To fix, clear the entire queue on singa and skip to the next song so no track is loaded, then close the app and reopen it. If this does not fix the problem please report the issue to the manager on duty.</p>
             </div>
           </div>
@@ -682,10 +682,10 @@ export default async function HandbookPage({
             </div>
           </div>
           
-          <div className="mt-6 p-4 bg-garrison-orange/10 border-2 border-garrison-orange/50 rounded-lg">
-            <h3 className="text-xl font-semibold text-garrison-orange mb-3">⚠️ IMPORTANT | SAFETY | FIRE RISK</h3>
+          <div className="mt-6 p-4 bg-garrison-pink/10 border-2 border-garrison-pink/50 rounded-lg">
+            <h3 className="text-xl font-semibold text-garrison-pink mb-3">⚠️ IMPORTANT | SAFETY | FIRE RISK</h3>
             
-            <h4 className="text-lg font-semibold text-garrison-orange mt-4 mb-2">LiPo (Gun Batteries) Important Notes</h4>
+            <h4 className="text-lg font-semibold text-garrison-pink mt-4 mb-2">LiPo (Gun Batteries) Important Notes</h4>
             <p className="text-muted-foreground mb-3">When charging LiPo Batteries it is important to note the following steps:</p>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>Do not let LiPo batteries go flat, once they are flat they will no longer hold a charge.</li>
@@ -695,14 +695,14 @@ export default async function HandbookPage({
               <li>Only use LiPo rated chargers. NiMh chargers cannot detect when a LiPo is full and will overcharge them.</li>
             </ul>
             
-            <h4 className="text-lg font-semibold text-garrison-orange mt-4 mb-2">General Safety</h4>
+            <h4 className="text-lg font-semibold text-garrison-pink mt-4 mb-2">General Safety</h4>
             <ul className="list-disc list-inside space-y-2 text-muted-foreground">
               <li>When charging any battery it is important to charge it using only a charger designed for that type.</li>
               <li>Never leave a charging battery unattended.</li>
               <li>When charging the battery do so in a fire-safe environment.</li>
             </ul>
             
-            <h4 className="text-lg font-semibold text-garrison-orange mt-4 mb-2">How do I know when my Battery is Flat?</h4>
+            <h4 className="text-lg font-semibold text-garrison-pink mt-4 mb-2">How do I know when my Battery is Flat?</h4>
             <p className="text-muted-foreground">When the battery in your gun is starting to die, it will begin to act sluggish. The weapon's trigger response will slow and the rate of fire will drop. The amount varies from gun to gun, but as soon as you start to notice this stop firing immediately and charge your battery.</p>
             <p className="mt-2 text-muted-foreground">If you have a LiPo battery you can also purchase a LiPo alarm separately, which can be plugged into the data cables of the battery and will provide a visual representation of if the battery is still good to use, and will let off a loud audible beep when the battery is too flat to use.</p>
             <p className="mt-3 text-sm text-muted-foreground/80">
@@ -823,8 +823,8 @@ export default async function HandbookPage({
                 <li>Mix up 3 laser puzzles</li>
                 <li>Power on room (audio file may sound on boot up)</li>
               </ol>
-              <div className="mt-3 p-3 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-                <p className="font-semibold text-garrison-orange">⚠️ Warning: all mag-locks are now energised. Do not get locked in!</p>
+              <div className="mt-3 p-3 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+                <p className="font-semibold text-garrison-pink">⚠️ Warning: all mag-locks are now energised. Do not get locked in!</p>
               </div>
             </div>
             
@@ -1113,8 +1113,8 @@ export default async function HandbookPage({
           
           <h4 className="text-lg font-semibold text-spirits-cyan mt-4 mb-2">In cogs</h4>
           <p className="text-muted-foreground mb-2">So you have just finished running The Cabin, first things first, you want to click Cancel at the top of the cogs page, it will ask you if you want to cancel again so click yes, then Reset, and then Pre-Show (This will open the doors and turn on all the lights).</p>
-          <div className="mt-3 p-3 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-            <p className="font-semibold text-garrison-orange">⚠️ Warning: all maglocks are now energised. Do not get locked in!</p>
+          <div className="mt-3 p-3 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+            <p className="font-semibold text-garrison-pink">⚠️ Warning: all maglocks are now energised. Do not get locked in!</p>
           </div>
           <p className="mt-3 text-muted-foreground">You will want to leave the Air Compressor on for this as you don't want the doors to shut on your while you're in there as in pre-show the doors are now active.</p>
           
@@ -1146,8 +1146,8 @@ export default async function HandbookPage({
             </li>
             <li>
               Make your way into the living room and close the bookshelf. This can be a little tricky sometimes to get the maglock to catch. Keep trying to shut it with the metal pieces aligning. When you cannot pull it open it is then locked.
-              <div className="mt-2 p-2 bg-garrison-orange/10 border border-garrison-orange/30 rounded">
-                <p className="text-sm font-semibold text-garrison-orange">⚠️ This step is so crucial, if the bookshelf isn't locked properly it will ruin the whole session! Close the bookshelf!</p>
+              <div className="mt-2 p-2 bg-garrison-pink/10 border border-garrison-pink/30 rounded">
+                <p className="text-sm font-semibold text-garrison-pink">⚠️ This step is so crucial, if the bookshelf isn't locked properly it will ruin the whole session! Close the bookshelf!</p>
               </div>
             </li>
             <li>Now push the books back into place. This may require some manoeuvring as some of the books can open, make sure to take care as to not damage them.</li>
@@ -1264,8 +1264,8 @@ export default async function HandbookPage({
                 <li>Communicate with guests effectively about allergens.</li>
               </ul>
               
-              <div className="mt-4 p-4 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-                <p className="font-semibold text-garrison-orange">⚠️ Remember: A single mistake could be life-threatening for an allergic guest. Diligence, accuracy, and clear communication are essential.</p>
+              <div className="mt-4 p-4 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+                <p className="font-semibold text-garrison-pink">⚠️ Remember: A single mistake could be life-threatening for an allergic guest. Diligence, accuracy, and clear communication are essential.</p>
               </div>
               
               <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">1. Recognising Common Food Allergens</h3>
@@ -2025,8 +2025,8 @@ export default async function HandbookPage({
                 <li>The roles and responsibilities of staff in a fire emergency</li>
               </ul>
               
-              <div className="mt-4 p-4 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-                <p className="font-semibold text-garrison-orange">⚠️ Remember: fire safety is everyone's responsibility. Please review this document carefully and participate actively in all fire safety drills.</p>
+              <div className="mt-4 p-4 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+                <p className="font-semibold text-garrison-pink">⚠️ Remember: fire safety is everyone's responsibility. Please review this document carefully and participate actively in all fire safety drills.</p>
               </div>
               
               <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">1. Fire Prevention Measures</h3>
@@ -2060,8 +2060,8 @@ export default async function HandbookPage({
                 <li><span className="font-medium text-foreground">CO2 Extinguishers:</span> For electrical fires.</li>
                 <li><span className="font-medium text-foreground">Foam Extinguishers:</span> For flammable liquids.</li>
               </ul>
-              <div className="mt-3 p-3 bg-garrison-orange/10 border border-garrison-orange/30 rounded-lg">
-                <p className="text-sm font-semibold text-garrison-orange">⚠️ Note: Only trained staff should attempt to use fire extinguishers. In case of uncertainty, evacuate immediately and wait for emergency services.</p>
+              <div className="mt-3 p-3 bg-garrison-pink/10 border border-garrison-pink/30 rounded-lg">
+                <p className="text-sm font-semibold text-garrison-pink">⚠️ Note: Only trained staff should attempt to use fire extinguishers. In case of uncertainty, evacuate immediately and wait for emergency services.</p>
               </div>
               
               <h3 className="text-xl font-semibold text-foreground mt-6 mb-3">3. Fire Emergency Response Plan</h3>

@@ -9,7 +9,7 @@ export default function TrainingLayout({ children }: { children: ReactNode }) {
         client JS runs. This must live here in the layout — a body class
         added by a client component only applies after hydration.
       */}
-      <style>{`html, body { background-color: #0c0c1e !important; }`}</style>
+      <style>{`html, body { background-color: var(--background) !important; }`}</style>
       {children}
     </>
   )

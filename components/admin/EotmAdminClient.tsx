@@ -206,8 +206,8 @@ export function EotmAdminClient() {
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-medium transition-all touch-manipulation
                 ${selectedMonth === m.month
-                  ? 'border-garrison-orange bg-garrison-orange/10 text-garrison-orange'
-                  : 'border-border hover:border-garrison-orange/50 hover:bg-accent text-foreground'
+                  ? 'border-garrison-pink bg-garrison-pink/10 text-garrison-pink'
+                  : 'border-border hover:border-garrison-pink/50 hover:bg-accent text-foreground'
                 }
               `}
             >
@@ -256,10 +256,10 @@ export function EotmAdminClient() {
           ) : (
             <>
               {/* Announce / re-announce card */}
-              <Card className={isBothAnnounced ? 'border-green-500/30' : 'border-garrison-orange/40 bg-garrison-orange/5'}>
+              <Card className={isBothAnnounced ? 'border-green-500/30' : 'border-garrison-pink/40 bg-garrison-pink/5'}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-garrison-orange" />
+                    <Trophy className="h-5 w-5 text-garrison-pink" />
                     {isBothAnnounced ? 'Announced Winners' : 'Announce Winners'}
                   </CardTitle>
                   {isBothAnnounced && (
@@ -396,7 +396,7 @@ export function EotmAdminClient() {
                             </div>
                             <div className="w-full bg-muted rounded-full h-2 overflow-hidden mb-4">
                               <div
-                                className="h-full bg-garrison-orange/60 transition-all"
+                                className="h-full bg-garrison-pink/60 transition-all"
                                 style={{ width: `${(stat.totalVotes / maxVotes) * 100}%` }}
                               />
                             </div>

@@ -34,7 +34,7 @@ export default async function AnonymousReportPage({
       <div className="min-h-screen bg-background">
         <PageHeader 
           title="Anonymous Reports"
-          icon={<FileText className="h-6 w-6 text-garrison-orange" />}
+          icon={<FileText className="h-6 w-6 text-garrison-pink" />}
           description="Review and manage anonymous reports"
         />
         <div className="p-4 sm:p-6 lg:p-8 pb-32">
@@ -52,7 +52,7 @@ export default async function AnonymousReportPage({
       <div className="min-h-screen bg-background">
         <PageHeader
           title="Raise a Concern"
-          icon={<FileText className="h-6 w-6 text-garrison-orange" />}
+          icon={<FileText className="h-6 w-6 text-garrison-pink" />}
           showBack
           backHref="/dashboard"
         />
@@ -70,7 +70,7 @@ export default async function AnonymousReportPage({
     <div className="min-h-screen bg-background">
       <PageHeader
         title="Anonymous Report"
-        icon={<FileText className="h-6 w-6 text-garrison-orange" />}
+        icon={<FileText className="h-6 w-6 text-garrison-pink" />}
         description="Submit a confidential anonymous report to administrators"
         showBack
         backHref="/anonymous-report"

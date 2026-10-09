@@ -192,16 +192,16 @@ export function DockExpansion() {
             </Link>
             <Link
               href="/grievance"
-              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[44px]"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-pink/50 sm:hover:bg-accent sm:hover:border-garrison-pink/50 transition-all touch-manipulation min-h-[44px]"
             >
-              <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <FileText className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Grievance</div>
             </Link>
             <Link
               href="/anonymous-report"
-              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[44px]"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-pink/50 sm:hover:bg-accent sm:hover:border-garrison-pink/50 transition-all touch-manipulation min-h-[44px]"
             >
-              <FileText className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <FileText className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Anonymous Report</div>
             </Link>
           </div>
@@ -343,9 +343,9 @@ export function DockExpansion() {
             <h3 className="text-sm font-semibold text-card-foreground mb-1 px-1">Admin</h3>
             <Link
               href="/admin/holidays/approve"
-              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[44px]"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-pink/50 sm:hover:bg-accent sm:hover:border-garrison-pink/50 transition-all touch-manipulation min-h-[44px]"
             >
-              <CheckCircle className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <CheckCircle className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Approve Holidays</div>
             </Link>
             <Link
@@ -367,9 +367,9 @@ export function DockExpansion() {
             </h3>
             <Link
               href="/admin/bardisc"
-              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-orange/50 sm:hover:bg-accent sm:hover:border-garrison-orange/50 transition-all touch-manipulation min-h-[44px]"
+              className="flex items-center gap-3 p-4 sm:p-3 border border-border rounded-full active:bg-accent active:border-garrison-pink/50 sm:hover:bg-accent sm:hover:border-garrison-pink/50 transition-all touch-manipulation min-h-[44px]"
             >
-              <Scale className="h-5 w-5 text-garrison-orange flex-shrink-0" />
+              <Scale className="h-5 w-5 text-garrison-pink flex-shrink-0" />
               <div className="text-sm font-medium text-card-foreground">Barred Disclaimers</div>
             </Link>
             <Link

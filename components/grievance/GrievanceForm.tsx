@@ -95,7 +95,7 @@ export function GrievanceForm({ onSuccess }: GrievanceFormProps) {
     <Card className="bg-[#1e1e1e] rounded-2xl border border-border/50">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <FileText className="h-6 w-6 text-garrison-orange flex-shrink-0" />
+          <FileText className="h-6 w-6 text-garrison-pink flex-shrink-0" />
           <div>
             <CardTitle className="text-xl sm:text-2xl">File a Grievance</CardTitle>
             <CardDescription className="text-sm sm:text-base">

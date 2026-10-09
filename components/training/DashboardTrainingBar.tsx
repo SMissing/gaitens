@@ -75,7 +75,7 @@ export function DashboardTrainingBar() {
     return (
       <div
         className="mb-4 sm:mb-6 rounded-2xl overflow-hidden animate-pulse"
-        style={{ background: 'linear-gradient(160deg, #1e0a5e 0%, #0d1b52 55%, #0c0c1e 100%)' }}
+        style={{ background: 'var(--glow-spirits), var(--card)' }}
       >
         <div className="px-4 pt-4 pb-4 space-y-3">
           <div className="flex justify-between items-center">
@@ -112,7 +112,7 @@ export function DashboardTrainingBar() {
       <Link href="/training" className="block group focus:outline-none">
         <motion.div
           className="relative overflow-hidden rounded-2xl"
-          style={{ background: 'linear-gradient(160deg, #1e0a5e 0%, #0d1b52 55%, #0c0c1e 100%)' }}
+          style={{ background: 'var(--glow-spirits), var(--card)' }}
           whileHover={{ scale: 1.01 }}
           transition={{ duration: 0.18 }}
         >
@@ -177,8 +177,8 @@ export function DashboardTrainingBar() {
                 />
                 <defs>
                   <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#f59e0b" />
-                    <stop offset="100%" stopColor="#f97316" />
+                    <stop offset="0%" stopColor="var(--spirits-cyan)" />
+                    <stop offset="100%" stopColor="var(--spirits-cyan)" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -198,7 +198,7 @@ export function DashboardTrainingBar() {
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPct}%` }}
                   transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
-                  style={{ background: 'linear-gradient(90deg, #f59e0b 0%, #f97316 100%)' }}
+                  style={{ background: 'var(--spirits-cyan)' }}
                 />
               </div>
             </div>
