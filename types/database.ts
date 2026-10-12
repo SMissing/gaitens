@@ -337,12 +337,22 @@ export interface MaintenanceRotaShift {
   startTime: string | null
   endTime: string | null
   notes: string | null
+  /** Reference images attached to the job by an admin. */
+  photos: string[]
+  status: MaintenanceRotaStatus
+  /** What was done, or why it couldn't be done. */
+  completionNotes: string | null
+  completedById: string | null
+  completedAt: string | null
   createdBy: string | null
   createdAt: string
   updatedAt: string
-  /** Present on admin responses (joined from users). */
+  /** Present on admin and team-history responses (joined from users). */
   user?: { id: string; name: string; role?: UserRole } | null
+  completedBy?: { id: string; name: string } | null
 }
+
+export type MaintenanceRotaStatus = 'pending' | 'done' | 'not_done'
 
 export interface BlogPost {
   id: string

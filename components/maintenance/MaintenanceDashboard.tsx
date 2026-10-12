@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { MapPin, Clock, Wrench, Image as ImageIcon, X, Loader2, CalendarClock, Coffee } from 'lucide-react'
+import { MapPin, Clock, Wrench, Image as ImageIcon, X, Loader2, Coffee, History } from 'lucide-react'
 import type { MaintenanceShift, MaintenanceRotaShift, User } from '@/types/database'
 import { formatMs, openBreak, shiftBreakMs, shiftWorkedMs } from '@/lib/maintenance-hours'
+import { RotaJobCard } from './RotaJobCard'
 
 interface MaintenanceDashboardProps {
   user: User
@@ -58,19 +59,12 @@ function formatRotaDay(dateStr: string): string {
   })
 }
 
-function formatTimeRange(start: string | null, end: string | null): string {
-  const trim = (t: string) => t.slice(0, 5)
-  if (start && end) return `${trim(start)} – ${trim(end)}`
-  if (start) return `From ${trim(start)}`
-  if (end) return `Until ${trim(end)}`
-  return 'All day'
-}
-
 export function MaintenanceDashboard({ user, showWelcome = true }: MaintenanceDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [openShift, setOpenShift] = useState<MaintenanceShift | null>(null)
   const [recent, setRecent] = useState<MaintenanceShift[]>([])
   const [upcomingRota, setUpcomingRota] = useState<MaintenanceRotaShift[]>([])
+  const [rotaHistory, setRotaHistory] = useState<MaintenanceRotaShift[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const [clockingIn, setClockingIn] = useState(false)
@@ -99,6 +93,7 @@ export function MaintenanceDashboard({ user, showWelcome = true }: MaintenanceDa
       if (rotaRes.ok) {
         const rotaData = await rotaRes.json()
         setUpcomingRota(rotaData.shifts ?? [])
+        setRotaHistory(rotaData.history ?? [])
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -214,6 +209,25 @@ export function MaintenanceDashboard({ user, showWelcome = true }: MaintenanceDa
       setClockingOut(false)
     }
   }
+
+  const updateRotaShift = (updated: MaintenanceRotaShift) => {
+    const swap = (list: MaintenanceRotaShift[]) => list.map((s) => (s.id === updated.id ? updated : s))
+    setUpcomingRota(swap)
+    setRotaHistory(swap)
+  }
+
+  // Local YYYY-MM-DD, to compare against rota DATE strings
+  const todayStr = new Date().toLocaleDateString('en-CA')
+
+  const historyByDay = (() => {
+    const map = new Map<string, MaintenanceRotaShift[]>()
+    for (const shift of rotaHistory) {
+      const list = map.get(shift.date) ?? []
+      list.push(shift)
+      map.set(shift.date, list)
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => b.localeCompare(a))
+  })()
 
   const currentBreak = openBreak(openShift)
   const breakTakenMs = openShift ? shiftBreakMs(openShift) : 0
@@ -410,22 +424,43 @@ export function MaintenanceDashboard({ user, showWelcome = true }: MaintenanceDa
           </p>
           <div className="space-y-2">
             {upcomingRota.map((shift) => (
-              <Card key={shift.id} className="bg-[#1e1e1e]/60 backdrop-blur-md rounded-xl border border-border/30">
-                <CardContent className="p-3 flex items-start gap-2.5">
-                  <CalendarClock className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {formatRotaDay(shift.date)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTimeRange(shift.startTime, shift.endTime)}
-                    </p>
-                    {shift.notes && (
-                      <p className="text-xs text-muted-foreground mt-0.5">{shift.notes}</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <RotaJobCard
+                key={shift.id}
+                shift={shift}
+                title={formatRotaDay(shift.date)}
+                canMark={shift.date <= todayStr}
+                onUpdated={updateRotaShift}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {historyByDay.length > 0 && (
+        <div className="mt-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1 flex items-center gap-1.5">
+            <History className="h-3.5 w-3.5" /> Previous Days
+          </p>
+          <p className="text-xs text-muted-foreground/70 mb-3">
+            The team&apos;s jobs from the last two weeks — what&apos;s done and what&apos;s still outstanding.
+          </p>
+          <div className="space-y-4">
+            {historyByDay.map(([dateStr, jobs]) => (
+              <div key={dateStr}>
+                <p className="text-xs font-medium text-muted-foreground mb-2">{formatRotaDay(dateStr)}</p>
+                <div className="space-y-2">
+                  {jobs.map((shift) => (
+                    <RotaJobCard
+                      key={shift.id}
+                      shift={shift}
+                      title={shift.userId === user.id ? `${shift.user?.name ?? 'You'} (you)` : shift.user?.name ?? 'Unknown'}
+                      past
+                      canMark={user.role === 'maintenance' || shift.userId === user.id}
+                      onUpdated={updateRotaShift}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

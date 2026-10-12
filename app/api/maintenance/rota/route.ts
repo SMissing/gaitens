@@ -12,9 +12,14 @@ const createRotaSchema = z.object({
   startTime: timeSchema.nullable().optional(),
   endTime: timeSchema.nullable().optional(),
   notes: z.string().trim().max(1000).nullable().optional(),
+  photos: z.array(z.string().url()).max(6).optional(),
 })
 
-// GET - Maintenance, or anyone with ?mine=1: caller's own upcoming shifts.
+const ROTA_SELECT = '*, user:userId (id, name, role), completedBy:completedById (id, name)'
+const HISTORY_DAYS = 14
+
+// GET - Maintenance, or anyone with ?mine=1: caller's own upcoming shifts, plus the
+//       whole team's jobs from the last 14 days so they can see what's done / outstanding.
 //       Admin: everyone's rota within a date range (defaults to today .. +60 days).
 export async function GET(request: NextRequest) {
   try {
@@ -24,21 +29,33 @@ export async function GET(request: NextRequest) {
     const today = new Date().toISOString().split('T')[0]
 
     if (user.role === 'maintenance' || searchParams.get('mine') === '1') {
-      const { data, error } = await supabase
-        .from('maintenance_rota')
-        .select('*')
-        .eq('userId', user.id)
-        .gte('date', today)
-        .order('date', { ascending: true })
-        .order('startTime', { ascending: true, nullsFirst: true })
-        .limit(20)
+      const historyFrom = new Date()
+      historyFrom.setDate(historyFrom.getDate() - HISTORY_DAYS)
 
-      if (error) {
-        console.error('Error fetching rota:', error)
+      const [upcomingRes, historyRes] = await Promise.all([
+        supabase
+          .from('maintenance_rota')
+          .select(ROTA_SELECT)
+          .eq('userId', user.id)
+          .gte('date', today)
+          .order('date', { ascending: true })
+          .order('startTime', { ascending: true, nullsFirst: true })
+          .limit(20),
+        supabase
+          .from('maintenance_rota')
+          .select(ROTA_SELECT)
+          .gte('date', historyFrom.toISOString().split('T')[0])
+          .lt('date', today)
+          .order('date', { ascending: false })
+          .order('startTime', { ascending: true, nullsFirst: true }),
+      ])
+
+      if (upcomingRes.error || historyRes.error) {
+        console.error('Error fetching rota:', upcomingRes.error ?? historyRes.error)
         return NextResponse.json({ error: 'Failed to fetch rota' }, { status: 500 })
       }
 
-      return NextResponse.json({ shifts: data ?? [] })
+      return NextResponse.json({ shifts: upcomingRes.data ?? [], history: historyRes.data ?? [] })
     }
 
     if (user.role !== 'admin') {
@@ -56,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('maintenance_rota')
-      .select('*, user:userId (id, name, role)')
+      .select(ROTA_SELECT)
       .gte('date', from)
       .lte('date', to)
       .order('date', { ascending: true })
@@ -108,9 +125,10 @@ export async function POST(request: NextRequest) {
         startTime: parsed.data.startTime || null,
         endTime: parsed.data.endTime || null,
         notes: parsed.data.notes || null,
+        photos: parsed.data.photos ?? [],
         createdBy: admin.id,
       })
-      .select('*, user:userId (id, name, role)')
+      .select(ROTA_SELECT)
       .single()
 
     if (error) {
