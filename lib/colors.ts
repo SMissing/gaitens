@@ -3,8 +3,8 @@
  * 
  * Venues:
  * - Spirits Bar and Games: Cyan, Magenta, Yellow
- * - The Garrison: Burnt Orange, Black, White
- * - Bassment: Bright Pink, Bright Green
+ * - The Garrison: Holo pink, teal, mint (palette v1)
+ * - Bassment: Violet, orchid, aurora green (palette v1)
  */
 
 export type Venue = 'spirits' | 'garrison' | 'bassment' | null
@@ -17,9 +17,9 @@ export function getVenuePrimaryColor(venue: Venue): string {
     case 'spirits':
       return 'spirits-cyan'
     case 'garrison':
-      return 'garrison-orange'
+      return 'garrison-pink'
     case 'bassment':
-      return 'bassment-pink'
+      return 'bassment-violet'
     default:
       return 'spirits-cyan' // Default to Spirits colors
   }
@@ -35,7 +35,7 @@ export function getVenueSecondaryColor(venue: Venue): string {
     case 'garrison':
       return 'garrison-black'
     case 'bassment':
-      return 'bassment-green'
+      return 'bassment-aurora'
     default:
       return 'spirits-magenta'
   }
@@ -51,7 +51,7 @@ export function getVenueTertiaryColor(venue: Venue): string {
     case 'garrison':
       return 'garrison-white'
     case 'bassment':
-      return 'bassment-pink'
+      return 'bassment-violet'
     default:
       return 'spirits-yellow'
   }

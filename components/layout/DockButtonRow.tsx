@@ -765,7 +765,7 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
       {user.role === 'admin' && (
         <DockItem itemId="admin" hasSubmenu className={DOCK_ACTION_SLOT}>
           <DockIcon className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center">
-            <Shield className={`${iconSize} text-garrison-orange transition-colors`} />
+            <Shield className={`${iconSize} text-garrison-pink transition-colors`} />
           </DockIcon>
           {activeCategory === 'admin' && (
             <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1.5 h-1.5 bg-white rounded-full z-10" />
@@ -1686,10 +1686,10 @@ export function DockButtonRow({ user }: DockButtonRowProps) {
                       setBarredMenuOpen(null)
                       window.dispatchEvent(new CustomEvent(BARRED_DOCK_ADD))
                     }}
-                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-garrison-orange/15"
+                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-lg p-2 transition-all touch-manipulation active:scale-95 sm:hover:scale-105 bg-garrison-pink/15"
                     aria-label="Add barred person"
                   >
-                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-garrison-orange transition-colors" />
+                    <Plus className="h-6 w-6 sm:h-7 sm:w-7 text-garrison-pink transition-colors" />
                   </button>
                 </div>
               </motion.div>

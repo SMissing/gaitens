@@ -6,13 +6,13 @@ export default async function TrainingPage() {
   const user = await requireAuth()
 
   return (
-    <div className="min-h-screen relative" style={{ background: '#0c0c1e' }}>
+    <div className="min-h-screen relative" style={{ background: 'var(--background)' }}>
 
       {/* ── Gradient hero backdrop ────────────────────────────────── */}
       <div
         className="absolute inset-x-0 top-0 h-96 pointer-events-none"
         style={{
-          background: 'linear-gradient(180deg, #1e0a5e 0%, #0d1b52 35%, #0c0c1e 100%)',
+          background: 'var(--glow-spirits)',
         }}
       />
 

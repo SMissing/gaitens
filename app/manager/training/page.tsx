@@ -6,13 +6,13 @@ export default async function TrainingManagementPage() {
   await requireManager()
 
   return (
-    <div className="min-h-screen relative" style={{ background: '#0c0c1e' }}>
+    <div className="min-h-screen relative" style={{ background: 'var(--background)' }}>
 
       {/* Gradient hero backdrop — amber/deep-orange tint to distinguish from staff training */}
       <div
         className="absolute inset-x-0 top-0 h-96 pointer-events-none"
         style={{
-          background: 'linear-gradient(180deg, #2d1200 0%, #180900 35%, #0c0c1e 100%)',
+          background: 'var(--glow-spirits)',
         }}
       />
 

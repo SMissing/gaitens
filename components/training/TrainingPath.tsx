@@ -19,17 +19,12 @@ interface TrainingPathProps {
 }
 
 // Per-unit gradient themes (from → to)
+// Unit colours cycle through the shared venue palette (palette v1, Figma: Foundations)
 const UNIT_THEMES = [
-  { from: '#3B82F6', to: '#1D4ED8' },
-  { from: '#8B5CF6', to: '#6D28D9' },
-  { from: '#EC4899', to: '#BE185D' },
-  { from: '#10B981', to: '#047857' },
-  { from: '#F59E0B', to: '#B45309' },
-  { from: '#F97316', to: '#C2410C' },
-  { from: '#EF4444', to: '#B91C1C' },
-  { from: '#6366F1', to: '#4338CA' },
-  { from: '#14B8A6', to: '#0F766E' },
-  { from: '#06B6D4', to: '#0E7490' },
+  { from: '#00AEEF', to: '#0089BD' }, // Spirits cyan
+  { from: '#8B3DFF', to: '#6A2BD1' }, // Bassment violet
+  { from: '#F53AB2', to: '#C21E86' }, // Garrison pink
+  { from: '#1ED1EA', to: '#185D63' }, // Garrison cyan → teal
 ]
 
 // Zigzag horizontal offsets — creates the Duolingo winding path feel
@@ -254,7 +249,7 @@ export function TrainingPath({ courses, onStartCourse }: TrainingPathProps) {
                               ? { background: `linear-gradient(135deg, ${theme.from}, ${theme.to})`, boxShadow: `0 8px 32px ${theme.from}55` }
                               : { background: `linear-gradient(135deg, ${theme.from}bb, ${theme.to}bb)`, boxShadow: `0 2px 12px ${theme.from}33` }
                           ),
-                          ...(hasResume && !isLocked ? { outline: '3px dashed hsl(var(--primary))', outlineOffset: '3px' } : {}),
+                          ...(hasResume && !isLocked ? { outline: '3px dashed var(--primary)', outlineOffset: '3px' } : {}),
                         }}
                       >
                         {/* Animated ring on "next" node */}

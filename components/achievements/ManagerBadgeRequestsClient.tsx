@@ -27,10 +27,10 @@ type VenueLabel = typeof VENUE_ORDER[number]
 
 const VENUE_STYLES: Record<VenueLabel, { accent: string; border: string; headerText: string; dot: string }> = {
   Garrison: {
-    accent: 'bg-garrison-orange/15 border-garrison-orange/30',
-    border: 'border-l-garrison-orange',
-    headerText: 'text-garrison-orange',
-    dot: 'bg-garrison-orange',
+    accent: 'bg-garrison-pink/15 border-garrison-pink/30',
+    border: 'border-l-garrison-pink',
+    headerText: 'text-garrison-pink',
+    dot: 'bg-garrison-pink',
   },
   Spirits: {
     accent: 'bg-spirits-cyan/10 border-spirits-cyan/25',

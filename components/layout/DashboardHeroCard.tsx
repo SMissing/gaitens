@@ -54,22 +54,22 @@ export function DashboardHeroCard({
   if (trainingPct !== null && trainingPct < 100) {
     slides.push({
       key: 'training',
-      icon: <GraduationCap className="h-6 w-6 text-amber-300" />,
+      icon: <GraduationCap className="h-6 w-6 text-spirits-cyan" />,
       headline: `${trainingPct}% trained`,
       sub: trainingLabel ?? 'Keep going',
       href: '/training',
-      gradient: 'linear-gradient(135deg, #1e0a5e 0%, #0d1b52 60%, #0c0c1e 100%)',
+      gradient: 'var(--glow-spirits), var(--card)',
     })
   }
 
   if (upcomingHolidayCount > 0) {
     slides.push({
       key: 'holidays',
-      icon: <Calendar className="h-6 w-6 text-green-400" />,
+      icon: <Calendar className="h-6 w-6 text-bassment-orchid" />,
       headline: `${upcomingHolidayCount} approved ${upcomingHolidayCount === 1 ? 'day' : 'days'} off coming up`,
       sub: 'Your next break is scheduled',
       href: '/holidays/upcoming',
-      gradient: 'linear-gradient(135deg, #0a2e1a 0%, #0d2d1e 60%, #0a1e14 100%)',
+      gradient: 'var(--glow-bassment), var(--card)',
     })
   }
 
@@ -80,7 +80,7 @@ export function DashboardHeroCard({
       headline: `${pendingHolidayCount} holiday ${pendingHolidayCount === 1 ? 'request' : 'requests'} pending`,
       sub: 'Awaiting manager approval',
       href: '/holidays',
-      gradient: 'linear-gradient(135deg, #2e1a00 0%, #2a1800 60%, #1a1000 100%)',
+      gradient: 'var(--glow-warning), var(--card)',
     })
   }
 
@@ -92,7 +92,7 @@ export function DashboardHeroCard({
       headline: `Welcome back, ${userName.split(' ')[0]}`,
       sub: 'Your portal is up to date',
       href: '/dashboard',
-      gradient: 'linear-gradient(135deg, #0a1e2e 0%, #0d1b2a 60%, #0a1420 100%)',
+      gradient: 'var(--glow-gaitens), var(--card)',
     })
   }
 

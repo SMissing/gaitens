@@ -198,12 +198,12 @@ export function PushPermissionPrompt() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
           className="fixed inset-0 z-[9999] flex flex-col"
-          style={{ background: '#0c0c1e' }}
+          style={{ background: 'var(--background)' }}
         >
           {/* ── Gradient + stars — z-0 so they sit behind everything ── */}
           <div
             className="absolute inset-0 z-0 pointer-events-none"
-            style={{ background: 'linear-gradient(180deg, #1e0a5e 0%, #0d1b52 35%, #0c0c1e 100%)' }}
+            style={{ background: 'var(--glow-spirits)' }}
           />
           <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden>
             {STARS.map((s, i) => (

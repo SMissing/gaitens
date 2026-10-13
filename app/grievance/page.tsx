@@ -41,7 +41,7 @@ export default async function GrievancePage({
       <div className="min-h-screen bg-background">
         <PageHeader 
           title="Grievances"
-          icon={<FileText className="h-6 w-6 text-garrison-orange" />}
+          icon={<FileText className="h-6 w-6 text-garrison-pink" />}
           description="Review and manage submitted grievances"
         />
         <div className="p-4 sm:p-6 lg:p-8 pb-32">
@@ -59,7 +59,7 @@ export default async function GrievancePage({
       <div className="min-h-screen bg-background">
         <PageHeader
           title="Raise a Concern"
-          icon={<FileText className="h-6 w-6 text-garrison-orange" />}
+          icon={<FileText className="h-6 w-6 text-garrison-pink" />}
           showBack
           backHref="/dashboard"
         />
@@ -77,7 +77,7 @@ export default async function GrievancePage({
     <div className="min-h-screen bg-background">
       <PageHeader
         title="File a Grievance"
-        icon={<FileText className="h-6 w-6 text-garrison-orange" />}
+        icon={<FileText className="h-6 w-6 text-garrison-pink" />}
         description="All grievances are kept confidential and handled professionally"
         showBack
         backHref="/grievance"
